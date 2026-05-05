@@ -2,13 +2,12 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { formatDate, numberToWords } from './invoiceUtils';
 
-// ₹ symbol jsPDF mein render nahi hota — Rs. use karo PDF mein
 const fmtPDF = (n) => 'Rs.' + (Number(n) || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 export const generatePDF = (invoice) => {
-  const doc = new jsPDF({ format: 'a4', unit: 'mm', orientation: 'landscape' });
-  const pageW = 297;
-  const pageH = 210;
+  const doc = new jsPDF({ format: 'a4', unit: 'mm', orientation: 'portrait' });
+  const pageW = 210;
+  const pageH = 297;
   const margin = 14;
   const contentW = pageW - margin * 2;
 
@@ -19,7 +18,6 @@ export const generatePDF = (invoice) => {
 
   let y = margin;
 
-  // ── Header ──
   doc.setFillColor(...accentBg);
   doc.rect(0, 0, pageW, 45, 'F');
 
@@ -37,11 +35,11 @@ export const generatePDF = (invoice) => {
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
   const sellerAddrLines = doc.splitTextToSize(
-    `${invoice.seller?.address || ''}   GSTIN: ${invoice.seller?.gstNumber || ''}`, 130
+    `${invoice.seller?.address || ''}   GSTIN: ${invoice.seller?.gstNumber || ''}`, 120
   );
   doc.text(sellerAddrLines, margin, y + 18);
 
-  const metaX = pageW - margin - 75;
+  const metaX = pageW - margin - 65;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(...inkDark);
@@ -54,12 +52,10 @@ export const generatePDF = (invoice) => {
 
   y = 50;
 
-  // ── Bill To + Supply Details ──
   const boxH = 30;
   doc.setDrawColor(...inkLight);
   doc.setLineWidth(0.3);
 
-  // Bill To box
   doc.rect(margin, y, contentW / 2 - 4, boxH);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
@@ -76,7 +72,6 @@ export const generatePDF = (invoice) => {
   doc.text(buyerLines, margin + 3, y + 19);
   doc.text(`GSTIN: ${invoice.buyer?.gstNumber || ''}`, margin + 3, y + 26);
 
-  // Supply Details box
   const stateX = margin + contentW / 2 + 4;
   doc.rect(stateX, y, contentW / 2 - 4, boxH);
   doc.setFont('helvetica', 'bold');
@@ -92,7 +87,6 @@ export const generatePDF = (invoice) => {
 
   y += boxH + 6;
 
-  // ── Items Table ──
   const tableHead = invoice.isSameState
     ? [['#', 'Product/Service', 'HSN/SAC', 'UoM', 'Qty', 'Rate', 'Taxable Amt', 'GST%', 'CGST', 'SGST', 'Amount']]
     : [['#', 'Product/Service', 'HSN/SAC', 'UoM', 'Qty', 'Rate', 'Taxable Amt', 'GST%', 'IGST', 'Amount']];
@@ -124,30 +118,29 @@ export const generatePDF = (invoice) => {
     return row;
   });
 
-  // Column widths
   const colStyles = invoice.isSameState ? {
-    0: { cellWidth: 7,  halign: 'center' },
-    1: { cellWidth: 45 },
-    2: { cellWidth: 18, halign: 'center' },
-    3: { cellWidth: 14, halign: 'center' },
-    4: { cellWidth: 12, halign: 'right' },
-    5: { cellWidth: 20, halign: 'right' },
-    6: { cellWidth: 24, halign: 'right' },
-    7: { cellWidth: 12, halign: 'center' },
+    0: { cellWidth: 6,  halign: 'center' },
+    1: { cellWidth: 38 },
+    2: { cellWidth: 14, halign: 'center' },
+    3: { cellWidth: 10, halign: 'center' },
+    4: { cellWidth: 9,  halign: 'right' },
+    5: { cellWidth: 16, halign: 'right' },
+    6: { cellWidth: 18, halign: 'right' },
+    7: { cellWidth: 9,  halign: 'center' },
+    8: { cellWidth: 15, halign: 'right' },
+    9: { cellWidth: 15, halign: 'right' },
+    10:{ cellWidth: 18, halign: 'right' },
+  } : {
+    0: { cellWidth: 6,  halign: 'center' },
+    1: { cellWidth: 48 },
+    2: { cellWidth: 16, halign: 'center' },
+    3: { cellWidth: 12, halign: 'center' },
+    4: { cellWidth: 10, halign: 'right' },
+    5: { cellWidth: 18, halign: 'right' },
+    6: { cellWidth: 22, halign: 'right' },
+    7: { cellWidth: 10, halign: 'center' },
     8: { cellWidth: 20, halign: 'right' },
     9: { cellWidth: 20, halign: 'right' },
-    10:{ cellWidth: 24, halign: 'right' },
-  } : {
-    0: { cellWidth: 7,  halign: 'center' },
-    1: { cellWidth: 55 },
-    2: { cellWidth: 20, halign: 'center' },
-    3: { cellWidth: 16, halign: 'center' },
-    4: { cellWidth: 14, halign: 'right' },
-    5: { cellWidth: 24, halign: 'right' },
-    6: { cellWidth: 28, halign: 'right' },
-    7: { cellWidth: 14, halign: 'center' },
-    8: { cellWidth: 28, halign: 'right' },
-    9: { cellWidth: 28, halign: 'right' },
   };
 
   doc.autoTable({
@@ -157,8 +150,8 @@ export const generatePDF = (invoice) => {
     margin: { left: margin, right: margin },
     styles: {
       font: 'helvetica',
-      fontSize: 7.5,
-      cellPadding: 2.5,
+      fontSize: 7,
+      cellPadding: 2,
       textColor: inkDark,
       overflow: 'linebreak',
     },
@@ -166,7 +159,7 @@ export const generatePDF = (invoice) => {
       fillColor: inkDark,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 7,
+      fontSize: 6.5,
     },
     alternateRowStyles: { fillColor: accentBg },
     columnStyles: colStyles,
@@ -176,9 +169,8 @@ export const generatePDF = (invoice) => {
 
   y = doc.lastAutoTable.finalY + 6;
 
-  // ── Summary ──
-  const summaryX = pageW - margin - 78;
-  const summaryW = 78;
+  const summaryX = pageW - margin - 72;
+  const summaryW = 72;
 
   const drawRow = (label, value, bold = false, highlight = false) => {
     if (highlight) {
@@ -195,6 +187,14 @@ export const generatePDF = (invoice) => {
     y += 7;
   };
 
+  const exactTotal = (Number(invoice.subtotal) || 0) +
+    (invoice.isSameState
+      ? (Number(invoice.cgst) || 0) + (Number(invoice.sgst) || 0)
+      : (Number(invoice.igst) || 0));
+
+  const roundedTotal = Math.round(exactTotal);
+  const roundOff = roundedTotal - exactTotal;
+
   drawRow('Subtotal (Taxable):', fmtPDF(invoice.subtotal));
   if (invoice.isSameState) {
     drawRow('CGST:', fmtPDF(invoice.cgst));
@@ -203,8 +203,7 @@ export const generatePDF = (invoice) => {
     drawRow('IGST:', fmtPDF(invoice.igst));
   }
 
-  const roundOff = Math.round(invoice.grandTotal) - invoice.grandTotal;
-  if (Math.abs(roundOff) > 0.001) {
+  if (Math.abs(roundOff) >= 0.001) {
     drawRow('Round Off:', (roundOff >= 0 ? '+' : '') + roundOff.toFixed(2));
   }
 
@@ -212,21 +211,19 @@ export const generatePDF = (invoice) => {
   doc.setLineWidth(0.3);
   doc.line(summaryX, y - 2, summaryX + summaryW, y - 2);
 
-  drawRow('GRAND TOTAL:', fmtPDF(invoice.grandTotal), true, true);
+  drawRow('GRAND TOTAL:', fmtPDF(roundedTotal), true, true);
 
   y += 4;
 
-  // ── Amount in words ──
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
   const wordsLine = doc.splitTextToSize(
-    `Amount in words: ${numberToWords(invoice.grandTotal)}`, contentW - 85
+    `Amount in words: ${numberToWords(roundedTotal)}`, contentW - 80
   );
   doc.text(wordsLine, margin, y);
   y += wordsLine.length * 4 + 4;
 
-  // ── Notes ──
   if (invoice.notes) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
@@ -237,7 +234,6 @@ export const generatePDF = (invoice) => {
     y += 4 + noteLines.length * 4;
   }
 
-  // ── Footer ──
   const footerY = pageH - 24;
   doc.setDrawColor(...inkLight);
   doc.line(margin, footerY, pageW - margin, footerY);
