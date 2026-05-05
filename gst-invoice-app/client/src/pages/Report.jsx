@@ -142,9 +142,9 @@ export default function Report() {
     { key: 'item', label: 'Item-wise' },
   ];
 
-  const thStyle = {
+  const thStyle = (right = false) => ({
     padding: '10px 12px',
-    textAlign: 'left',
+    textAlign: right ? 'right' : 'left',
     fontSize: '11px',
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -152,7 +152,7 @@ export default function Report() {
     color: 'white',
     whiteSpace: 'nowrap',
     background: '#1c1c18',
-  };
+  });
 
   const tdStyle = (right = false) => ({
     padding: '9px 12px',
@@ -199,11 +199,10 @@ export default function Report() {
       <div className="flex gap-2 border-b border-ink-100 dark:border-ink-800">
         {tabs.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === tab.key
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${activeTab === tab.key
                 ? 'border-ink-800 dark:border-amber-500 text-ink-800 dark:text-amber-400'
                 : 'border-transparent text-ink-400 hover:text-ink-600'
-            }`}>
+              }`}>
             {tab.label}
           </button>
         ))}
@@ -218,8 +217,8 @@ export default function Report() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['#', 'Party Name', 'GSTIN', 'State', 'Invoices', 'Taxable Amt', 'CGST', 'SGST', 'IGST', 'Total'].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
+                  {['#', 'Party Name', 'GSTIN', 'State', 'Invoices', 'Taxable Amt', 'CGST', 'SGST', 'IGST', 'Total'].map((h, i) => (
+                    <th key={h} style={thStyle(i >= 4)}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -263,8 +262,8 @@ export default function Report() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['#', 'HSN/SAC', 'Description', 'UOM', 'Total Qty', 'Taxable Amt', 'CGST', 'SGST', 'IGST'].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
+                  {['#', 'HSN/SAC', 'Description', 'UOM', 'Total Qty', 'Taxable Amt', 'CGST', 'SGST', 'IGST'].map((h, i) => (
+                    <th key={h} style={thStyle(i >= 4)}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -306,8 +305,8 @@ export default function Report() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['#', 'GST Rate', 'Taxable Amount', 'CGST', 'SGST', 'IGST', 'Total Tax', 'Grand Total'].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
+                  {['#', 'GST Rate', 'Taxable Amount', 'CGST', 'SGST', 'IGST', 'Total Tax', 'Grand Total'].map((h, i) => (
+                    <th key={h} style={thStyle(i >= 2)}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -350,8 +349,8 @@ export default function Report() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['#', 'Item Name', 'HSN/SAC', 'UOM', 'GST %', 'Total Qty', 'Taxable Amt', 'Total GST', 'Grand Total'].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
+                  {['#', 'Item Name', 'HSN/SAC', 'UOM', 'GST %', 'Total Qty', 'Taxable Amt', 'Total GST', 'Grand Total'].map((h, i) => (
+                    <th key={h} style={thStyle(i >= 4)}>{h}</th>
                   ))}
                 </tr>
               </thead>
