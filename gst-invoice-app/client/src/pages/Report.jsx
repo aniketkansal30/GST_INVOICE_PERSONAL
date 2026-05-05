@@ -55,7 +55,7 @@ export default function Report() {
   // HSN-wise
   const hsnWise = Object.values(
     filtered.flatMap(inv => inv.items || []).reduce((acc, item) => {
-      const key = item.hsn || 'No HSN';
+      const key = `${item.hsn || 'No HSN'}_${item.name || ''}`;
       if (!acc[key]) acc[key] = {
         hsn: key,
         description: item.name || '-',

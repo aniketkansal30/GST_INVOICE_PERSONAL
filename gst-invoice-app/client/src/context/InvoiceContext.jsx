@@ -29,10 +29,11 @@ export const InvoiceProvider = ({ children }) => {
   }, []);
 
   const updateInvoice = useCallback(async (id, data) => {
-    const res = await api.put(`/invoices/${id}`, data);
-    toast.success('Invoice updated!');
-    return res.data;
-  }, []);
+  const res = await api.put(`/invoices/${id}`, data);
+  setInvoices(prev => prev.map(inv => inv._id === id ? res.data : inv));
+  toast.success('Invoice updated!');
+  return res.data;
+}, []);
 
   const deleteInvoice = useCallback(async (id) => {
     await api.delete(`/invoices/${id}`);
