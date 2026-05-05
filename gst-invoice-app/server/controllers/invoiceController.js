@@ -1,0 +1,101 @@
+const Invoice = require('../models/Invoice');
+
+exports.getInvoices = async (req, res) => {
+  try {
+    const { search, page = 1, limit = 10, status } = req.query;
+    const query = { user: req.user._id };
+
+    if (search) {
+      query.$or = [
+        { 'buyer.clientName': { $regex: search, $options: 'i' } },
+        { invoiceNumber: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (status) query.status = status;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const [invoices, total] = await Promise.all([
+      Invoice.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      Invoice.countDocuments(query),
+    ]);
+
+    res.json({
+      invoices,
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+      total,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    res.json(invoice);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.createInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.create({ ...req.body, user: req.user._id });
+    res.status(201).json(invoice);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ message: 'Invoice number already exists' });
+    }
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    res.json(invoice);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    res.json({ message: 'Invoice deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.duplicateInvoice = async (req, res) => {
+  try {
+    const original = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
+    if (!original) return res.status(404).json({ message: 'Invoice not found' });
+
+    const { _id, createdAt, updatedAt, invoiceNumber, ...data } = original.toObject();
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const mo = String(new Date().getMonth() + 1).padStart(2, '0');
+    const rand = String(Math.floor(Math.random() * 9000) + 1000);
+    const newNumber = `${invoiceNumber.split('-')[0]}-${yr}${mo}-${rand}`;
+
+    const duplicate = await Invoice.create({
+      ...data,
+      invoiceNumber: newNumber,
+      invoiceDate: new Date(),
+      status: 'draft',
+      user: req.user._id,
+    });
+    res.status(201).json(duplicate);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
