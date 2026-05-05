@@ -33,7 +33,8 @@ export const generatePDF = (invoice) => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
-  doc.text(invoice.seller.address || '', margin, y + 18);
+  const sellerAddrLines = doc.splitTextToSize(invoice.seller.address || '', 120);
+  doc.text(sellerAddrLines, margin, y + 18);
   doc.text(`GSTIN: ${invoice.seller.gstNumber || ''}`, margin, y + 24);
   doc.text(invoice.seller.contact || '', margin, y + 30);
 
@@ -88,8 +89,8 @@ export const generatePDF = (invoice) => {
 
   // Table - dynamic columns based on isSameState
   const tableHead = invoice.isSameState
-    ? [['#', 'Product/Service', 'HSN/SAC', 'Description', 'UoM', 'QTY', 'Unit Price', 'Taxable Amt', 'GST %', 'CGST', 'SGST', 'Amount']]
-    : [['#', 'Product/Service', 'HSN/SAC', 'Description', 'UoM', 'QTY', 'Unit Price', 'Taxable Amt', 'GST %', 'IGST', 'Amount']];
+    ? [['#', 'Product/Service', 'HSN/SAC', 'UoM', 'QTY', 'Unit Price', 'Taxable Amt', 'GST %', 'CGST', 'SGST', 'Amount']]
+    : [['#', 'Product/Service', 'HSN/SAC', 'UoM', 'QTY', 'Unit Price', 'Taxable Amt', 'GST %', 'IGST', 'Amount']];
 
   const tableBody = invoice.items.map((item, i) => {
     const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
@@ -103,7 +104,6 @@ export const generatePDF = (invoice) => {
       String(i + 1),
       item.name || '',
       item.hsn || '',
-      item.description || '',
       item.unit || 'Nos',
       String(item.qty),
       base > 0 ? Number(item.rate).toFixed(2) : '0.00',
@@ -183,6 +183,8 @@ export const generatePDF = (invoice) => {
     drawRow('IGST:', formatCurrency(invoice.igst));
   }
   drawRow('Total GST:', formatCurrency(invoice.totalGst));
+  const roundOff = Math.round(invoice.grandTotal) - invoice.grandTotal;
+  drawRow('Round Off:', (roundOff >= 0 ? '+ ' : '') + Math.abs(roundOff).toFixed(2));
 
   doc.setDrawColor(...inkLight);
   doc.setLineWidth(0.3);

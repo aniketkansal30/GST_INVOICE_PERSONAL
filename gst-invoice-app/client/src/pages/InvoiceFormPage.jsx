@@ -9,7 +9,7 @@ import {
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const emptyItem = () => ({ id: Date.now(), name: '', hsn: '', description: '', qty: 1, unit: 'Nos', rate: 0, gstPct: 18 });
+const emptyItem = () => ({ id: Date.now(), name: '', hsn: '', qty: 1, unit: 'Nos', rate: 0, gstPct: 18 });
 
 const defaultSeller = { companyName: '', gstNumber: '', address: '', state: '', contact: '', email: '' };
 const defaultBuyer = { clientName: '', gstNumber: '', address: '', state: '', contact: '' };
@@ -25,13 +25,13 @@ export default function InvoiceFormPage() {
   const [loadingInv, setLoadingInv] = useState(isEdit);
 
   const [seller, setSeller] = useState({
-  companyName: user?.companyName || '',
-  gstNumber:   user?.gstNumber   || '',
-  address:     user?.address     || '',
-  state:       user?.state       || '',
-  contact:     user?.contact     || '',
-  email:       user?.email       || '',
-});
+    companyName: user?.companyName || '',
+    gstNumber: user?.gstNumber || '',
+    address: user?.address || '',
+    state: user?.state || '',
+    contact: user?.contact || '',
+    email: user?.email || '',
+  });
   const [buyer, setBuyer] = useState({ ...defaultBuyer });
   const [meta, setMeta] = useState({
     invoiceNumber: generateInvoiceNumber(),
@@ -89,9 +89,11 @@ export default function InvoiceFormPage() {
       igst += g.igst;
       totalGst += g.totalGst;
     });
-    return { subtotal, cgst, sgst, igst, totalGst, grandTotal: subtotal + totalGst };
+    const grandTotal = subtotal + totalGst;
+    const roundOff = Math.round(grandTotal) - grandTotal;
+    const finalTotal = Math.round(grandTotal);
+    return { subtotal, cgst, sgst, igst, totalGst, grandTotal, roundOff, finalTotal };
   })();
-
   const addItem = () => setItems(p => [...p, emptyItem()]);
   const removeItem = (id) => {
     if (items.length === 1) return toast.error('At least one item required');
@@ -275,11 +277,10 @@ export default function InvoiceFormPage() {
             </div>
             {/* Tax type indicator */}
             {seller.state && buyer.state && (
-              <div className={`mt-4 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 ${
-                isSameState
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
-                  : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
-              }`}>
+              <div className={`mt-4 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 ${isSameState
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
+                }`}>
                 {isSameState ? '✓ Same state → CGST + SGST will apply' : '✓ Different states → IGST will apply'}
               </div>
             )}
@@ -299,13 +300,13 @@ export default function InvoiceFormPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-ink-100 dark:border-ink-800">
-                  {['#', 'Product/Service', 'HSN/SAC', 'Description', 'UoM', 'QTY', 'Unit Price (₹)', 'Taxable Amt (₹)', 'GST %',
+                  {['#', 'Product/Service', 'HSN/SAC', 'UoM', 'QTY', 'Unit Price (₹)', 'Taxable Amt (₹)', 'GST %',
                     ...(isSameState ? ['CGST (₹)', 'SGST (₹)'] : ['IGST (₹)']),
                     'Amount (₹)', ''].map(h => (
-                    <th key={h} className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
+                      <th key={h} className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-50 dark:divide-ink-800">
@@ -322,10 +323,7 @@ export default function InvoiceFormPage() {
                       <td className="px-3 py-3 min-w-[100px]">
                         <input value={item.hsn} onChange={e => updateItem(item.id, 'hsn', e.target.value)} className="input font-mono" placeholder="HSN/SAC" />
                       </td>
-                      <td className="px-3 py-3 min-w-[180px]">
-                        <input value={item.description} onChange={e => updateItem(item.id, 'description', e.target.value)} className="input" placeholder="Description" />
-                      </td>
-                      <td className="px-3 py-3 min-w-[90px]">
+                      <td className="px-3 py-3 min-w-[130px]">
                         <input value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)} className="input" placeholder="Unit" list="unit-options" />
                         <datalist id="unit-options">
                           {['Nos', 'Kg', 'Ltr', 'Mtr', 'Box', 'Pcs', 'Set', 'Hrs', 'Trolly', 'MT', 'Quintal', 'Span'].map(u => (
@@ -333,7 +331,7 @@ export default function InvoiceFormPage() {
                           ))}
                         </datalist>
                       </td>
-                      <td className="px-3 py-3 min-w-[80px]">
+                      <td className="px-3 py-3 min-w-[110px]">
                         <input type="number" min="0" step="0.01" value={item.qty} onChange={e => updateItem(item.id, 'qty', e.target.value)} className="input text-center" />
                       </td>
                       <td className="px-3 py-3 min-w-[110px]">
@@ -415,10 +413,14 @@ export default function InvoiceFormPage() {
                 <span>Total GST</span>
                 <span className="font-mono">{formatCurrency(totals.totalGst)}</span>
               </div>
+             <div className="flex justify-between text-sm text-ink-500 dark:text-ink-400">
+                <span>Round Off</span>
+                <span className="font-mono">{totals.roundOff >= 0 ? '+' : ''}{totals.roundOff.toFixed(2)}</span>
+              </div>
               <div className="h-px bg-ink-200 dark:bg-ink-700" />
               <div className="flex justify-between text-base font-bold text-ink-800 dark:text-ink-100">
                 <span>Grand Total</span>
-                <span className="font-mono">{formatCurrency(totals.grandTotal)}</span>
+                <span className="font-mono">₹{totals.finalTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
           </div>
