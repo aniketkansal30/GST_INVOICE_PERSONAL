@@ -57,7 +57,8 @@ export default function App() {
                 <Route path="invoices/:id/edit" element={<InvoiceFormPage />} />
                 <Route path="invoices/:id" element={<InvoicePreviewPage />} />
                 <Route path="settings" element={<SettingsPage />} />
-                <Route path="invoice_details" element={<Report/>} />
+                <Route path="invoice_details" element={<Report />} />
+                <Route path="gstr1" element={<Report />} />
               </Route>
             </Routes>
           </Router>
