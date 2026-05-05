@@ -18,6 +18,7 @@ export const generatePDF = (invoice) => {
 
   let y = margin;
 
+  // ── Header ──
   doc.setFillColor(...accentBg);
   doc.rect(0, 0, pageW, 45, 'F');
 
@@ -35,11 +36,11 @@ export const generatePDF = (invoice) => {
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
   const sellerAddrLines = doc.splitTextToSize(
-    `${invoice.seller?.address || ''}   GSTIN: ${invoice.seller?.gstNumber || ''}`, 120
+    `${invoice.seller?.address || ''}   PAN: ${invoice.seller?.pan || ''}   MSME: ${invoice.seller?.msme || ''}   GSTIN: ${invoice.seller?.gstNumber || ''}`, 130
   );
   doc.text(sellerAddrLines, margin, y + 18);
 
-  const metaX = pageW - margin - 65;
+  const metaX = pageW - margin - 60;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(...inkDark);
@@ -48,11 +49,12 @@ export const generatePDF = (invoice) => {
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
   doc.text(`Date: ${formatDate(invoice.invoiceDate)}`, metaX, y + 22);
-  doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, metaX, y + 28);
+  if (invoice.dueDate) doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, metaX, y + 28);
 
   y = 50;
 
-  const boxH = 30;
+  // ── Bill To + Supply Details ──
+  const boxH = 32;
   doc.setDrawColor(...inkLight);
   doc.setLineWidth(0.3);
 
@@ -70,7 +72,7 @@ export const generatePDF = (invoice) => {
   doc.setTextColor(...inkMid);
   const buyerLines = doc.splitTextToSize(invoice.buyer?.address || '', contentW / 2 - 14);
   doc.text(buyerLines, margin + 3, y + 19);
-  doc.text(`GSTIN: ${invoice.buyer?.gstNumber || ''}`, margin + 3, y + 26);
+  doc.text(`GSTIN: ${invoice.buyer?.gstNumber || ''}`, margin + 3, y + 28);
 
   const stateX = margin + contentW / 2 + 4;
   doc.rect(stateX, y, contentW / 2 - 4, boxH);
@@ -81,12 +83,13 @@ export const generatePDF = (invoice) => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(...inkDark);
-  doc.text(`Seller State: ${invoice.seller?.state || ''}`, stateX + 3, y + 13);
-  doc.text(`Buyer State: ${invoice.buyer?.state || ''}`, stateX + 3, y + 19);
-  doc.text(`Tax Type: ${invoice.isSameState ? 'CGST + SGST' : 'IGST'}`, stateX + 3, y + 25);
+  doc.text(`Seller State: ${invoice.seller?.state || ''}`, stateX + 3, y + 14);
+  doc.text(`Buyer State: ${invoice.buyer?.state || ''}`, stateX + 3, y + 21);
+  doc.text(`Tax Type: ${invoice.isSameState ? 'CGST + SGST' : 'IGST'}`, stateX + 3, y + 28);
 
-  y += boxH + 6;
+  y += boxH + 5;
 
+  // ── Items Table ──
   const tableHead = invoice.isSameState
     ? [['#', 'Product/Service', 'HSN/SAC', 'UoM', 'Qty', 'Rate', 'Taxable Amt', 'GST%', 'CGST', 'SGST', 'Amount']]
     : [['#', 'Product/Service', 'HSN/SAC', 'UoM', 'Qty', 'Rate', 'Taxable Amt', 'GST%', 'IGST', 'Amount']];
@@ -108,7 +111,6 @@ export const generatePDF = (invoice) => {
       base.toFixed(2),
       `${item.gstPct}%`,
     ];
-
     if (invoice.isSameState) {
       row.push(cgst.toFixed(2), cgst.toFixed(2));
     } else {
@@ -118,29 +120,30 @@ export const generatePDF = (invoice) => {
     return row;
   });
 
+  // Total width = 182mm (contentW)
   const colStyles = invoice.isSameState ? {
-    0: { cellWidth: 6,  halign: 'center' },
-    1: { cellWidth: 38 },
-    2: { cellWidth: 14, halign: 'center' },
-    3: { cellWidth: 10, halign: 'center' },
-    4: { cellWidth: 9,  halign: 'right' },
-    5: { cellWidth: 16, halign: 'right' },
-    6: { cellWidth: 18, halign: 'right' },
-    7: { cellWidth: 9,  halign: 'center' },
-    8: { cellWidth: 15, halign: 'right' },
-    9: { cellWidth: 15, halign: 'right' },
-    10:{ cellWidth: 18, halign: 'right' },
+    0:  { cellWidth: 5,  halign: 'center' },   // #
+    1:  { cellWidth: 42 },                      // Product
+    2:  { cellWidth: 13, halign: 'center' },    // HSN
+    3:  { cellWidth: 10, halign: 'center' },    // UoM
+    4:  { cellWidth: 11, halign: 'right'  },    // Qty
+    5:  { cellWidth: 17, halign: 'right'  },    // Rate
+    6:  { cellWidth: 20, halign: 'right'  },    // Taxable
+    7:  { cellWidth: 10, halign: 'center' },    // GST%
+    8:  { cellWidth: 18, halign: 'right'  },    // CGST
+    9:  { cellWidth: 18, halign: 'right'  },    // SGST
+    10: { cellWidth: 18, halign: 'right'  },    // Amount
   } : {
-    0: { cellWidth: 6,  halign: 'center' },
-    1: { cellWidth: 48 },
-    2: { cellWidth: 16, halign: 'center' },
+    0: { cellWidth: 5,  halign: 'center' },
+    1: { cellWidth: 52 },
+    2: { cellWidth: 15, halign: 'center' },
     3: { cellWidth: 12, halign: 'center' },
-    4: { cellWidth: 10, halign: 'right' },
-    5: { cellWidth: 18, halign: 'right' },
-    6: { cellWidth: 22, halign: 'right' },
+    4: { cellWidth: 12, halign: 'right'  },
+    5: { cellWidth: 20, halign: 'right'  },
+    6: { cellWidth: 24, halign: 'right'  },
     7: { cellWidth: 10, halign: 'center' },
-    8: { cellWidth: 20, halign: 'right' },
-    9: { cellWidth: 20, halign: 'right' },
+    8: { cellWidth: 22, halign: 'right'  },
+    9: { cellWidth: 22, halign: 'right'  },
   };
 
   doc.autoTable({
@@ -154,12 +157,16 @@ export const generatePDF = (invoice) => {
       cellPadding: 2,
       textColor: inkDark,
       overflow: 'linebreak',
+      valign: 'middle',
     },
     headStyles: {
       fillColor: inkDark,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 6.5,
+      cellPadding: { top: 2, bottom: 2, left: 2, right: 2 },
+      overflow: 'hidden',       // heading ek line mein rakhega
+      minCellHeight: 7,
     },
     alternateRowStyles: { fillColor: accentBg },
     columnStyles: colStyles,
@@ -167,8 +174,9 @@ export const generatePDF = (invoice) => {
     tableLineWidth: 0.3,
   });
 
-  y = doc.lastAutoTable.finalY + 6;
+  y = doc.lastAutoTable.finalY + 8;
 
+  // ── Summary ──
   const summaryX = pageW - margin - 72;
   const summaryW = 72;
 
@@ -210,11 +218,11 @@ export const generatePDF = (invoice) => {
   doc.setDrawColor(...inkLight);
   doc.setLineWidth(0.3);
   doc.line(summaryX, y - 2, summaryX + summaryW, y - 2);
-
   drawRow('GRAND TOTAL:', fmtPDF(roundedTotal), true, true);
 
-  y += 4;
+  y += 6;
 
+  // ── Amount in words ──
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
@@ -222,37 +230,41 @@ export const generatePDF = (invoice) => {
     `Amount in words: ${numberToWords(roundedTotal)}`, contentW - 80
   );
   doc.text(wordsLine, margin, y);
-  y += wordsLine.length * 4 + 4;
+  y += wordsLine.length * 4 + 5;
 
+  // ── Notes ──
   if (invoice.notes) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...inkMid);
     doc.text('Notes:', margin, y);
-    const noteLines = doc.splitTextToSize(invoice.notes, 140);
-    doc.text(noteLines, margin, y + 4);
-    y += 4 + noteLines.length * 4;
+    const noteLines = doc.splitTextToSize(invoice.notes, contentW - 80);
+    doc.text(noteLines, margin, y + 5);
+    y += 5 + noteLines.length * 4;
   }
 
-  const footerY = pageH - 24;
+  y += 8;
+
+  // ── Footer - items ke neeche, fixed position nahi ──
   doc.setDrawColor(...inkLight);
-  doc.line(margin, footerY, pageW - margin, footerY);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageW - margin, y);
+
+  y += 4;
 
   doc.setFillColor(...accentBg);
-  doc.rect(pageW - margin - 58, footerY + 3, 58, 16, 'F');
+  doc.rect(pageW - margin - 58, y, 58, 16, 'F');
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(...inkMid);
   doc.text(
     'For ' + (invoice.seller?.companyName || ''),
-    pageW - margin - 29, footerY + 8, { align: 'center' }
+    pageW - margin - 29, y + 6, { align: 'center' }
   );
-  doc.line(pageW - margin - 53, footerY + 14, pageW - margin - 5, footerY + 14);
-  doc.text('Authorized Signatory', pageW - margin - 29, footerY + 19, { align: 'center' });
+  doc.line(pageW - margin - 53, y + 12, pageW - margin - 5, y + 12);
+  doc.text('Authorized Signatory', pageW - margin - 29, y + 16, { align: 'center' });
 
-  doc.setFontSize(7);
-  doc.setTextColor(...inkMid);
-  doc.text('This is a computer-generated invoice.', pageW / 2, pageH - 3, { align: 'center' });
+  // ✅ "Computer generated invoice" HATAYA
 
   doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
 };
