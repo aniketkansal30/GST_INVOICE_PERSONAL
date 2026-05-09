@@ -209,7 +209,7 @@ export default function Report() {
       const gstin = inv.buyer?.gstNumber;
       if (!gstin || gstin === '-' || gstin.trim() === '') return; // skip non-GSTIN
       if (!b2bMap[gstin]) b2bMap[gstin] = { ctin: gstin, inv: [] };
-      const items = (inv.items || []).map(item => {
+      const items = (inv.items || []).map((item, idx) => {
         const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
         const gstPct = Number(item.gstPct) || 0;
         const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
