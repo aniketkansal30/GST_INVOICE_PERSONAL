@@ -42,7 +42,7 @@ export const generatePDF = (invoice) => {
   doc.text(sellerAddrLines, margin, y + 18);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text(`GSTIN: ${invoice.seller?.gstNumber || ''}`, margin, y + 18 + (sellerAddrLines.length * 4.5));
+  doc.text(`GSTIN: ${invoice.seller?.gstNumber || ''}`, margin, y + 16 + (sellerAddrLines.length * 4));
 
   const metaX = pageW - margin;
   doc.setFont('helvetica', 'bold');
@@ -95,8 +95,8 @@ export const generatePDF = (invoice) => {
 
   // ── Items Table ──
   const tableHead = invoice.isSameState
-    ? [['#', 'Product/Service', 'HSN/SAC', 'UoM', 'Qty', 'Rate', 'Taxable Amt', 'GST%', 'CGST', 'SGST', 'Amount']]
-    : [['#', 'Product/Service', 'HSN/SAC', 'UoM', 'Qty', 'Rate', 'Taxable Amt', 'GST%', 'IGST', 'Amount']];
+    ? [['S.No.', 'Product/Service', 'HSN/SAC', 'UNIT', 'Qty', 'Rate', 'Taxable Amt', 'GST%', 'CGST', 'SGST', 'Amount']]
+    : [['S.No.', 'Product/Service', 'HSN/SAC', 'UNIT', 'Qty', 'Rate', 'Taxable Amt', 'GST%', 'IGST', 'Amount']];
 
   const tableBody = invoice.items.map((item, i) => {
     const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
@@ -126,28 +126,28 @@ export const generatePDF = (invoice) => {
 
   // Total width = 182mm (contentW)
   const colStyles = invoice.isSameState ? {
-    0:  { cellWidth: 5,  halign: 'center' },   // #
-    1:  { cellWidth: 42 },                      // Product
-    2:  { cellWidth: 13, halign: 'center' },    // HSN
-    3:  { cellWidth: 10, halign: 'center' },    // UoM
-    4:  { cellWidth: 11, halign: 'right'  },    // Qty
-    5:  { cellWidth: 17, halign: 'right'  },    // Rate
-    6:  { cellWidth: 20, halign: 'right'  },    // Taxable
-    7:  { cellWidth: 10, halign: 'center' },    // GST%
-    8:  { cellWidth: 18, halign: 'right'  },    // CGST
-    9:  { cellWidth: 18, halign: 'right'  },    // SGST
-    10: { cellWidth: 18, halign: 'right'  },    // Amount
+    0:  { cellWidth: 8,  halign: 'center' },   // S.No.
+    1:  { cellWidth: 40, halign: 'left'   },   // Product
+    2:  { cellWidth: 13, halign: 'center' },   // HSN
+    3:  { cellWidth: 12, halign: 'center' },   // UNIT
+    4:  { cellWidth: 10, halign: 'center' },   // Qty
+    5:  { cellWidth: 16, halign: 'center' },   // Rate
+    6:  { cellWidth: 20, halign: 'center' },   // Taxable
+    7:  { cellWidth: 10, halign: 'center' },   // GST%
+    8:  { cellWidth: 17, halign: 'center' },   // CGST
+    9:  { cellWidth: 17, halign: 'center' },   // SGST
+    10: { cellWidth: 19, halign: 'center' },   // Amount
   } : {
-    0: { cellWidth: 5,  halign: 'center' },
-    1: { cellWidth: 52 },
+    0: { cellWidth: 8,  halign: 'center' },
+    1: { cellWidth: 50, halign: 'left'   },
     2: { cellWidth: 15, halign: 'center' },
     3: { cellWidth: 12, halign: 'center' },
-    4: { cellWidth: 12, halign: 'right'  },
-    5: { cellWidth: 20, halign: 'right'  },
-    6: { cellWidth: 24, halign: 'right'  },
+    4: { cellWidth: 12, halign: 'center' },
+    5: { cellWidth: 20, halign: 'center' },
+    6: { cellWidth: 24, halign: 'center' },
     7: { cellWidth: 10, halign: 'center' },
-    8: { cellWidth: 22, halign: 'right'  },
-    9: { cellWidth: 22, halign: 'right'  },
+    8: { cellWidth: 22, halign: 'center' },
+    9: { cellWidth: 22, halign: 'center' },
   };
 
   doc.autoTable({
@@ -222,6 +222,7 @@ export const generatePDF = (invoice) => {
   doc.setDrawColor(...inkLight);
   doc.setLineWidth(0.3);
   doc.line(summaryX, y - 2, summaryX + summaryW, y - 2);
+  y += 3;
   drawRow('GRAND TOTAL:', fmtPDF(roundedTotal), true, true);
 
   y += 6;

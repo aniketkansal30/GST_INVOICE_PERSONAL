@@ -65,11 +65,12 @@ export default function InvoicePreviewPage() {
       </div>
 
       {/* A4 Invoice */}
+      <div style={{ overflowX: 'auto', width: '100%' }}>
       <div
         ref={printRef}
         className="invoice-preview bg-white text-ink-800 shadow-2xl rounded-xl overflow-hidden"
-        style={{ width: '100%', maxWidth: '794px', minHeight: '1123px', margin: '0 auto', fontFamily: 'DM Sans, sans-serif', overflowX: 'auto' }}
-      >
+        style={{ width: '794px', minHeight: '1123px', margin: '0 auto', fontFamily: 'DM Sans, sans-serif', transform: 'scale(1)', transformOrigin: 'top center' }}
+      ></div>
         {/* Header */}
         <div style={{ background: '#f4f4f0', padding: '32px 40px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
