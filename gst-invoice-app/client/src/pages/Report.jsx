@@ -39,7 +39,7 @@ export default function Report() {
         invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
         dueDate: inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN') : '-',
         placeOfSupply: inv.buyer?.state || '-',
-        taxable: inv.subtotal || 0, cgst: inv.cgst || 0, sgst: inv.sgst || 0,
+        hsn: (inv.items||[]).map(i=>i.hsn||"-").filter((v,i,a)=>a.indexOf(v)===i).join(", "), taxable: inv.subtotal || 0, cgst: inv.cgst || 0, sgst: inv.sgst || 0,
         igst: inv.igst || 0, total: inv.grandTotal || 0, status: inv.status || 'draft',
       });
       acc[key].taxable += inv.subtotal || 0;
@@ -165,11 +165,11 @@ export default function Report() {
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
 
-    const partyRows = [['#','Party','GSTIN','State','Invoice No','Date','Due Date','Place of Supply','Taxable','CGST','SGST','IGST','Total','Status']];
+    const partyRows = [['#','Party','GSTIN','State','HSN/SAC','Invoice No','Date','Due Date','Place of Supply','Taxable','CGST','SGST','IGST','Total','Status']];
     let sr = 1;
     partyWise.forEach(p => {
       p.invoiceList.forEach(inv => {
-        partyRows.push([sr++, p.party, p.gstin, p.state, inv.invoiceNumber, inv.invoiceDate, inv.dueDate, inv.placeOfSupply, inv.taxable, inv.cgst, inv.sgst, inv.igst, inv.total, inv.status]);
+        partyRows.push([sr++, p.party, p.gstin, p.state, (inv.hsn||'-'), inv.invoiceNumber, inv.invoiceDate, inv.dueDate, inv.placeOfSupply, inv.taxable, inv.cgst, inv.sgst, inv.igst, inv.total, inv.status]);
       });
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(partyRows), 'Party-wise B2B');
@@ -503,3 +503,9 @@ export default function Report() {
     </div>
   );
 }
+
+
+
+
+
+
