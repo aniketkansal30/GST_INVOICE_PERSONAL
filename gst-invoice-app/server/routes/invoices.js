@@ -1,12 +1,15 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const {
-  getInvoices, getInvoice, createInvoice, updateInvoice, deleteInvoice, duplicateInvoice
+  getInvoices, getInvoice, createInvoice, updateInvoice, deleteInvoice, duplicateInvoice,
+  getClients, getProducts
 } = require('../controllers/invoiceController');
 const { auth } = require('../middleware/auth');
 
-router.use(auth); // All invoice routes require auth
+router.use(auth);
 
+router.get('/meta/clients', getClients);
+router.get('/meta/products', getProducts);
 router.get('/', getInvoices);
 router.post('/', createInvoice);
 router.get('/:id', getInvoice);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Eye, EyeOff, ArrowRight } from 'lucide-react';
@@ -47,7 +47,7 @@ export default function LoginPage() {
             Generate GST-compliant invoices with automatic tax calculations, professional PDF export, and complete audit trails.
           </p>
         </div>
-        <p className="text-ink-500 text-xs font-mono">© 2024 GST Studio · All rights reserved</p>
+        <p className="text-ink-500 text-xs font-mono">Â© 2024 GST Studio Â· All rights reserved</p>
       </div>
 
       {/* Right panel */}
@@ -73,12 +73,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="label mb-0">Password</label>
-                <button type="button" className="text-xs text-ink-500 hover:text-ink-700 dark:hover:text-ink-300">
-                  Forgot password?
-                </button>
-              </div>
+              <div className="mb-1.5"><label className="label mb-0">Password</label></div>
               <div className="relative">
                 <input
                   name="password" type={showPw ? 'text' : 'password'} value={form.password} onChange={handle}
@@ -102,14 +97,12 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-ink-500 dark:text-ink-400">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-ink-800 dark:text-amber-400 font-semibold hover:underline">
-              Sign up free
-            </Link>
-          </p>
+          
         </div>
       </div>
     </div>
   );
 }
+
+
+

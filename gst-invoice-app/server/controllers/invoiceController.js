@@ -1,4 +1,4 @@
-const Invoice = require('../models/Invoice');
+﻿const Invoice = require('../models/Invoice');
 
 exports.getInvoices = async (req, res) => {
   try {
@@ -95,6 +95,47 @@ exports.duplicateInvoice = async (req, res) => {
       user: req.user._id,
     });
     res.status(201).json(duplicate);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getClients = async (req, res) => {
+  try {
+    const invoices = await Invoice.find({ user: req.user._id }, { buyer: 1 });
+    const clientMap = {};
+    invoices.forEach(inv => {
+      const b = inv.buyer;
+      if (b && b.clientName) {
+        const key = b.clientName.trim().toLowerCase();
+        if (!clientMap[key]) clientMap[key] = b;
+      }
+    });
+    res.json(Object.values(clientMap));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getProducts = async (req, res) => {
+  try {
+    const invoices = await Invoice.find({ user: req.user._id }, { items: 1 });
+    const productMap = {};
+    invoices.forEach(inv => {
+      (inv.items || []).forEach(item => {
+        if (item.name) {
+          const key = item.name.trim().toLowerCase();
+          if (!productMap[key]) productMap[key] = {
+            name: item.name,
+            hsn: item.hsn || '',
+            unit: item.unit || 'Nos',
+            rate: item.rate || 0,
+            gstPct: item.gstPct || 18,
+          };
+        }
+      });
+    });
+    res.json(Object.values(productMap));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

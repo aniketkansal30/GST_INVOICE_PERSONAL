@@ -1,10 +1,12 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 
 const itemSchema = new mongoose.Schema({
   name: { type: String, required: true },
   hsn: { type: String, default: '' },
+  unit: { type: String, default: 'Nos' },
   qty: { type: Number, required: true, min: 0 },
   rate: { type: Number, required: true, min: 0 },
+  unit: { type: String, default: 'Nos' },
   gstPct: { type: Number, default: 18 },
   baseAmount: Number,
   gstAmount: Number,
@@ -50,3 +52,5 @@ const invoiceSchema = new mongoose.Schema({
 invoiceSchema.index({ user: 1, invoiceNumber: 1 }, { unique: true });
 
 module.exports = mongoose.model('Invoice', invoiceSchema);
+
+

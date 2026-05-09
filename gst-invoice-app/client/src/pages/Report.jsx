@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useInvoices } from '../context/InvoiceContext';
 import { formatCurrency } from '../utils/invoiceUtils';
 import { FileText, Download } from 'lucide-react';
@@ -55,9 +55,8 @@ export default function Report() {
   // HSN-wise
   const hsnWise = Object.values(
     filtered.flatMap(inv => inv.items || []).reduce((acc, item) => {
-      const key = `${item.hsn || 'No HSN'}_${item.name || ''}`;
-      if (!acc[key]) acc[key] = {
-        hsn: key,
+      const key = item.hsn || `NO_HSN_${item.name || ""}`;
+      if (!acc[key]) acc[key] = { hsn: item.hsn || 'No HSN',
         description: item.name || '-',
         uom: item.unit || 'Nos',
         qty: 0,
@@ -273,7 +272,7 @@ export default function Report() {
                 ) : hsnWise.map((row, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f4f4f0' }}>
                     <td style={tdStyle()}>{i + 1}</td>
-                    <td style={{ ...tdStyle(), fontFamily: 'monospace', fontWeight: '600' }}>{row.hsn}</td>
+                    <td style={{ ...tdStyle(), fontFamily: "monospace", fontWeight: "600" }}>{row.hsn.startsWith("NO_HSN_") ? "-" : row.hsn}</td>
                     <td style={tdStyle()}>{row.description}</td>
                     <td style={tdStyle()}>{row.uom}</td>
                     <td style={tdStyle(true)}>{row.qty}</td>
@@ -388,3 +387,5 @@ export default function Report() {
     </div>
   );
 }
+
+

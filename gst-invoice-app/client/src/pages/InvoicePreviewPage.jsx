@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useInvoices } from '../context/InvoiceContext';
 import { formatCurrency, formatDate, numberToWords } from '../utils/invoiceUtils';
@@ -84,7 +84,7 @@ export default function InvoicePreviewPage() {
               </div>
               <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 0 3px 42px' }}>{seller?.address}</p>
               <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 0 3px 42px' }}>GSTIN: {seller?.gstNumber}</p>
-              <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 42px' }}>{seller?.contact} · {seller?.email}</p>
+              <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 42px' }}>{seller?.contact} Â· {seller?.email}</p>
             </div>
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px', color: '#6e6e60', margin: '0 0 8px' }}>Tax Invoice</p>
@@ -120,9 +120,9 @@ export default function InvoicePreviewPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
             <thead>
               <tr style={{ background: '#1c1c18', color: 'white' }}>
-                {['#', 'Product/Service', 'HSN/SAC', 'Description', 'Unit', 'Qty', 'Rate (₹)', 'Taxable Amt (₹)', 'GST %', ...(isSameState ? ['CGST (₹)', 'SGST (₹)'] : ['IGST (₹)']), 'Amount (₹)'].map((h, i) => (
+                {['#', 'Product/Service', 'HSN/SAC', 'Unit', 'Qty', 'Rate (â‚¹)', 'Taxable Amt (â‚¹)', 'GST %', ...(isSameState ? ['CGST (â‚¹)', 'SGST (â‚¹)'] : ['IGST (â‚¹)']), 'Amount (â‚¹)'].map((h, i) => (
                   <th key={h} style={{
-                    padding: '10px 14px', textAlign: i === 0 ? 'center' : i >= 4 ? 'right' : 'left',
+                    padding: '10px 14px', textAlign: i === 0 ? 'center' : i >= 3 ? 'right' : 'left',
                     fontWeight: '600', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px',
                     whiteSpace: 'nowrap'
                   }}>{h}</th>
@@ -138,7 +138,7 @@ export default function InvoicePreviewPage() {
                     <td style={{ padding: '10px 14px', textAlign: 'center', color: '#6e6e60' }}>{i + 1}</td>
                     <td style={{ padding: '10px 14px', fontWeight: '500' }}>{item.name}</td>
                     <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#6e6e60', textAlign: 'center' }}>{item.hsn}</td>
-                    <td style={{ padding: '10px 14px', color: '#6e6e60' }}>{item.description || '-'}</td>
+                    
                     <td style={{ padding: '10px 14px', textAlign: 'right', color: '#6e6e60' }}>{item.unit || 'Nos'}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>{item.qty}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: 'monospace' }}>{Number(item.rate).toFixed(2)}</td>
@@ -218,3 +218,4 @@ export default function InvoicePreviewPage() {
     </div>
   );
 }
+

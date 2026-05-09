@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Sun, Moon, Monitor, Save, User, Building2, Shield } from 'lucide-react';
@@ -107,8 +107,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Full Name</label>
-              <input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-                className="input" placeholder="Your name" />
+              <input value={profile.name} readOnly className="input bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" />
             </div>
             <div>
               <label className="label">Email</label>
@@ -117,25 +116,21 @@ export default function SettingsPage() {
           </div>
           <div>
             <label className="label">Company Name</label>
-            <input value={profile.companyName} onChange={e => setProfile(p => ({ ...p, companyName: e.target.value }))}
-              className="input" placeholder="Company Pvt. Ltd." />
+            <input value={profile.companyName} readOnly className="input bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">GST Number</label>
-              <input value={profile.gstNumber} onChange={e => setProfile(p => ({ ...p, gstNumber: e.target.value.toUpperCase() }))}
-                className="input font-mono uppercase" placeholder="22AAAAA0000A1Z5" maxLength={15} />
+              <input value={profile.gstNumber} readOnly className="input font-mono uppercase bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" />
             </div>
             <div>
               <label className="label">Contact</label>
-              <input value={profile.contact} onChange={e => setProfile(p => ({ ...p, contact: e.target.value }))}
-                className="input" placeholder="+91 98765 43210" />
+              <input value={profile.contact} readOnly className="input bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" />
             </div>
           </div>
           <div>
             <label className="label">Company Address</label>
-            <textarea value={profile.address} onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
-              className="input resize-none" rows={2} placeholder="Street, City, State, PIN" />
+            <textarea value={profile.address} readOnly className="input resize-none bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" rows={2} />
           </div>
           <div>
             <label className="label">State</label>
@@ -148,12 +143,7 @@ export default function SettingsPage() {
               {INDIAN_STATES.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
-          <div className="flex justify-end">
-            <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={15} />}
-              {saving ? 'Saving…' : 'Save Profile'}
-            </button>
-          </div>
+          <div class="text-xs text-ink-400 italic mt-2">Contact admin to update company details.</div>
         </form>
       </div>
 
@@ -189,7 +179,7 @@ export default function SettingsPage() {
           <div className="flex justify-end">
             <button type="submit" disabled={savingPw} className="btn-primary">
               {savingPw ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Shield size={15} />}
-              {savingPw ? 'Saving…' : 'Change Password'}
+              {savingPw ? 'Savingâ€¦' : 'Change Password'}
             </button>
           </div>
         </form>
@@ -199,3 +189,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+

@@ -1,4 +1,4 @@
-export const GST_RATES = [0, 5, 12, 18, 28];
+﻿export const GST_RATES = [0, 5, 18];
 
 export const HSN_SUGGESTIONS = {
   'software': { hsn: '998314', gst: 18 },
@@ -110,3 +110,5 @@ export const numberToWords = (num) => {
   if (paise > 0) result += ' and ' + convert(paise) + ' Paise';
   return result + ' Only';
 };
+
+
