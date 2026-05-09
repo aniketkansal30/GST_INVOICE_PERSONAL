@@ -54,8 +54,8 @@ export default function InvoiceFormPage() {
 
   // Load saved clients and products
   useEffect(() => {
-    api.get('/invoices/meta/clients').then(r => setSavedClients(r.data)).catch(() => {});
-    api.get('/invoices/meta/products').then(r => setSavedProducts(r.data)).catch(() => {});
+    api.get('/invoices/meta/clients').then(r => setSavedClients(r.data)).catch(() => { });
+    api.get('/invoices/meta/products').then(r => setSavedProducts(r.data)).catch(() => { });
   }, []);
 
   // Close client dropdown on outside click
@@ -351,8 +351,8 @@ export default function InvoiceFormPage() {
                   {['#', 'Product/Service', 'HSN/SAC', 'UoM', 'QTY', 'Unit Price (₹)', 'Taxable Amt (₹)', 'GST %',
                     ...(isSameState ? ['CGST (₹)', 'SGST (₹)'] : ['IGST (₹)']),
                     'Amount (₹)', ''].map(h => (
-                    <th key={h} className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 whitespace-nowrap">{h}</th>
-                  ))}
+                      <th key={h} className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 whitespace-nowrap">{h}</th>
+                    ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-50 dark:divide-ink-800">
@@ -384,12 +384,12 @@ export default function InvoiceFormPage() {
                           />
                           <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-300" />
                           {showProductDropdown[item.id] && filteredProducts.length > 0 && (
-                            <div className="absolute z-50 w-64 mt-1 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-xl shadow-xl overflow-hidden">
+                            <div className="absolute z-50 w-80 mt-1 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-xl shadow-xl overflow-hidden">
                               <div className="px-3 py-2 text-xs text-ink-400 border-b border-ink-100 dark:border-ink-800 font-semibold uppercase tracking-wide">Saved Products</div>
                               {filteredProducts.slice(0, 6).map((prod, i) => (
                                 <button key={i} type="button" onMouseDown={() => selectProduct(item.id, prod)}
                                   className="w-full text-left px-4 py-2.5 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors border-b border-ink-50 dark:border-ink-800 last:border-0">
-                                  <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">{prod.name}</p>
+                                  <p className="text-sm font-semibold text-ink-800 dark:text-ink-100 whitespace-normal break-words leading-snug">{prod.name}</p>
                                   <p className="text-xs text-ink-400">HSN: {prod.hsn || '-'} · ₹{prod.rate} · {prod.gstPct}%</p>
                                 </button>
                               ))}
@@ -418,9 +418,16 @@ export default function InvoiceFormPage() {
                         <div className="px-2 py-2 rounded-lg bg-ink-50 dark:bg-ink-800 text-right font-mono text-sm text-ink-600 dark:text-ink-300">{base.toFixed(2)}</div>
                       </td>
                       <td className="px-3 py-3 min-w-[90px]">
-                        <select value={item.gstPct} onChange={e => updateItem(item.id, 'gstPct', Number(e.target.value))} className="input">
-                          {GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
-                        </select>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={item.gstPct}
+                          onChange={e => updateItem(item.id, 'gstPct', e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="input text-center font-mono"
+                          placeholder="0"
+                        />
                       </td>
                       {isSameState ? (
                         <>
