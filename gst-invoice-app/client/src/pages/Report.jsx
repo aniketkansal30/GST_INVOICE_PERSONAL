@@ -12,6 +12,8 @@ export default function Report() {
   const [activeTab, setActiveTab] = useState('party');
   const [expandedParties, setExpandedParties] = useState({});
   const [expandedHSN, setExpandedHSN] = useState({});
+  const [expandedGST, setExpandedGST] = useState({});
+  const [expandedItem, setExpandedItem] = useState({});
 
   useEffect(() => { fetchInvoices({ limit: 1000, page: 1 }); }, []);
   useEffect(() => { setAllInvoices(invoices); }, [invoices]);
@@ -66,7 +68,6 @@ export default function Report() {
         acc[key].cgst += gst / 2;
         acc[key].sgst += gst / 2;
         acc[key].igst += gst;
-        // invoice level detail
         const existing = acc[key].invoiceList.find(i => i.invoiceNumber === inv.invoiceNumber);
         if (existing) {
           existing.qty += Number(item.qty) || 0;
@@ -81,10 +82,7 @@ export default function Report() {
             party: inv.buyer?.clientName || '-',
             gstPct: item.gstPct || 0,
             qty: Number(item.qty) || 0,
-            taxable: base,
-            cgst: gst / 2,
-            sgst: gst / 2,
-            igst: gst,
+            taxable: base, cgst: gst / 2, sgst: gst / 2, igst: gst,
           });
         }
       });
@@ -92,37 +90,81 @@ export default function Report() {
     }, {})
   );
 
+  // GST%-wise with invoice-level drill-down
   const gstWise = Object.values(
-    filtered.flatMap(inv => inv.items || []).reduce((acc, item) => {
-      const key = `${item.gstPct || 0}%`;
-      if (!acc[key]) acc[key] = { rate: key, taxable: 0, cgst: 0, sgst: 0, igst: 0, total: 0 };
-      const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-      const gst = (base * (Number(item.gstPct) || 0)) / 100;
-      acc[key].taxable += base; acc[key].cgst += gst / 2; acc[key].sgst += gst / 2;
-      acc[key].igst += gst; acc[key].total += base + gst;
+    filtered.reduce((acc, inv) => {
+      (inv.items || []).forEach(item => {
+        const key = `${item.gstPct || 0}%`;
+        if (!acc[key]) acc[key] = {
+          rate: key, taxable: 0, cgst: 0, sgst: 0, igst: 0, total: 0,
+          invoiceList: [],
+        };
+        const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const gst = (base * (Number(item.gstPct) || 0)) / 100;
+        acc[key].taxable += base;
+        acc[key].cgst += gst / 2;
+        acc[key].sgst += gst / 2;
+        acc[key].igst += gst;
+        acc[key].total += base + gst;
+        const existing = acc[key].invoiceList.find(i => i.invoiceNumber === inv.invoiceNumber);
+        if (existing) {
+          existing.taxable += base;
+          existing.cgst += gst / 2;
+          existing.sgst += gst / 2;
+          existing.igst += gst;
+          existing.total += base + gst;
+        } else {
+          acc[key].invoiceList.push({
+            invoiceNumber: inv.invoiceNumber,
+            invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
+            party: inv.buyer?.clientName || '-',
+            status: inv.status || 'draft',
+            taxable: base, cgst: gst / 2, sgst: gst / 2, igst: gst, total: base + gst,
+          });
+        }
+      });
       return acc;
     }, {})
   ).sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate));
 
+  // Item-wise with invoice-level drill-down
   const itemWise = Object.values(
-    filtered.flatMap(inv => inv.items || []).reduce((acc, item) => {
-      const key = item.name || 'Unknown';
-      if (!acc[key]) acc[key] = { name: key, hsn: item.hsn || '-', uom: item.unit || 'Nos', gstPct: item.gstPct || 0, qty: 0, taxable: 0, gst: 0, total: 0 };
-      const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-      const gst = (base * (Number(item.gstPct) || 0)) / 100;
-      acc[key].qty += Number(item.qty) || 0;
-      acc[key].taxable += base; acc[key].gst += gst; acc[key].total += base + gst;
+    filtered.reduce((acc, inv) => {
+      (inv.items || []).forEach(item => {
+        const key = item.name || 'Unknown';
+        if (!acc[key]) acc[key] = {
+          name: key, hsn: item.hsn || '-', uom: item.unit || 'Nos',
+          gstPct: item.gstPct || 0, qty: 0, taxable: 0, gst: 0, total: 0,
+          invoiceList: [],
+        };
+        const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const gst = (base * (Number(item.gstPct) || 0)) / 100;
+        acc[key].qty += Number(item.qty) || 0;
+        acc[key].taxable += base;
+        acc[key].gst += gst;
+        acc[key].total += base + gst;
+        acc[key].invoiceList.push({
+          invoiceNumber: inv.invoiceNumber,
+          invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
+          party: inv.buyer?.clientName || '-',
+          status: inv.status || 'draft',
+          qty: Number(item.qty) || 0,
+          rate: Number(item.rate) || 0,
+          taxable: base, gst, total: base + gst,
+        });
+      });
       return acc;
     }, {})
   );
 
   const toggleParty = (k) => setExpandedParties(p => ({ ...p, [k]: !p[k] }));
   const toggleHSN = (k) => setExpandedHSN(p => ({ ...p, [k]: !p[k] }));
+  const toggleGST = (k) => setExpandedGST(p => ({ ...p, [k]: !p[k] }));
+  const toggleItem = (k) => setExpandedItem(p => ({ ...p, [k]: !p[k] }));
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
 
-    // Party-wise sheet
     const partyRows = [['#','Party','GSTIN','State','Invoice No','Date','Due Date','Place of Supply','Taxable','CGST','SGST','IGST','Total','Status']];
     let sr = 1;
     partyWise.forEach(p => {
@@ -132,7 +174,6 @@ export default function Report() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(partyRows), 'Party-wise B2B');
 
-    // HSN-wise sheet
     const hsnRows = [['#','HSN/SAC','Description','UOM','Invoice No','Date','Party','GST%','Qty','Taxable','CGST','SGST','IGST']];
     hsnWise.forEach((r, i) => {
       r.invoiceList.forEach(inv => {
@@ -141,14 +182,20 @@ export default function Report() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hsnRows), 'HSN-wise');
 
-    // GST%-wise sheet
-    const gstRows = [['#','GST Rate','Taxable','CGST','SGST','IGST','Total Tax','Grand Total']];
-    gstWise.forEach((r,i) => gstRows.push([i+1, r.rate, r.taxable, r.cgst, r.sgst, r.igst, r.cgst+r.sgst, r.total]));
+    const gstRows = [['#','GST Rate','Invoice No','Date','Party','Taxable','CGST','SGST','IGST','Total']];
+    gstWise.forEach((r,i) => {
+      r.invoiceList.forEach(inv => {
+        gstRows.push([i+1, r.rate, inv.invoiceNumber, inv.invoiceDate, inv.party, inv.taxable, inv.cgst, inv.sgst, inv.igst, inv.total]);
+      });
+    });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(gstRows), 'GST%-wise');
 
-    // Item-wise sheet
-    const itemRows = [['#','Item','HSN','UOM','GST%','Qty','Taxable','Total GST','Grand Total']];
-    itemWise.forEach((r,i) => itemRows.push([i+1, r.name, r.hsn, r.uom, r.gstPct+'%', r.qty, r.taxable, r.gst, r.total]));
+    const itemRows = [['#','Item','HSN','UOM','GST%','Invoice No','Date','Party','Qty','Rate','Taxable','Total GST','Grand Total']];
+    itemWise.forEach((r,i) => {
+      r.invoiceList.forEach(inv => {
+        itemRows.push([i+1, r.name, r.hsn, r.uom, r.gstPct+'%', inv.invoiceNumber, inv.invoiceDate, inv.party, inv.qty, inv.rate, inv.taxable, inv.gst, inv.total]);
+      });
+    });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise');
 
     const month = selectedMonth ? months.find(m => m.value === selectedMonth)?.label : 'All';
@@ -339,29 +386,55 @@ export default function Report() {
           </div>
         )}
 
-        {/* GST%-wise */}
+        {/* GST%-wise with drill-down */}
         {activeTab==='gst' && (
           <div className="overflow-x-auto">
             <table style={{width:'100%',borderCollapse:'collapse'}}>
-              <thead><tr>{['#','GST Rate','Taxable Amount','CGST','SGST','IGST','Total Tax','Grand Total'].map((h,i)=><th key={h} style={thS(i>=2)}>{h}</th>)}</tr></thead>
+              <thead><tr>
+                {['','#','GST Rate','Invoices','Taxable Amount','CGST','SGST','IGST','Total Tax','Grand Total'].map((h,i)=>(
+                  <th key={i} style={thS(i>=3)}>{h}</th>
+                ))}
+              </tr></thead>
               <tbody>
                 {gstWise.length===0
-                  ? <tr><td colSpan={8} style={{textAlign:'center',padding:40,color:'#888'}}>No data</td></tr>
+                  ? <tr><td colSpan={10} style={{textAlign:'center',padding:40,color:'#888'}}>No data</td></tr>
                   : gstWise.map((row,i)=>(
-                    <tr key={i} style={{background:i%2===0?'white':'#f4f4f0'}}>
-                      <td style={tdS()}>{i+1}</td>
-                      <td style={{...tdS(),fontWeight:'700'}}>{row.rate}</td>
-                      <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
-                      <td style={tdS(true)}>{formatCurrency(row.cgst)}</td>
-                      <td style={tdS(true)}>{formatCurrency(row.sgst)}</td>
-                      <td style={tdS(true)}>{formatCurrency(row.igst)}</td>
-                      <td style={tdS(true)}>{formatCurrency(row.cgst+row.sgst)}</td>
-                      <td style={{...tdS(true),fontWeight:'700'}}>{formatCurrency(row.total)}</td>
-                    </tr>
+                    <React.Fragment key={i}>
+                      <tr style={{background:i%2===0?'white':'#f4f4f0',cursor:'pointer'}} onClick={()=>toggleGST(row.rate)}>
+                        <td style={{...tdS(),width:32}}>{expandedGST[row.rate]?<ChevronDown size={14}/>:<ChevronRight size={14}/>}</td>
+                        <td style={tdS()}>{i+1}</td>
+                        <td style={{...tdS(),fontWeight:'700'}}>{row.rate}</td>
+                        <td style={tdS(true)}>{row.invoiceList.length}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.cgst)}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.sgst)}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.igst)}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.cgst+row.sgst)}</td>
+                        <td style={{...tdS(true),fontWeight:'700'}}>{formatCurrency(row.total)}</td>
+                      </tr>
+                      {expandedGST[row.rate] && row.invoiceList.map((inv,j)=>(
+                        <tr key={j} style={{background:'#fffbeb'}}>
+                          <td colSpan={2} style={{...tdS(),paddingLeft:32}}></td>
+                          <td style={{...tdS(),paddingLeft:16,fontSize:12,color:'#92400e'}}>
+                            <span style={{fontFamily:'monospace',fontWeight:600}}>{inv.invoiceNumber}</span>
+                            <span style={{marginLeft:8,fontSize:11,color:'#6e6e60'}}>{inv.invoiceDate}</span>
+                            <span style={{marginLeft:8,fontSize:11,color:'#888'}}>· {inv.party}</span>
+                            <span style={{marginLeft:8,fontSize:10,padding:'2px 6px',borderRadius:4,background:statusColor(inv.status)+'20',color:statusColor(inv.status),fontWeight:600}}>{inv.status?.toUpperCase()}</span>
+                          </td>
+                          <td style={{...tdS(true),fontSize:12}}>1</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.taxable)}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.cgst)}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.sgst)}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.igst)}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.cgst+inv.sgst)}</td>
+                          <td style={{...tdS(true),fontSize:12,fontWeight:700}}>{formatCurrency(inv.total)}</td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
                   ))}
               </tbody>
               {gstWise.length>0 && <tfoot><tr style={{background:'#1c1c18',color:'white'}}>
-                <td colSpan={2} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
+                <td colSpan={4} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
                 {['taxable','cgst','sgst','igst'].map(k=><td key={k} style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(gstWise.reduce((s,r)=>s+r[k],0))}</td>)}
                 <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(gstWise.reduce((s,r)=>s+r.cgst+r.sgst,0))}</td>
                 <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(gstWise.reduce((s,r)=>s+r.total,0))}</td>
@@ -370,30 +443,55 @@ export default function Report() {
           </div>
         )}
 
-        {/* Item-wise */}
+        {/* Item-wise with drill-down */}
         {activeTab==='item' && (
           <div className="overflow-x-auto">
             <table style={{width:'100%',borderCollapse:'collapse'}}>
-              <thead><tr>{['#','Item Name','HSN/SAC','UOM','GST %','Total Qty','Taxable Amt','Total GST','Grand Total'].map((h,i)=><th key={h} style={thS(i>=4)}>{h}</th>)}</tr></thead>
+              <thead><tr>
+                {['','#','Item Name','HSN/SAC','UOM','GST %','Total Qty','Taxable Amt','Total GST','Grand Total'].map((h,i)=>(
+                  <th key={i} style={thS(i>=5)}>{h}</th>
+                ))}
+              </tr></thead>
               <tbody>
                 {itemWise.length===0
-                  ? <tr><td colSpan={9} style={{textAlign:'center',padding:40,color:'#888'}}>No data</td></tr>
+                  ? <tr><td colSpan={10} style={{textAlign:'center',padding:40,color:'#888'}}>No data</td></tr>
                   : itemWise.map((row,i)=>(
-                    <tr key={i} style={{background:i%2===0?'white':'#f4f4f0'}}>
-                      <td style={tdS()}>{i+1}</td>
-                      <td style={{...tdS(),fontWeight:'500'}}>{row.name}</td>
-                      <td style={{...tdS(),fontFamily:'monospace',color:'#6e6e60'}}>{row.hsn}</td>
-                      <td style={tdS()}>{row.uom}</td>
-                      <td style={{...tdS(true),fontWeight:'600'}}>{row.gstPct}%</td>
-                      <td style={tdS(true)}>{row.qty}</td>
-                      <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
-                      <td style={tdS(true)}>{formatCurrency(row.gst)}</td>
-                      <td style={{...tdS(true),fontWeight:'700'}}>{formatCurrency(row.total)}</td>
-                    </tr>
+                    <React.Fragment key={i}>
+                      <tr style={{background:i%2===0?'white':'#f4f4f0',cursor:'pointer'}} onClick={()=>toggleItem(row.name)}>
+                        <td style={{...tdS(),width:32}}>{expandedItem[row.name]?<ChevronDown size={14}/>:<ChevronRight size={14}/>}</td>
+                        <td style={tdS()}>{i+1}</td>
+                        <td style={{...tdS(),fontWeight:'500'}}>{row.name}</td>
+                        <td style={{...tdS(),fontFamily:'monospace',color:'#6e6e60'}}>{row.hsn}</td>
+                        <td style={tdS()}>{row.uom}</td>
+                        <td style={{...tdS(true),fontWeight:'600'}}>{row.gstPct}%</td>
+                        <td style={tdS(true)}>{row.qty}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.gst)}</td>
+                        <td style={{...tdS(true),fontWeight:'700'}}>{formatCurrency(row.total)}</td>
+                      </tr>
+                      {expandedItem[row.name] && row.invoiceList.map((inv,j)=>(
+                        <tr key={j} style={{background:'#fdf4ff'}}>
+                          <td colSpan={2} style={{...tdS(),paddingLeft:32}}></td>
+                          <td style={{...tdS(),paddingLeft:16,fontSize:12,color:'#6b21a8'}}>
+                            <span style={{fontFamily:'monospace',fontWeight:600}}>{inv.invoiceNumber}</span>
+                            <span style={{marginLeft:8,fontSize:11,color:'#6e6e60'}}>{inv.invoiceDate}</span>
+                            <span style={{marginLeft:8,fontSize:11,color:'#888'}}>· {inv.party}</span>
+                            <span style={{marginLeft:8,fontSize:10,padding:'2px 6px',borderRadius:4,background:statusColor(inv.status)+'20',color:statusColor(inv.status),fontWeight:600}}>{inv.status?.toUpperCase()}</span>
+                          </td>
+                          <td style={{...tdS(),fontSize:12,color:'#6e6e60'}}>{row.hsn}</td>
+                          <td style={{...tdS(),fontSize:12}}>{row.uom}</td>
+                          <td style={{...tdS(true),fontSize:12,fontWeight:600}}>{row.gstPct}%</td>
+                          <td style={{...tdS(true),fontSize:12}}>{inv.qty}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.taxable)}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.gst)}</td>
+                          <td style={{...tdS(true),fontSize:12,fontWeight:700}}>{formatCurrency(inv.total)}</td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
                   ))}
               </tbody>
               {itemWise.length>0 && <tfoot><tr style={{background:'#1c1c18',color:'white'}}>
-                <td colSpan={6} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
+                <td colSpan={7} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
                 <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(itemWise.reduce((s,r)=>s+r.taxable,0))}</td>
                 <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(itemWise.reduce((s,r)=>s+r.gst,0))}</td>
                 <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(itemWise.reduce((s,r)=>s+r.total,0))}</td>

@@ -324,7 +324,7 @@ export default function InvoiceFormPage() {
                 </div>
                 <div>
                   <label className="label">Contact</label>
-                  <input value={buyer.contact} onChange={e => setBuyer(p => ({ ...p, contact: e.target.value }))} className="input" placeholder="+91 98765 43210" />
+                  <input value={buyer.contact} onChange={e => setBuyer(p => ({ ...p, contact: e.target.value }))} className="input" placeholder="+91 8126700718" />
                 </div>
               </div>
             </div>

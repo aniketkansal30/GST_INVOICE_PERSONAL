@@ -14,7 +14,7 @@ const UPDATE_DATA = {
   gstNumber: '09HEVPS3324P1ZB',
   address: 'C-1, KRISHNA KUNJ-II, NEAR BABA FARM HOUSE, Nand Gram, Ghaziabad, 201003\nPAN: HEVPS3324P\nMSME: UDYAM-UP-29-0185368',
   state: 'Uttar Pradesh',
-  contact: '+91 98765 43210',
+  contact: '+91 8126700718',
 };
 
 async function updateUser() {
