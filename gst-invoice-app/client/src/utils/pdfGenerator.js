@@ -169,8 +169,9 @@ export const generatePDF = (invoice) => {
       fontStyle: 'bold',
       fontSize: 6.5,
       cellPadding: { top: 2, bottom: 2, left: 2, right: 2 },
-      overflow: 'hidden',       // heading ek line mein rakhega
+      overflow: 'hidden',
       minCellHeight: 7,
+      halign: 'center',
     },
     alternateRowStyles: { fillColor: accentBg },
     columnStyles: colStyles,

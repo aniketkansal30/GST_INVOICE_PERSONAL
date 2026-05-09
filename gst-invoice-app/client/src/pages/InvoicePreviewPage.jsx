@@ -13,6 +13,17 @@ export default function InvoicePreviewPage() {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const printRef = useRef();
+  const [scale, setScale] = useState(1);
+
+useEffect(() => {
+  const updateScale = () => {
+    const availableWidth = window.innerWidth - 280;
+    setScale(Math.min(1, availableWidth / 794));
+  };
+  updateScale();
+  window.addEventListener('resize', updateScale);
+  return () => window.removeEventListener('resize', updateScale);
+}, []);
 
   useEffect(() => {
     getInvoice(id)
@@ -41,7 +52,7 @@ export default function InvoicePreviewPage() {
   const { seller, buyer, items = [], subtotal = 0, cgst = 0, sgst = 0, igst = 0, grandTotal = 0, isSameState } = invoice;
 
   return (
-    <div className="max-w-5xl mx-auto animate-slide-up" style={{ overflowX: 'auto', paddingBottom: '2rem' }}>
+    <div className="animate-slide-up" style={{ width: `${794 * scale}px`, margin: '0 auto', paddingBottom: '2rem' }}>
       {/* Controls */}
       <div className="no-print flex items-center gap-4 mb-8">
         <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-400 transition-all">
@@ -72,7 +83,11 @@ export default function InvoicePreviewPage() {
   width: '794px', 
   minHeight: '1123px', 
   margin: '0 auto', 
-  fontFamily: 'DM Sans, sans-serif'
+  fontFamily: 'DM Sans, sans-serif',
+  transform: `scale(${scale})`,
+  transformOrigin: 'top left',
+  marginBottom: `${(scale - 1) * 1123}px`,
+  marginRight: `${(scale - 1) * 794}px`
 }}
       >
         {/* Header */}
@@ -89,7 +104,7 @@ export default function InvoicePreviewPage() {
               </div>
               <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 0 3px 42px' }}>{seller?.address}</p>
               <p style={{ color: '#1c1c18', fontSize: '13px', fontWeight: '600', margin: '0 0 3px 42px' }}>GSTIN: {seller?.gstNumber}</p>
-              <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 42px' }}>{seller?.contact} &middot; {seller?.email}</p>
+              {seller?.contact && <p style={{ color: '#6e6e60', fontSize: '12px', margin: '0 0 0 42px' }}>{seller?.contact} &middot; {seller?.email}</p>}
             </div>
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px', color: '#6e6e60', margin: '0 0 8px' }}>Tax Invoice</p>
@@ -125,10 +140,10 @@ export default function InvoicePreviewPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
             <thead>
               <tr style={{ background: '#1c1c18', color: 'white' }}>
-                {['#', 'Product/Service', 'HSN/SAC', 'Unit', 'Qty', 'Rate (â‚¹)', 'Taxable Amt (â‚¹)', 'GST %', ...(isSameState ? ['CGST (â‚¹)', 'SGST (â‚¹)'] : ['IGST (â‚¹)']), 'Amount (â‚¹)'].map((h, i) => (
+                {['#', 'Product/Service', 'HSN/SAC', 'Unit', 'Qty', 'Rate (₹)', 'Taxable Amt (₹)', 'GST %', ...(isSameState ? ['CGST (₹)', 'SGST (₹)'] : ['IGST (₹)']), 'Amount (₹)'].map((h, i) => (
                   <th key={h} style={{
-                    padding: '10px 14px', textAlign: i === 0 ? 'center' : i >= 3 ? 'right' : 'left',
-                    fontWeight: '600', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px',
+                    padding: '10px 6px', textAlign: 'center',
+                    fontWeight: '600', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.3px',
                     whiteSpace: 'nowrap'
                   }}>{h}</th>
                 ))}
@@ -176,6 +191,7 @@ export default function InvoicePreviewPage() {
                 ? [{ label: 'CGST', value: formatCurrency(cgst) }, { label: 'SGST', value: formatCurrency(sgst) }]
                 : [{ label: 'IGST', value: formatCurrency(igst) }]
               ),
+              { label: 'Round Off', value: (Math.round(grandTotal) - grandTotal).toFixed(2) },
             ].map(({ label, value }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 16px', borderBottom: '1px solid #e8e8e0', fontSize: '13px', color: '#6e6e60' }}>
                 <span>{label}</span>
@@ -206,10 +222,6 @@ export default function InvoicePreviewPage() {
 
         {/* Footer */}
         <div style={{ margin: '32px 40px 0', paddingTop: '20px', borderTop: '1px solid #e8e8e0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: '40px' }}>
-          <div>
-            <p style={{ fontSize: '11px', color: '#b4b4a4', margin: 0 }}>This is a computer-generated invoice.</p>
-            <p style={{ fontSize: '11px', color: '#b4b4a4', margin: '2px 0 0' }}>No physical signature is required.</p>
-          </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: '160px', height: '48px', border: '1px dashed #d0d0c4', borderRadius: '4px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <p style={{ fontSize: '10px', color: '#d0d0c4', margin: 0 }}>Authorized Signature</p>
