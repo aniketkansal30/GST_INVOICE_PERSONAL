@@ -73,7 +73,7 @@ export const generatePDF = (invoice) => {
   doc.text(invoice.buyer?.clientName || '', margin + 3, y + 13);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   const buyerLines = doc.splitTextToSize(invoice.buyer?.address || '', contentW / 2 - 14);
   doc.text(buyerLines, margin + 3, y + 19);
   doc.text(`GSTIN: ${invoice.buyer?.gstNumber || ''}`, margin + 3, y + 28);
@@ -181,8 +181,8 @@ export const generatePDF = (invoice) => {
   y = doc.lastAutoTable.finalY + 8;
 
   // ── Summary ──
-  const summaryX = pageW - margin - 72;
-  const summaryW = 72;
+  const summaryX = pageW - margin - 80;
+  const summaryW = 80;
 
   const drawRow = (label, value, bold = false, highlight = false) => {
     if (highlight) {
@@ -196,7 +196,7 @@ export const generatePDF = (invoice) => {
     doc.setFontSize(bold ? 9 : 8);
     doc.text(label, summaryX + 3, y + 2);
     doc.text(value, summaryX + summaryW - 3, y + 2, { align: 'right' });
-    y += 7;
+    y += 6;
   };
 
   const exactTotal = (Number(invoice.subtotal) || 0) +
@@ -257,16 +257,16 @@ export const generatePDF = (invoice) => {
   y += 4;
 
   doc.setFillColor(...accentBg);
-  doc.rect(pageW - margin - 58, y, 58, 16, 'F');
+  doc.rect(pageW - margin - 65, y, 65, 20, 'F');
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(...inkMid);
   doc.text(
     'For ' + (invoice.seller?.companyName || ''),
-    pageW - margin - 29, y + 6, { align: 'center' }
+    pageW - margin - 32, y + 7, { align: 'center' }
   );
-  doc.line(pageW - margin - 53, y + 12, pageW - margin - 5, y + 12);
-  doc.text('Authorized Signatory', pageW - margin - 29, y + 16, { align: 'center' });
+  doc.line(pageW - margin - 60, y + 15, pageW - margin - 5, y + 15);
+  doc.text('Authorized Signatory', pageW - margin - 32, y + 19, { align: 'center' });
 
   // ✅ "Computer generated invoice" HATAYA
 
