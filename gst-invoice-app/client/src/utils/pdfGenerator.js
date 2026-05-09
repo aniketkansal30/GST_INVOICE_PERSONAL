@@ -36,21 +36,24 @@ export const generatePDF = (invoice) => {
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
   const sellerAddrLines = doc.splitTextToSize(
-    `${invoice.seller?.address || ''}   GSTIN: ${invoice.seller?.gstNumber || ''}`, 130
+    `${invoice.seller?.address || ''}`, 130
   );
   doc.setTextColor(...inkDark);
   doc.text(sellerAddrLines, margin, y + 18);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(`GSTIN: ${invoice.seller?.gstNumber || ''}`, margin, y + 18 + (sellerAddrLines.length * 4.5));
 
-  const metaX = pageW - margin - 60;
+  const metaX = pageW - margin;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(...inkDark);
-  doc.text(`Invoice No: ${invoice.invoiceNumber}`, metaX, y + 16);
+  doc.text(`Invoice No: ${invoice.invoiceNumber}`, metaX, y + 16, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
-  doc.text(`Date: ${formatDate(invoice.invoiceDate)}`, metaX, y + 22);
-  if (invoice.dueDate) doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, metaX, y + 28);
+  doc.text(`Date: ${formatDate(invoice.invoiceDate)}`, metaX, y + 22, { align: 'right' });
+  if (invoice.dueDate) doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, metaX, y + 28, { align: 'right' });
 
   y = 50;
 
