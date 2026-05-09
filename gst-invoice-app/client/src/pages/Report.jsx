@@ -39,7 +39,8 @@ export default function Report() {
         invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
         dueDate: inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN') : '-',
         placeOfSupply: inv.buyer?.state || '-',
-        hsn: (inv.items||[]).map(i=>i.hsn||"-").filter((v,i,a)=>a.indexOf(v)===i).join(", "), taxable: inv.subtotal || 0, cgst: inv.cgst || 0, sgst: inv.sgst || 0,
+        hsn: (inv.items || []).map(i => i.hsn || '-').filter((v, i, a) => a.indexOf(v) === i).join(', '),
+        taxable: inv.subtotal || 0, cgst: inv.cgst || 0, sgst: inv.sgst || 0,
         igst: inv.igst || 0, total: inv.grandTotal || 0, status: inv.status || 'draft',
       });
       acc[key].taxable += inv.subtotal || 0;
@@ -169,7 +170,7 @@ export default function Report() {
     let sr = 1;
     partyWise.forEach(p => {
       p.invoiceList.forEach(inv => {
-        partyRows.push([sr++, p.party, p.gstin, p.state, (inv.hsn||'-'), inv.invoiceNumber, inv.invoiceDate, inv.dueDate, inv.placeOfSupply, inv.taxable, inv.cgst, inv.sgst, inv.igst, inv.total, inv.status]);
+        partyRows.push([sr++, p.party, p.gstin, p.state, inv.hsn||'-', inv.invoiceNumber, inv.invoiceDate, inv.dueDate, inv.placeOfSupply, inv.taxable, inv.cgst, inv.sgst, inv.igst, inv.total, inv.status]);
       });
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(partyRows), 'Party-wise B2B');
@@ -270,13 +271,13 @@ export default function Report() {
           <div className="overflow-x-auto">
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead><tr>
-                {['','#','Party Name','GSTIN','State','Invoices','Taxable Amt','CGST','SGST','IGST','Total'].map((h,i)=>(
-                  <th key={i} style={thS(i>=5)}>{h}</th>
+                {['','#','Party Name','GSTIN','State','HSN/SAC','Invoices','Taxable Amt','CGST','SGST','IGST','Total'].map((h,i)=>(
+                  <th key={i} style={thS(i>=6)}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {partyWise.length===0
-                  ? <tr><td colSpan={11} style={{textAlign:'center',padding:40,color:'#888'}}>No data</td></tr>
+                  ? <tr><td colSpan={12} style={{textAlign:'center',padding:40,color:'#888'}}>No data</td></tr>
                   : partyWise.map((row,i)=>(
                     <React.Fragment key={i}>
                       <tr style={{background:i%2===0?'white':'#f4f4f0',cursor:'pointer'}} onClick={()=>toggleParty(row.party)}>
@@ -285,6 +286,7 @@ export default function Report() {
                         <td style={tdS()}><strong>{row.party}</strong></td>
                         <td style={{...tdS(),fontFamily:'monospace',color:'#6e6e60'}}>{row.gstin}</td>
                         <td style={tdS()}>{row.state}</td>
+                        <td style={{...tdS(),fontFamily:'monospace',fontSize:12,color:'#6b21a8'}}>{[...new Set((row.invoiceList||[]).flatMap(inv=>(inv.hsn||'-').split(', ')))].join(', ')}</td>
                         <td style={tdS(true)}>{row.invoiceList.length}</td>
                         <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
                         <td style={tdS(true)}>{formatCurrency(row.cgst)}</td>
@@ -302,6 +304,7 @@ export default function Report() {
                           </td>
                           <td style={{...tdS(),fontSize:12,color:'#6e6e60'}}>{row.gstin}</td>
                           <td style={{...tdS(),fontSize:12}}>{inv.placeOfSupply}</td>
+                          <td style={{...tdS(),fontSize:12,fontFamily:'monospace',color:'#6b21a8'}}>{inv.hsn}</td>
                           <td style={{...tdS(true),fontSize:12}}>Due: {inv.dueDate}</td>
                           <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.taxable)}</td>
                           <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.cgst)}</td>
@@ -315,7 +318,7 @@ export default function Report() {
               </tbody>
               {partyWise.length>0 && (
                 <tfoot><tr style={{background:'#1c1c18',color:'white'}}>
-                  <td colSpan={6} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
+                  <td colSpan={7} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
                   {['taxable','cgst','sgst','igst','total'].map(k=>(
                     <td key={k} style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(partyWise.reduce((s,r)=>s+r[k],0))}</td>
                   ))}
@@ -503,9 +506,3 @@ export default function Report() {
     </div>
   );
 }
-
-
-
-
-
-
