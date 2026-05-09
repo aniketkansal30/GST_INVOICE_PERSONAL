@@ -83,8 +83,8 @@ export default function InvoicePreviewPage() {
                 </h1>
               </div>
               <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 0 3px 42px' }}>{seller?.address}</p>
-              <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 0 3px 42px' }}>GSTIN: {seller?.gstNumber}</p>
-              <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 42px' }}>{seller?.contact} Â· {seller?.email}</p>
+              <p style={{ color: '#1c1c18', fontSize: '13px', fontWeight: '600', margin: '0 0 3px 42px' }}>GSTIN: {seller?.gstNumber}</p>
+              <p style={{ color: '#6e6e60', fontSize: '13px', margin: '0 42px' }}>{seller?.contact} &middot; {seller?.email}</p>
             </div>
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px', color: '#6e6e60', margin: '0 0 8px' }}>Tax Invoice</p>
@@ -100,8 +100,8 @@ export default function InvoicePreviewPage() {
           <div style={{ background: 'white', padding: '16px 20px' }}>
             <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#909080', margin: '0 0 8px' }}>Bill To</p>
             <p style={{ fontSize: '15px', fontWeight: '700', color: '#1c1c18', margin: '0 0 4px' }}>{buyer?.clientName}</p>
-            <p style={{ fontSize: '12px', color: '#6e6e60', margin: '0 0 2px', lineHeight: 1.5 }}>{buyer?.address}</p>
-            <p style={{ fontSize: '12px', color: '#6e6e60', margin: 0 }}>GSTIN: {buyer?.gstNumber}</p>
+            <p style={{ fontSize: '12px', color: '#1c1c18', margin: '0 0 2px', lineHeight: 1.5 }}>{buyer?.address}</p>
+            <p style={{ fontSize: '12px', color: '#1c1c18', margin: 0 }}>GSTIN: {buyer?.gstNumber}</p>
           </div>
           <div style={{ background: 'white', padding: '16px 20px' }}>
             <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#909080', margin: '0 0 8px' }}>Supply Details</p>
