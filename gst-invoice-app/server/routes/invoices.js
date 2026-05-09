@@ -2,12 +2,10 @@
 const router = express.Router();
 const {
   getInvoices, getInvoice, createInvoice, updateInvoice, deleteInvoice, duplicateInvoice,
-  getClients, getProducts
+  getClients, getProducts, addPayment, deletePayment
 } = require('../controllers/invoiceController');
 const { auth } = require('../middleware/auth');
-
 router.use(auth);
-
 router.get('/meta/clients', getClients);
 router.get('/meta/products', getProducts);
 router.get('/', getInvoices);
@@ -16,5 +14,6 @@ router.get('/:id', getInvoice);
 router.put('/:id', updateInvoice);
 router.delete('/:id', deleteInvoice);
 router.post('/:id/duplicate', duplicateInvoice);
-
+router.post('/:id/payments', addPayment);
+router.delete('/:id/payments/:pid', deletePayment);
 module.exports = router;

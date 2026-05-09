@@ -140,3 +140,37 @@ exports.getProducts = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.addPayment = async (req, res) => {
+  try {
+    const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    const { amount, date, mode, note } = req.body;
+    invoice.payments.push({ amount: Number(amount), date: date || new Date(), mode, note });
+    invoice.amountPaid = invoice.payments.reduce((s, p) => s + p.amount, 0);
+    invoice.amountDue = invoice.grandTotal - invoice.amountPaid;
+    if (invoice.amountDue <= 0) invoice.status = 'paid';
+    else if (invoice.amountPaid > 0) invoice.status = 'partial';
+    await invoice.save();
+    res.json(invoice);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deletePayment = async (req, res) => {
+  try {
+    const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    invoice.payments = invoice.payments.filter(p => p._id.toString() !== req.params.pid);
+    invoice.amountPaid = invoice.payments.reduce((s, p) => s + p.amount, 0);
+    invoice.amountDue = invoice.grandTotal - invoice.amountPaid;
+    if (invoice.amountDue <= 0) invoice.status = 'paid';
+    else if (invoice.amountPaid > 0) invoice.status = 'partial';
+    else invoice.status = 'sent';
+    await invoice.save();
+    res.json(invoice);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

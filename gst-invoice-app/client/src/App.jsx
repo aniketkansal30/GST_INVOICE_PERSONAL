@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -12,8 +12,8 @@ import InvoicePreviewPage from './pages/InvoicePreviewPage';
 import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout/Layout';
 import Report from './pages/Report';
+import PaymentsPage from './pages/PaymentsPage';
 import LicenseGate from './components/LicenseGate';
-
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -39,33 +39,34 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <LicenseGate>
-        <InvoiceProvider>
-          <Router>
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                className: 'font-sans text-sm',
-                style: { borderRadius: '10px', background: '#18181600', color: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' },
-                success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
-                error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-              }}
-            />
-            <Routes>
-              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-              <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-              <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-                <Route index element={<Navigate to="/dashboard" />} />
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="invoices/new" element={<InvoiceFormPage />} />
-                <Route path="invoices/:id/edit" element={<InvoiceFormPage />} />
-                <Route path="invoices/:id" element={<InvoicePreviewPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="invoice_details" element={<Report />} />
-                <Route path="gstr1" element={<Report />} />
-              </Route>
-            </Routes>
-          </Router>
-        </InvoiceProvider>
+          <InvoiceProvider>
+            <Router>
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  className: 'font-sans text-sm',
+                  style: { borderRadius: '10px', background: '#18181600', color: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' },
+                  success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+                  error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+                }}
+              />
+              <Routes>
+                <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+                <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+                <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+                  <Route index element={<Navigate to="/dashboard" />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="invoices/new" element={<InvoiceFormPage />} />
+                  <Route path="invoices/:id/edit" element={<InvoiceFormPage />} />
+                  <Route path="invoices/:id" element={<InvoicePreviewPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="invoice_details" element={<Report />} />
+                  <Route path="gstr1" element={<Report />} />
+                  <Route path="payments" element={<PaymentsPage />} />
+                </Route>
+              </Routes>
+            </Router>
+          </InvoiceProvider>
         </LicenseGate>
       </AuthProvider>
     </ThemeProvider>
