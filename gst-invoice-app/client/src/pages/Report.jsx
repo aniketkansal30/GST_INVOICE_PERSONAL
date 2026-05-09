@@ -202,6 +202,189 @@ export default function Report() {
     const month = selectedMonth ? months.find(m => m.value === selectedMonth)?.label : 'All';
     XLSX.writeFile(wb, `GSTR1_${month}_${selectedYear || 'All'}.xlsx`);
   };
+  const exportToGSTR1JSON = () => {
+    // ── B2B (Business-to-Business with GSTIN) ──────────────────────────────
+    const b2bMap = {};
+    filtered.forEach(inv => {
+      const gstin = inv.buyer?.gstNumber;
+      if (!gstin || gstin === '-' || gstin.trim() === '') return; // skip non-GSTIN
+      if (!b2bMap[gstin]) b2bMap[gstin] = { ctin: gstin, inv: [] };
+      const items = (inv.items || []).map(item => {
+        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const gstPct = Number(item.gstPct) || 0;
+        const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
+        return {
+          num: 1,
+          itm_det: {
+            rt: gstPct,
+            txval: parseFloat(txval.toFixed(2)),
+            iamt: isIGST ? parseFloat(((txval * gstPct) / 100).toFixed(2)) : 0,
+            camt: !isIGST ? parseFloat(((txval * gstPct) / 200).toFixed(2)) : 0,
+            samt: !isIGST ? parseFloat(((txval * gstPct) / 200).toFixed(2)) : 0,
+            csamt: 0,
+          },
+        };
+      });
+      b2bMap[gstin].inv.push({
+        inum: inv.invoiceNumber,
+        idt: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : '',
+        val: parseFloat((inv.grandTotal || 0).toFixed(2)),
+        pos: inv.buyer?.stateCode || '09', // default UP; update from your state master
+        rchrg: 'N',
+        inv_typ: 'R',
+        itms: items,
+      });
+    });
+    const b2b = Object.values(b2bMap);
+
+    // ── B2C Large (interstate > ₹2.5L, no GSTIN) ──────────────────────────
+    const b2clMap = {};
+    filtered.forEach(inv => {
+      const gstin = inv.buyer?.gstNumber;
+      if (gstin && gstin.trim() !== '' && gstin !== '-') return; // skip GSTIN invoices
+      const total = inv.grandTotal || 0;
+      const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
+      if (!isIGST || total <= 250000) return; // B2CL only interstate > 2.5L
+      (inv.items || []).forEach(item => {
+        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const gstPct = Number(item.gstPct) || 0;
+        const pos = inv.buyer?.stateCode || '09';
+        const key = `${pos}_${gstPct}`;
+        if (!b2clMap[key]) b2clMap[key] = { pos, rt: gstPct, txval: 0, iamt: 0, csamt: 0 };
+        b2clMap[key].txval += txval;
+        b2clMap[key].iamt += (txval * gstPct) / 100;
+      });
+    });
+    const b2cl = Object.entries(
+      Object.values(b2clMap).reduce((acc, r) => {
+        if (!acc[r.pos]) acc[r.pos] = { pos: r.pos, inv: [] };
+        acc[r.pos].inv.push({ rt: r.rt, txval: parseFloat(r.txval.toFixed(2)), iamt: parseFloat(r.iamt.toFixed(2)), csamt: 0 });
+        return acc;
+      }, {})
+    ).map(([, v]) => v);
+
+    // ── B2CS (intra-state unregistered + small interstate) ─────────────────
+    const b2csMap = {};
+    filtered.forEach(inv => {
+      const gstin = inv.buyer?.gstNumber;
+      if (gstin && gstin.trim() !== '' && gstin !== '-') return;
+      const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
+      const total = inv.grandTotal || 0;
+      if (isIGST && total > 250000) return; // those go to B2CL
+      (inv.items || []).forEach(item => {
+        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const gstPct = Number(item.gstPct) || 0;
+        const pos = inv.buyer?.stateCode || '09';
+        const type = isIGST ? 'INTER' : 'INTRA';
+        const key = `${type}_${pos}_${gstPct}`;
+        if (!b2csMap[key]) b2csMap[key] = {
+          sply_ty: type, pos, rt: gstPct,
+          txval: 0, iamt: 0, camt: 0, samt: 0, csamt: 0,
+        };
+        b2csMap[key].txval += txval;
+        if (isIGST) b2csMap[key].iamt += (txval * gstPct) / 100;
+        else {
+          b2csMap[key].camt += (txval * gstPct) / 200;
+          b2csMap[key].samt += (txval * gstPct) / 200;
+        }
+      });
+    });
+    const b2cs = Object.values(b2csMap).map(r => ({
+      ...r,
+      txval: parseFloat(r.txval.toFixed(2)),
+      iamt: parseFloat(r.iamt.toFixed(2)),
+      camt: parseFloat(r.camt.toFixed(2)),
+      samt: parseFloat(r.samt.toFixed(2)),
+    }));
+
+    // ── HSN Summary ────────────────────────────────────────────────────────
+    const hsnMap = {};
+    filtered.forEach(inv => {
+      (inv.items || []).forEach(item => {
+        const key = item.hsn || 'NOHSN';
+        if (!hsnMap[key]) hsnMap[key] = {
+          hsn_sc: item.hsn || '',
+          desc: item.name || '',
+          uqc: (item.unit || 'NOS').toUpperCase(),
+          cnt: 0, qty: 0, val: 0, txval: 0,
+          iamt: 0, camt: 0, samt: 0, csamt: 0,
+        };
+        const qty = Number(item.qty) || 0;
+        const rate = Number(item.rate) || 0;
+        const gstPct = Number(item.gstPct) || 0;
+        const txval = qty * rate;
+        const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
+        hsnMap[key].cnt += 1;
+        hsnMap[key].qty += qty;
+        hsnMap[key].val += txval + (txval * gstPct) / 100;
+        hsnMap[key].txval += txval;
+        if (isIGST) hsnMap[key].iamt += (txval * gstPct) / 100;
+        else {
+          hsnMap[key].camt += (txval * gstPct) / 200;
+          hsnMap[key].samt += (txval * gstPct) / 200;
+        }
+      });
+    });
+    const hsn = {
+      data: Object.values(hsnMap).map(r => ({
+        ...r,
+        qty: parseFloat(r.qty.toFixed(3)),
+        val: parseFloat(r.val.toFixed(2)),
+        txval: parseFloat(r.txval.toFixed(2)),
+        iamt: parseFloat(r.iamt.toFixed(2)),
+        camt: parseFloat(r.camt.toFixed(2)),
+        samt: parseFloat(r.samt.toFixed(2)),
+        csamt: 0,
+      })),
+    };
+
+    // ── GSTR-1 JSON Envelope ───────────────────────────────────────────────
+    const month = selectedMonth || new Date().getMonth() + 1;
+    const year = selectedYear || new Date().getFullYear();
+    // GST return period format: MMyyyy e.g. "042025" for April 2025
+    const fp = `${String(month).padStart(2, '0')}${year}`;
+
+    const gstr1 = {
+      gstin: '09HEVPS3324P1ZB', // ← Apna GSTIN yahan hardcode karo ya seller context se lo
+      fp,
+      gt: parseFloat(filtered.reduce((s, inv) => s + (inv.grandTotal || 0), 0).toFixed(2)),
+      cur_gt: parseFloat(filtered.reduce((s, inv) => s + (inv.grandTotal || 0), 0).toFixed(2)),
+      b2b,
+      b2cl,
+      b2cs,
+      hsn,
+      // Nil-rated, credit notes etc. — add if needed
+      nil: { inv: [] },
+      exp: { exp_typ: 'WOPAY', inv: [] },
+      doc_issue: {
+        doc_det: [
+          {
+            doc_num: 1,
+            docs: [
+              {
+                num: 1,
+                from: filtered.length > 0 ? filtered[filtered.length - 1].invoiceNumber : '',
+                to: filtered.length > 0 ? filtered[0].invoiceNumber : '',
+                totnum: filtered.length,
+                cancel: 0,
+                net_issue: filtered.length,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    // ── Download ───────────────────────────────────────────────────────────
+    const blob = new Blob([JSON.stringify(gstr1, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const monthLabel = selectedMonth ? months.find(m => m.value === selectedMonth)?.label : 'All';
+    a.download = `GSTR1_${monthLabel}_${year}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const months = [
     {value:'1',label:'January'},{value:'2',label:'February'},{value:'3',label:'March'},
@@ -230,9 +413,14 @@ export default function Report() {
           </h1>
           <p className="text-sm text-ink-400 mt-1">Party-wise, HSN-wise, GST%-wise & Item-wise summary</p>
         </div>
-        <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style={{background:'#16a34a',color:'white',border:'none',cursor:'pointer'}}>
-          <Download size={16}/> Export to Excel
-        </button>
+        <div className="flex gap-2">
+  <button onClick={exportToGSTR1JSON} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style={{background:'#1d4ed8',color:'white',border:'none',cursor:'pointer'}}>
+    <Download size={16}/> Export GSTR-1 JSON
+  </button>
+  <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style={{background:'#16a34a',color:'white',border:'none',cursor:'pointer'}}>
+    <Download size={16}/> Export to Excel
+  </button>
+</div>
       </div>
 
       <div className="card p-4 flex gap-4 items-center">
