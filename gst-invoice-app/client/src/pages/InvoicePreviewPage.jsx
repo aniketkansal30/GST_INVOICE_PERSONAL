@@ -41,7 +41,7 @@ export default function InvoicePreviewPage() {
   const { seller, buyer, items = [], subtotal = 0, cgst = 0, sgst = 0, igst = 0, grandTotal = 0, isSameState } = invoice;
 
   return (
-    <div className="max-w-5xl mx-auto animate-slide-up">
+    <div className="max-w-5xl mx-auto animate-slide-up" style={{ overflowX: 'auto', paddingBottom: '2rem' }}>
       {/* Controls */}
       <div className="no-print flex items-center gap-4 mb-8">
         <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-400 transition-all">
@@ -65,12 +65,16 @@ export default function InvoicePreviewPage() {
       </div>
 
       {/* A4 Invoice */}
-      <div style={{ overflowX: 'auto', width: '100%' }}>
       <div
         ref={printRef}
         className="invoice-preview bg-white text-ink-800 shadow-2xl rounded-xl overflow-hidden"
-        style={{ width: '794px', minHeight: '1123px', margin: '0 auto', fontFamily: 'DM Sans, sans-serif', transform: 'scale(1)', transformOrigin: 'top center' }}
-      ></div>
+        style={{ 
+  width: '794px', 
+  minHeight: '1123px', 
+  margin: '0 auto', 
+  fontFamily: 'DM Sans, sans-serif'
+}}
+      >
         {/* Header */}
         <div style={{ background: '#f4f4f0', padding: '32px 40px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -139,7 +143,7 @@ export default function InvoicePreviewPage() {
                     <td style={{ padding: '10px 14px', textAlign: 'center', color: '#6e6e60' }}>{i + 1}</td>
                     <td style={{ padding: '10px 14px', fontWeight: '500' }}>{item.name}</td>
                     <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#6e6e60', textAlign: 'center' }}>{item.hsn}</td>
-                    
+
                     <td style={{ padding: '10px 14px', textAlign: 'right', color: '#6e6e60' }}>{item.unit || 'Nos'}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>{item.qty}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: 'monospace' }}>{Number(item.rate).toFixed(2)}</td>
