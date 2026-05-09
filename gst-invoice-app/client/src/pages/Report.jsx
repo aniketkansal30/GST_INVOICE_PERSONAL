@@ -214,7 +214,7 @@ export default function Report() {
         const gstPct = Number(item.gstPct) || 0;
         const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
         return {
-          num: 1,
+          num: idx+1,
           itm_det: {
             rt: gstPct,
             txval: parseFloat(txval.toFixed(2)),
@@ -225,11 +225,25 @@ export default function Report() {
           },
         };
       });
+      const getStateCode = (stateName) => {
+  const map = {
+    'jammu and kashmir':'01','himachal pradesh':'02','punjab':'03',
+    'chandigarh':'04','uttarakhand':'05','haryana':'06','delhi':'07',
+    'rajasthan':'08','uttar pradesh':'09','bihar':'10','sikkim':'11',
+    'arunachal pradesh':'12','nagaland':'13','manipur':'14','mizoram':'15',
+    'tripura':'16','meghalaya':'17','assam':'18','west bengal':'19',
+    'jharkhand':'20','odisha':'21','chhattisgarh':'22','madhya pradesh':'23',
+    'gujarat':'24','dadra and nagar haveli':'26','maharashtra':'27',
+    'andhra pradesh':'28','karnataka':'29','goa':'30','kerala':'32',
+    'tamil nadu':'33','telangana':'36','uttarakhand':'05',
+  };
+  return map[(stateName || '').toLowerCase()];
+};
       b2bMap[gstin].inv.push({
         inum: inv.invoiceNumber,
         idt: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : '',
         val: parseFloat((inv.grandTotal || 0).toFixed(2)),
-        pos: inv.buyer?.stateCode || '09', // default UP; update from your state master
+        pos: getStateCode(inv.buyer?.state) || '09', // default UP; update from your state master
         rchrg: 'N',
         inv_typ: 'R',
         itms: items,
