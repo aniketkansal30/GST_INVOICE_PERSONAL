@@ -4,8 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
   LayoutDashboard, FileText, Plus, Settings, LogOut,
-  Moon, Sun, Monitor, Menu, X, ChevronDown
+  Moon, Sun, Monitor, Menu, X, Info
 } from 'lucide-react';
+import AboutModal from './AboutModal';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -19,6 +20,7 @@ export default function Layout() {
   const { theme, changeTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   const themeIcon = { light: Sun, dark: Moon, system: Monitor }[theme];
   const ThemeIcon = themeIcon;
@@ -37,6 +39,9 @@ export default function Layout() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* About Modal */}
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
 
       {/* Sidebar */}
       <aside className={`
@@ -81,6 +86,15 @@ export default function Layout() {
               {label}
             </NavLink>
           ))}
+
+          {/* About Button */}
+          <button
+            onClick={() => { setAboutOpen(true); setSidebarOpen(false); }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800"
+          >
+            <Info size={16} />
+            About
+          </button>
         </nav>
 
         {/* Theme toggle */}
