@@ -18,8 +18,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
-app.use('/api/license', require('./routes/license'));
-
+app.use('/api/license', require('./routes/license-route'));
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
