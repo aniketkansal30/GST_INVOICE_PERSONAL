@@ -36,8 +36,9 @@ export const generatePDF = (invoice) => {
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
   const sellerAddrLines = doc.splitTextToSize(
-    `${invoice.seller?.address || ''}   PAN: ${invoice.seller?.pan || ''}   MSME: ${invoice.seller?.msme || ''}   GSTIN: ${invoice.seller?.gstNumber || ''}`, 130
+    `${invoice.seller?.address || ''}   GSTIN: ${invoice.seller?.gstNumber || ''}`, 130
   );
+  doc.setTextColor(...inkDark);
   doc.text(sellerAddrLines, margin, y + 18);
 
   const metaX = pageW - margin - 60;
@@ -225,7 +226,7 @@ export const generatePDF = (invoice) => {
   // ── Amount in words ──
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   const wordsLine = doc.splitTextToSize(
     `Amount in words: ${numberToWords(roundedTotal)}`, contentW - 80
   );
@@ -236,7 +237,7 @@ export const generatePDF = (invoice) => {
   if (invoice.notes) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.setTextColor(...inkMid);
+    doc.setTextColor(...inkDark);
     doc.text('Notes:', margin, y);
     const noteLines = doc.splitTextToSize(invoice.notes, contentW - 80);
     doc.text(noteLines, margin, y + 5);
