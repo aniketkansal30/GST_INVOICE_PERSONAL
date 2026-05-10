@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -66,7 +66,7 @@ export default function App() {
                   <Route path="gstr1" element={<Report />} />
                   <Route path="payments" element={<PaymentsPage />} />
                   <Route path="inventory" element={<InventoryPage />} />
-                  <Route path="/stock" element={<StockPage />} />
+                  <Route path="stock" element={<StockPage />} />
                 </Route>
               </Routes>
             </Router>
