@@ -24,19 +24,16 @@ export const generatePDF = (invoice) => {
   doc.setFillColor(...accentBg);
   doc.rect(0, 0, pageW, 48, 'F');
 
-  // Company name
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(...inkDark);
   doc.text(invoice.seller?.companyName || 'Company Name', margin, y + 9);
 
-  // TAX INVOICE label (top right)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(...inkMid);
   doc.text('TAX INVOICE', pageW - margin, y + 5, { align: 'right' });
 
-  // Invoice meta (right column)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(...inkDark);
@@ -50,22 +47,19 @@ export const generatePDF = (invoice) => {
     doc.text('Due: ' + formatDate(invoice.dueDate), pageW - margin, y + 26, { align: 'right' });
   }
 
-  // Seller address — left column, below company name
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...inkMid);
-  const maxAddrW = contentW * 0.55; // leave right 45% for invoice meta
+  const maxAddrW = contentW * 0.55;
   const addrLines = doc.splitTextToSize(invoice.seller?.address || '', maxAddrW);
   doc.text(addrLines, margin, y + 17);
 
-  // GSTIN always below address — compute Y dynamically
   const gstinY = y + 17 + addrLines.length * 3.8;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(...inkDark);
   doc.text('GSTIN: ' + (invoice.seller?.gstNumber || ''), margin, gstinY);
 
-  // Contact below GSTIN
   if (invoice.seller?.contact) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
@@ -75,18 +69,18 @@ export const generatePDF = (invoice) => {
 
   y = 52;
 
-  // ── BILL TO + SUPPLY DETAILS ──
-  const boxH = 30;
+  // ✅ BILL TO + SHIP TO (Supply Details hataya)
+  const boxH = 32;
   const halfW = (contentW - 4) / 2;
   doc.setDrawColor(...inkLight);
   doc.setLineWidth(0.25);
 
-  // Bill To box
+  // ── Bill To box ──
   doc.rect(margin, y, halfW, boxH);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.5);
   doc.setTextColor(...inkMid);
-  doc.text('BILL TO', margin + 3, y + 5);
+  doc.text('BILLED TO', margin + 3, y + 5);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
@@ -107,28 +101,41 @@ export const generatePDF = (invoice) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
     doc.setTextColor(...inkDark);
-    doc.text('GSTIN: ' + invoice.buyer.gstNumber, margin + 3, Math.min(buyerGstY, y + boxH - 3));
+    doc.text('GSTIN / UIN : ' + invoice.buyer.gstNumber, margin + 3, Math.min(buyerGstY, y + boxH - 3));
   }
 
-  // Supply Details box
+  // ── Ship To box ──
+  // ✅ Fallback — purane invoices ke liye buyer use karo
+  const shipToData = invoice.shipTo?.clientName ? invoice.shipTo : invoice.buyer;
+
   const supX = margin + halfW + 4;
   doc.rect(supX, y, halfW, boxH);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.5);
   doc.setTextColor(...inkMid);
-  doc.text('SUPPLY DETAILS', supX + 3, y + 5);
+  doc.text('SHIPPED TO', supX + 3, y + 5);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...inkDark);
+  const shipName = shipToData?.clientName || '';
+  const shipNameLines = doc.splitTextToSize(shipName, halfW - 6);
+  doc.text(shipNameLines, supX + 3, y + 11);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...inkDark);
-  doc.text('Seller State: ' + (invoice.seller?.state || ''), supX + 3, y + 13);
-  doc.text('Buyer State:  ' + (invoice.buyer?.state || ''), supX + 3, y + 20);
+  doc.setFontSize(7);
+  doc.setTextColor(...inkMid);
+  const shipAddrLines = doc.splitTextToSize(shipToData?.address || '', halfW - 6);
+  const shipAddrY = y + 11 + shipNameLines.length * 4;
+  doc.text(shipAddrLines, supX + 3, shipAddrY);
 
-  const taxType = invoice.isSameState ? 'CGST + SGST' : 'IGST';
-  const taxColor = invoice.isSameState ? blue : amber;
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...taxColor);
-  doc.text('Tax Type: ' + taxType, supX + 3, y + 27);
+  if (shipToData?.gstNumber) {
+    const shipGstY = shipAddrY + shipAddrLines.length * 3.5;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(...inkDark);
+    doc.text('GSTIN / UIN : ' + shipToData.gstNumber, supX + 3, Math.min(shipGstY, y + boxH - 3));
+  }
 
   y += boxH + 6;
 
@@ -161,30 +168,29 @@ export const generatePDF = (invoice) => {
     return row;
   });
 
-  // Column widths — total must equal contentW (186mm)
   const colStyles = isSame ? {
-    0:  { cellWidth: 7,  halign: 'center' },  // #
-    1:  { cellWidth: 42, halign: 'left'   },  // Product
-    2:  { cellWidth: 14, halign: 'center' },  // HSN
-    3:  { cellWidth: 11, halign: 'center' },  // Unit
-    4:  { cellWidth: 9,  halign: 'right'  },  // Qty
-    5:  { cellWidth: 18, halign: 'right'  },  // Rate
-    6:  { cellWidth: 21, halign: 'right'  },  // Taxable
-    7:  { cellWidth: 10, halign: 'center' },  // GST%
-    8:  { cellWidth: 18, halign: 'right'  },  // CGST
-    9:  { cellWidth: 18, halign: 'right'  },  // SGST
-    10: { cellWidth: 18, halign: 'right'  },  // Amount  (7+42+14+11+9+18+21+10+18+18+18=186)
+    0:  { cellWidth: 7,  halign: 'center' },
+    1:  { cellWidth: 42, halign: 'left'   },
+    2:  { cellWidth: 14, halign: 'center' },
+    3:  { cellWidth: 11, halign: 'center' },
+    4:  { cellWidth: 9,  halign: 'right'  },
+    5:  { cellWidth: 18, halign: 'right'  },
+    6:  { cellWidth: 21, halign: 'right'  },
+    7:  { cellWidth: 10, halign: 'center' },
+    8:  { cellWidth: 18, halign: 'right'  },
+    9:  { cellWidth: 18, halign: 'right'  },
+    10: { cellWidth: 18, halign: 'right'  },
   } : {
-    0: { cellWidth: 7,  halign: 'center' },   // #
-    1: { cellWidth: 52, halign: 'left'   },   // Product
-    2: { cellWidth: 16, halign: 'center' },   // HSN
-    3: { cellWidth: 12, halign: 'center' },   // Unit
-    4: { cellWidth: 10, halign: 'right'  },   // Qty
-    5: { cellWidth: 22, halign: 'right'  },   // Rate
-    6: { cellWidth: 24, halign: 'right'  },   // Taxable
-    7: { cellWidth: 10, halign: 'center' },   // GST%
-    8: { cellWidth: 13, halign: 'right'  },   // IGST  (wait — need room for Amount)
-    9: { cellWidth: 20, halign: 'right'  },   // Amount (7+52+16+12+10+22+24+10+13+20=186)
+    0: { cellWidth: 7,  halign: 'center' },
+    1: { cellWidth: 52, halign: 'left'   },
+    2: { cellWidth: 16, halign: 'center' },
+    3: { cellWidth: 12, halign: 'center' },
+    4: { cellWidth: 10, halign: 'right'  },
+    5: { cellWidth: 22, halign: 'right'  },
+    6: { cellWidth: 24, halign: 'right'  },
+    7: { cellWidth: 10, halign: 'center' },
+    8: { cellWidth: 13, halign: 'right'  },
+    9: { cellWidth: 20, halign: 'right'  },
   };
 
   doc.autoTable({
@@ -214,7 +220,6 @@ export const generatePDF = (invoice) => {
     tableLineColor: inkLight,
     tableLineWidth: 0.25,
     didParseCell: (data) => {
-      // Color CGST/SGST blue, IGST amber in body
       if (data.section === 'body') {
         const lastDataCol = isSame ? 10 : 9;
         const taxCol1 = isSame ? 8 : 8;
@@ -272,7 +277,6 @@ export const generatePDF = (invoice) => {
     doc.text(row.value, sumX + sumW - 3, ry + 5, { align: 'right' });
   });
 
-  // Grand Total bar
   const gtY = y + rowH * summaryRows.length + 1;
   doc.setFillColor(...inkDark);
   doc.rect(sumX, gtY, sumW, 10, 'F');

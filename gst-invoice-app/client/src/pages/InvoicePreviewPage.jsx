@@ -45,7 +45,10 @@ export default function InvoicePreviewPage() {
   );
   if (!invoice) return null;
 
-  const { seller, buyer, items = [], subtotal = 0, cgst = 0, sgst = 0, igst = 0, grandTotal = 0, isSameState } = invoice;
+  const { seller, buyer, shipTo, items = [], subtotal = 0, cgst = 0, sgst = 0, igst = 0, grandTotal = 0, isSameState } = invoice;
+
+  // ✅ Ship To fallback — agar purana invoice hai jisme shipTo nahi tha
+  const shipToData = shipTo?.clientName ? shipTo : buyer;
 
   const scaledHeight = 1123 * scale;
 
@@ -73,7 +76,7 @@ export default function InvoicePreviewPage() {
         </div>
       </div>
 
-      {/* A4 Invoice — auto height, no fixed minHeight */}
+      {/* A4 Invoice */}
       <div
         ref={printRef}
         className="invoice-preview bg-white text-ink-800 shadow-2xl rounded-xl overflow-hidden"
@@ -115,23 +118,29 @@ export default function InvoicePreviewPage() {
           </div>
         </div>
 
-        {/* Bill to + Supply info */}
+        {/* ✅ Bill To + Ship To (Supply Details hataya) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: '#e8e8e0', margin: '0 36px', borderRadius: '8px', overflow: 'hidden' }}>
+          {/* Bill To */}
           <div style={{ background: 'white', padding: '14px 18px' }}>
-            <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#909080', margin: '0 0 6px' }}>Bill To</p>
+            <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#909080', margin: '0 0 6px' }}>Billed To</p>
             <p style={{ fontSize: '14px', fontWeight: '700', color: '#1c1c18', margin: '0 0 4px', wordBreak: 'break-word' }}>{buyer?.clientName}</p>
             <p style={{ fontSize: '12px', color: '#1c1c18', margin: '0 0 2px', lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{buyer?.address}</p>
-            {buyer?.gstNumber && <p style={{ fontSize: '12px', color: '#1c1c18', margin: 0 }}>GSTIN: {buyer?.gstNumber}</p>}
+            {buyer?.gstNumber && (
+              <p style={{ fontSize: '12px', color: '#6e6e60', margin: '4px 0 0', fontWeight: '600' }}>
+                GSTIN / UIN &nbsp;: &nbsp;{buyer?.gstNumber}
+              </p>
+            )}
           </div>
+          {/* Ship To */}
           <div style={{ background: 'white', padding: '14px 18px' }}>
-            <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#909080', margin: '0 0 6px' }}>Supply Details</p>
-            <p style={{ fontSize: '12px', color: '#6e6e60', margin: '0 0 3px' }}>Seller State: <strong style={{ color: '#1c1c18' }}>{seller?.state}</strong></p>
-            <p style={{ fontSize: '12px', color: '#6e6e60', margin: '0 0 3px' }}>Buyer State: <strong style={{ color: '#1c1c18' }}>{buyer?.state}</strong></p>
-            <p style={{ fontSize: '12px', color: '#6e6e60', margin: 0 }}>
-              Tax Type: <strong style={{ color: isSameState ? '#2563eb' : '#d97706' }}>
-                {isSameState ? 'CGST + SGST' : 'IGST'}
-              </strong>
-            </p>
+            <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#909080', margin: '0 0 6px' }}>Shipped To</p>
+            <p style={{ fontSize: '14px', fontWeight: '700', color: '#1c1c18', margin: '0 0 4px', wordBreak: 'break-word' }}>{shipToData?.clientName}</p>
+            <p style={{ fontSize: '12px', color: '#1c1c18', margin: '0 0 2px', lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{shipToData?.address}</p>
+            {shipToData?.gstNumber && (
+              <p style={{ fontSize: '12px', color: '#6e6e60', margin: '4px 0 0', fontWeight: '600' }}>
+                GSTIN / UIN &nbsp;: &nbsp;{shipToData?.gstNumber}
+              </p>
+            )}
           </div>
         </div>
 

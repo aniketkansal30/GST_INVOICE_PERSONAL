@@ -32,7 +32,6 @@ export default function InvoiceFormPage() {
   const [showProductDropdown, setShowProductDropdown] = useState({});
   const clientRef = useRef(null);
 
-
   const [seller, setSeller] = useState({
     companyName: user?.companyName || '',
     gstNumber: user?.gstNumber || '',
@@ -42,6 +41,11 @@ export default function InvoiceFormPage() {
     email: user?.email || '',
   });
   const [buyer, setBuyer] = useState({ clientName: '', gstNumber: '', address: '', state: '', contact: '' });
+
+  // ✅ Ship To — Bill To se auto-fill, manually editable
+  const [shipTo, setShipTo] = useState({ clientName: '', gstNumber: '', address: '', state: '' });
+  const [shipSameAsBill, setShipSameAsBill] = useState(true); // checkbox for auto-sync
+
   const [meta, setMeta] = useState({
     invoiceNumber: '',
     invoiceDate: new Date().toISOString().split('T')[0],
@@ -54,7 +58,6 @@ export default function InvoiceFormPage() {
   const isSameState = seller.state && buyer.state &&
     seller.state.trim().toLowerCase() === buyer.state.trim().toLowerCase();
 
-  // Load saved clients and products
   useEffect(() => {
     api.get('/invoices/meta/clients').then(r => setSavedClients(r.data)).catch(() => { });
     api.get('/invoices/meta/products').then(r => setSavedProducts(r.data)).catch(() => { });
@@ -66,7 +69,6 @@ export default function InvoiceFormPage() {
     }
   }, []);
 
-  // Close client dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (clientRef.current && !clientRef.current.contains(e.target)) {
@@ -84,6 +86,19 @@ export default function InvoiceFormPage() {
         setSeller(inv.seller);
         setBuyer(inv.buyer);
         setClientSearch(inv.buyer?.clientName || '');
+        // ✅ Load saved shipTo if exists, else fill from buyer
+        if (inv.shipTo && inv.shipTo.clientName) {
+          setShipTo(inv.shipTo);
+          setShipSameAsBill(false);
+        } else {
+          setShipTo({
+            clientName: inv.buyer?.clientName || '',
+            gstNumber: inv.buyer?.gstNumber || '',
+            address: inv.buyer?.address || '',
+            state: inv.buyer?.state || '',
+          });
+          setShipSameAsBill(true);
+        }
         setMeta({
           invoiceNumber: inv.invoiceNumber,
           invoiceDate: inv.invoiceDate?.split('T')[0],
@@ -98,6 +113,18 @@ export default function InvoiceFormPage() {
       }).finally(() => setLoadingInv(false));
     }
   }, [id]);
+
+  // ✅ Jab buyer change ho aur shipSameAsBill true ho toh shipTo bhi update ho
+  useEffect(() => {
+    if (shipSameAsBill) {
+      setShipTo({
+        clientName: buyer.clientName || '',
+        gstNumber: buyer.gstNumber || '',
+        address: buyer.address || '',
+        state: buyer.state || '',
+      });
+    }
+  }, [buyer, shipSameAsBill]);
 
   const calcItemGst = (item) => {
     const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
@@ -141,14 +168,21 @@ export default function InvoiceFormPage() {
     }));
   };
 
-  // Select a saved client
   const selectClient = (client) => {
     setBuyer({ ...client });
     setClientSearch(client.clientName);
     setShowClientDropdown(false);
+    // ✅ Ship To bhi auto-fill
+    if (shipSameAsBill) {
+      setShipTo({
+        clientName: client.clientName || '',
+        gstNumber: client.gstNumber || '',
+        address: client.address || '',
+        state: client.state || '',
+      });
+    }
   };
 
-  // Select a saved product for a row
   const selectProduct = (itemId, product) => {
     setItems(p => p.map(i => {
       if (i.id !== itemId) return i;
@@ -164,6 +198,7 @@ export default function InvoiceFormPage() {
 
   const buildPayload = () => ({
     seller, buyer,
+    shipTo, // ✅ shipTo bhi save hoga
     invoiceNumber: meta.invoiceNumber,
     invoiceDate: meta.invoiceDate,
     dueDate: meta.dueDate,
@@ -282,9 +317,8 @@ export default function InvoiceFormPage() {
 
           {/* Buyer - with autocomplete */}
           <div className="card p-6">
-            <p className="section-title">Buyer (Client)</p>
+            <p className="section-title">Buyer (Client) — Bill To</p>
             <div className="space-y-3">
-              {/* Client Name with autocomplete */}
               <div ref={clientRef} className="relative">
                 <label className="label">Client Name *</label>
                 <div className="relative">
@@ -344,6 +378,74 @@ export default function InvoiceFormPage() {
           </div>
         </div>
 
+        {/* ✅ Ship To Section */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <p className="section-title mb-0">Ship To</p>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={shipSameAsBill}
+                onChange={e => {
+                  setShipSameAsBill(e.target.checked);
+                  if (e.target.checked) {
+                    setShipTo({
+                      clientName: buyer.clientName || '',
+                      gstNumber: buyer.gstNumber || '',
+                      address: buyer.address || '',
+                      state: buyer.state || '',
+                    });
+                  }
+                }}
+                className="w-4 h-4 accent-ink-800"
+              />
+              <span className="text-xs text-ink-500 font-medium">Same as Bill To</span>
+            </label>
+          </div>
+          <div className="grid lg:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Name</label>
+              <input
+                value={shipTo.clientName}
+                onChange={e => { setShipSameAsBill(false); setShipTo(p => ({ ...p, clientName: e.target.value })); }}
+                className="input font-semibold"
+                placeholder="Ship To Name"
+              />
+            </div>
+            <div>
+              <label className="label">GST / UIN</label>
+              <input
+                value={shipTo.gstNumber}
+                onChange={e => { setShipSameAsBill(false); setShipTo(p => ({ ...p, gstNumber: e.target.value.toUpperCase() })); }}
+                className="input font-mono uppercase"
+                placeholder="GSTIN (optional)"
+                maxLength={15}
+              />
+            </div>
+            <div>
+              <label className="label">Address</label>
+              <textarea
+                value={shipTo.address}
+                onChange={e => { setShipSameAsBill(false); setShipTo(p => ({ ...p, address: e.target.value })); }}
+                className="input resize-none"
+                rows={2}
+                placeholder="Street, City, PIN Code"
+              />
+            </div>
+            <div>
+              <label className="label">State</label>
+              <select
+                value={shipTo.state}
+                onChange={e => { setShipSameAsBill(false); setShipTo(p => ({ ...p, state: e.target.value })); }}
+                className="input"
+              >
+                <option value="">Select State</option>
+                {INDIAN_STATES.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Items Table */}
         <div className="card overflow-hidden">
           <div className="px-6 py-4 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between">
@@ -374,7 +476,6 @@ export default function InvoiceFormPage() {
                   return (
                     <tr key={item.id} className="group">
                       <td className="px-3 py-3 text-sm text-ink-400 text-center w-8">{index + 1}</td>
-                      {/* Product with autocomplete */}
                       <td className="px-3 py-3 min-w-[180px]">
                         <div className="relative">
                           <input
@@ -435,10 +536,7 @@ export default function InvoiceFormPage() {
                       </td>
                       <td className="px-3 py-3 min-w-[90px]">
                         <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.1"
+                          type="number" min="0" max="100" step="0.1"
                           value={item.gstPct}
                           onChange={e => updateItem(item.id, 'gstPct', e.target.value === '' ? 0 : Number(e.target.value))}
                           className="input text-center font-mono"
@@ -531,4 +629,3 @@ export default function InvoiceFormPage() {
     </div>
   );
 }
-
