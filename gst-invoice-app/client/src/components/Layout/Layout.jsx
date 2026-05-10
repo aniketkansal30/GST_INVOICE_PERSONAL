@@ -7,6 +7,7 @@ import {
   Moon, Sun, Monitor, Menu, X, Info, Wallet, Package
 } from 'lucide-react';
 import AboutModal from './AboutModal';
+import { Package } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -14,6 +15,7 @@ const navItems = [
   { to: '/gstr1', icon: FileText, label: 'Report' },
   { to: '/payments', icon: Wallet, label: 'Payments' },
   { to: '/inventory', icon: Package, label: 'Inventory Report' },
+  { path: '/stock', icon: <Package size={18}/>, label: 'Stock Register' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

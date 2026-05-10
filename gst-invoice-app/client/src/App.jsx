@@ -15,6 +15,7 @@ import Report from './pages/Report';
 import PaymentsPage from './pages/PaymentsPage';
 import InventoryPage from './pages/InventoryPage';
 import LicenseGate from './components/LicenseGate';
+import StockPage from './pages/StockPage';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -65,6 +66,7 @@ export default function App() {
                   <Route path="gstr1" element={<Report />} />
                   <Route path="payments" element={<PaymentsPage />} />
                   <Route path="inventory" element={<InventoryPage />} />
+                  <Route path="/stock" element={<StockPage />} />
                 </Route>
               </Routes>
             </Router>
