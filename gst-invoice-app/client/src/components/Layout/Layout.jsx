@@ -7,7 +7,6 @@ import {
   Moon, Sun, Monitor, Menu, X, Info, Wallet, Package
 } from 'lucide-react';
 import AboutModal from './AboutModal';
-import { Package } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
