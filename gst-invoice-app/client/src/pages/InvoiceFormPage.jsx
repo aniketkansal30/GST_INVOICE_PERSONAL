@@ -41,7 +41,7 @@ export default function InvoiceFormPage() {
   });
   const [buyer, setBuyer] = useState({ clientName: '', gstNumber: '', address: '', state: '', contact: '' });
   const [meta, setMeta] = useState({
-    invoiceNumber: generateInvoiceNumber(),
+  invoiceNumber: '',
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: '',
     notes: '',
@@ -56,7 +56,12 @@ export default function InvoiceFormPage() {
   useEffect(() => {
     api.get('/invoices/meta/clients').then(r => setSavedClients(r.data)).catch(() => { });
     api.get('/invoices/meta/products').then(r => setSavedProducts(r.data)).catch(() => { });
-  }, []);
+    if (!isEdit) {
+    api.get('/invoices/meta/next-number')
+      .then(r => setMeta(p => ({ ...p, invoiceNumber: r.data.nextNumber })))
+      .catch(() => { });
+  }
+}, []);
 
   // Close client dropdown on outside click
   useEffect(() => {

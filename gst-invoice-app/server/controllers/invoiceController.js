@@ -42,26 +42,33 @@ exports.getInvoice = async (req, res) => {
 
 exports.createInvoice = async (req, res) => {
   try {
-    const invoice = await Invoice.create({ ...req.body, user: req.user._id });
+    // Last invoice dhundo is user ki
+    const lastInvoice = await Invoice.findOne({ user: req.user._id })
+      .sort({ createdAt: -1 });
+
+    let nextNumber = 'INV-001'; // default pehli invoice
+
+    if (lastInvoice && lastInvoice.invoiceNumber) {
+      const parts = lastInvoice.invoiceNumber.split('-');
+      const lastNum = parseInt(parts[parts.length - 1]);
+      if (!isNaN(lastNum)) {
+        nextNumber = `INV-${String(lastNum + 1).padStart(3, '0')}`;
+      }
+    }
+
+    // Agar frontend ne number bheja toh use karo, warna auto wala
+    const invoiceNumber = req.body.invoiceNumber || nextNumber;
+
+    const invoice = await Invoice.create({
+      ...req.body,
+      invoiceNumber,
+      user: req.user._id
+    });
     res.status(201).json(invoice);
   } catch (err) {
     if (err.code === 11000) {
       return res.status(400).json({ message: 'Invoice number already exists' });
     }
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.updateInvoice = async (req, res) => {
-  try {
-    const invoice = await Invoice.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
-    res.json(invoice);
-  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
@@ -170,6 +177,39 @@ exports.deletePayment = async (req, res) => {
     else invoice.status = 'sent';
     await invoice.save();
     res.json(invoice);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+exports.getNextInvoiceNumber = async (req, res) => {
+  try {
+    const lastInvoice = await Invoice.findOne({ user: req.user._id })
+      .sort({ createdAt: -1 });
+
+    let nextNumber = 'INV-001';
+
+    if (lastInvoice && lastInvoice.invoiceNumber) {
+      const parts = lastInvoice.invoiceNumber.split('-');
+      const lastNum = parseInt(parts[parts.length - 1]);
+      if (!isNaN(lastNum)) {
+        nextNumber = `INV-${String(lastNum + 1).padStart(3, '0')}`;
+      }
+    }
+    exports.updateInvoice = async (req, res) => {
+      try {
+        const invoice = await Invoice.findOneAndUpdate(
+          { _id: req.params.id, user: req.user._id },
+          req.body,
+          { new: true, runValidators: true }
+        );
+        if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+        res.json(invoice);
+      } catch (err) {
+        res.status(500).json({ message: err.message });
+      }
+    };
+
+    res.json({ nextNumber });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
