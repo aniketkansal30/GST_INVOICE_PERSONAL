@@ -28,8 +28,10 @@ export default function InvoiceFormPage() {
   const [clientSearch, setClientSearch] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [productSearch, setProductSearch] = useState({});
+  const [stockData, setStockData] = useState([]);
   const [showProductDropdown, setShowProductDropdown] = useState({});
   const clientRef = useRef(null);
+
 
   const [seller, setSeller] = useState({
     companyName: user?.companyName || '',
@@ -41,7 +43,7 @@ export default function InvoiceFormPage() {
   });
   const [buyer, setBuyer] = useState({ clientName: '', gstNumber: '', address: '', state: '', contact: '' });
   const [meta, setMeta] = useState({
-  invoiceNumber: '',
+    invoiceNumber: '',
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: '',
     notes: '',
@@ -56,12 +58,13 @@ export default function InvoiceFormPage() {
   useEffect(() => {
     api.get('/invoices/meta/clients').then(r => setSavedClients(r.data)).catch(() => { });
     api.get('/invoices/meta/products').then(r => setSavedProducts(r.data)).catch(() => { });
+    api.get('/products').then(r => setStockData(r.data)).catch(() => { });
     if (!isEdit) {
-    api.get('/invoices/meta/next-number')
-      .then(r => setMeta(p => ({ ...p, invoiceNumber: r.data.nextNumber })))
-      .catch(() => { });
-  }
-}, []);
+      api.get('/invoices/meta/next-number')
+        .then(r => setMeta(p => ({ ...p, invoiceNumber: r.data.nextNumber })))
+        .catch(() => { });
+    }
+  }, []);
 
   // Close client dropdown on outside click
   useEffect(() => {
@@ -395,7 +398,15 @@ export default function InvoiceFormPage() {
                                 <button key={i} type="button" onMouseDown={() => selectProduct(item.id, prod)}
                                   className="w-full text-left px-4 py-2.5 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors border-b border-ink-50 dark:border-ink-800 last:border-0">
                                   <p className="text-sm font-semibold text-ink-800 dark:text-ink-100 whitespace-normal break-words leading-snug">{prod.name}</p>
-                                  <p className="text-xs text-ink-400">HSN: {prod.hsn || '-'} · ₹{prod.rate} · {prod.gstPct}%</p>
+                                  <p className="text-xs text-ink-400">
+                                    HSN: {prod.hsn || '-'} · ₹{prod.rate} · {prod.gstPct}%
+                                    {(() => {
+                                      const s = stockData.find(p => p.name?.toLowerCase() === prod.name?.toLowerCase());
+                                      return s ? <span style={{ marginLeft: 6, color: s.currentStock <= 5 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                                        Stock: {s.currentStock} {s.unit}
+                                      </span> : null;
+                                    })()}
+                                  </p>
                                 </button>
                               ))}
                             </div>

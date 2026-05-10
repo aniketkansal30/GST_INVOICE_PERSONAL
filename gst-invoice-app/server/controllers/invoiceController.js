@@ -1,4 +1,6 @@
 ﻿const Invoice = require('../models/Invoice');
+const Product = require('../models/Product');
+const StockTransaction = require('../models/StockTransaction');
 
 exports.getInvoices = async (req, res) => {
   try {
@@ -42,12 +44,10 @@ exports.getInvoice = async (req, res) => {
 
 exports.createInvoice = async (req, res) => {
   try {
-    // Last invoice dhundo is user ki
     const lastInvoice = await Invoice.findOne({ user: req.user._id })
       .sort({ createdAt: -1 });
 
-    let nextNumber = 'INV-001'; // default pehli invoice
-
+    let nextNumber = 'INV-001';
     if (lastInvoice && lastInvoice.invoiceNumber) {
       const parts = lastInvoice.invoiceNumber.split('-');
       const lastNum = parseInt(parts[parts.length - 1]);
@@ -56,14 +56,35 @@ exports.createInvoice = async (req, res) => {
       }
     }
 
-    // Agar frontend ne number bheja toh use karo, warna auto wala
     const invoiceNumber = req.body.invoiceNumber || nextNumber;
-
     const invoice = await Invoice.create({
       ...req.body,
       invoiceNumber,
       user: req.user._id
     });
+
+    // Stock auto deduct
+    for (const item of req.body.items || []) {
+      if (item.name) {
+        const product = await Product.findOne({
+          user: req.user._id,
+          name: { $regex: new RegExp(`^${item.name.trim()}$`, 'i') }
+        });
+        if (product) {
+          product.currentStock -= Number(item.qty) || 0;
+          await product.save();
+          await StockTransaction.create({
+            user: req.user._id,
+            product: product._id,
+            type: 'SALE',
+            qty: -(Number(item.qty) || 0),
+            note: `Invoice ${invoiceNumber}`,
+            invoiceId: invoice._id,
+          });
+        }
+      }
+    }
+
     res.status(201).json(invoice);
   } catch (err) {
     if (err.code === 11000) {
