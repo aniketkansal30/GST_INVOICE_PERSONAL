@@ -14,7 +14,6 @@ const navItems = [
   { to: '/gstr1', icon: FileText, label: 'Report' },
   { to: '/payments', icon: Wallet, label: 'Payments' },
   { to: '/inventory', icon: Package, label: 'Inventory Report' },
-  { path: '/stock', icon: <Package size={18}/>, label: 'Stock Register' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
