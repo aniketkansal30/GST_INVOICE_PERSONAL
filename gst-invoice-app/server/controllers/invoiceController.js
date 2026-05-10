@@ -208,7 +208,6 @@ exports.getNextInvoiceNumber = async (req, res) => {
       .sort({ createdAt: -1 });
 
     let nextNumber = 'INV-001';
-
     if (lastInvoice && lastInvoice.invoiceNumber) {
       const parts = lastInvoice.invoiceNumber.split('-');
       const lastNum = parseInt(parts[parts.length - 1]);
@@ -216,21 +215,22 @@ exports.getNextInvoiceNumber = async (req, res) => {
         nextNumber = `INV-${String(lastNum + 1).padStart(3, '0')}`;
       }
     }
-    exports.updateInvoice = async (req, res) => {
-      try {
-        const invoice = await Invoice.findOneAndUpdate(
-          { _id: req.params.id, user: req.user._id },
-          req.body,
-          { new: true, runValidators: true }
-        );
-        if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
-        res.json(invoice);
-      } catch (err) {
-        res.status(500).json({ message: err.message });
-      }
-    };
-
     res.json({ nextNumber });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ✅ BILKUL ALAG — bahar
+exports.updateInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    res.json(invoice);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
