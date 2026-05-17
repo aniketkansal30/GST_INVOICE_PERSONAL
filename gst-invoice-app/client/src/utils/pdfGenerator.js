@@ -31,7 +31,7 @@ export const generatePDF = (invoice) => {
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   doc.text('TAX INVOICE', pageW - margin, y + 5, { align: 'right' });
 
   doc.setFont('helvetica', 'bold');
@@ -41,7 +41,7 @@ export const generatePDF = (invoice) => {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   doc.text('Date: ' + formatDate(invoice.invoiceDate), pageW - margin, y + 20, { align: 'right' });
   if (invoice.dueDate) {
     doc.text('Due: ' + formatDate(invoice.dueDate), pageW - margin, y + 26, { align: 'right' });
@@ -49,7 +49,7 @@ export const generatePDF = (invoice) => {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   const maxAddrW = contentW * 0.55;
   const addrLines = doc.splitTextToSize(invoice.seller?.address || '', maxAddrW);
   doc.text(addrLines, margin, y + 17);
@@ -62,7 +62,7 @@ export const generatePDF = (invoice) => {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   const contactLine = invoice.seller?.contact
     ? invoice.seller.contact + ' | abhiyantsalescorporation@gmail.com'
     : 'abhiyantsalescorporation@gmail.com';
@@ -80,7 +80,7 @@ export const generatePDF = (invoice) => {
   doc.rect(margin, y, halfW, boxH);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.5);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   doc.text('BILLED TO', margin + 3, y + 5);
 
   doc.setFont('helvetica', 'bold');
@@ -92,7 +92,7 @@ export const generatePDF = (invoice) => {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   const buyerAddrLines = doc.splitTextToSize(invoice.buyer?.address || '', halfW - 6);
   const buyerAddrY = y + 11 + clientNameLines.length * 4;
   doc.text(buyerAddrLines, margin + 3, buyerAddrY);
@@ -113,7 +113,7 @@ export const generatePDF = (invoice) => {
   doc.rect(supX, y, halfW, boxH);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.5);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   doc.text('SHIPPED TO', supX + 3, y + 5);
 
   doc.setFont('helvetica', 'bold');
@@ -125,7 +125,7 @@ export const generatePDF = (invoice) => {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   const shipAddrLines = doc.splitTextToSize(shipToData?.address || '', halfW - 6);
   const shipAddrY = y + 11 + shipNameLines.length * 4;
   doc.text(shipAddrLines, supX + 3, shipAddrY);
@@ -304,7 +304,7 @@ export const generatePDF = (invoice) => {
   if (invoice.notes) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
-    doc.setTextColor(...inkMid);
+    doc.setTextColor(...inkDark);
     doc.text('Notes:', margin, y + 4);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...inkDark);
@@ -325,7 +325,7 @@ export const generatePDF = (invoice) => {
   doc.rect(pageW - margin - 68, y, 68, 22, 'F');
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   doc.text('For ' + (invoice.seller?.companyName || ''), pageW - margin - 34, y + 6, { align: 'center' });
   doc.line(pageW - margin - 62, y + 17, pageW - margin - 5, y + 17);
   doc.text('Authorized Signatory', pageW - margin - 34, y + 21, { align: 'center' });
