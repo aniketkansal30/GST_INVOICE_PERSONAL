@@ -121,7 +121,7 @@ export default function InvoiceFormPage() {
           poNo: inv.poNo || '',
           grRrNo: inv.grRrNo || '',
           reverseCharge: inv.reverseCharge || 'No',
-          bankDetails: inv.bankDetails || '',
+          bankDetails: inv.bankDetails || 'Bank of Baroda\nA/C No.: 83760200001223\nIFSC Code: BARB0VJSIME\nBranch: Siwaya Pallavpuram Phase 2nd, UttarPradesh - 250110',
           termsConditions: inv.termsConditions || '',
         });
         setItems(inv.items.map(it => ({ ...it, id: Date.now() + Math.random() })));
@@ -216,18 +216,18 @@ export default function InvoiceFormPage() {
 
   const buildPayload = () => ({
     seller, buyer,
-    shipTo, // ✅ shipTo bhi save hoga
+    shipTo,
     invoiceNumber: meta.invoiceNumber,
     invoiceDate: meta.invoiceDate,
     dueDate: meta.dueDate,
     notes: meta.notes,
     status: meta.status,
-    transport: meta.transport,      // ← add
-    vehicleNo: meta.vehicleNo,      // ← add
-    station: meta.station,          // ← add
-    nug: meta.nug,                  // ← add
-    poNo: meta.poNo,                // ← add
-    grRrNo: meta.grRrNo,
+    transport: meta.transport || '',
+    vehicleNo: meta.vehicleNo || '',
+    station: meta.station || '',
+    nug: meta.nug || '',
+    poNo: meta.poNo || '',
+    grRrNo: meta.grRrNo || '',
     items: items.map(({ id: _id, ...rest }) => rest),
     subtotal: totals.subtotal,
     cgst: totals.cgst, sgst: totals.sgst, igst: totals.igst,
