@@ -22,7 +22,7 @@ export const generatePDF = (invoice) => {
   let y = margin;
 
   // ── HEADER ──
-  const headerH = 42;
+  const headerH = 40;
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageW, headerH, 'F');
   doc.setDrawColor(...inkLight);
@@ -33,24 +33,24 @@ export const generatePDF = (invoice) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6);
   doc.setTextColor(...inkDark);
-  doc.text('TAX INVOICE', pageW / 2, y + 6, { align: 'center' });
+  doc.text('TAX INVOICE', pageW / 2, y + 5, { align: 'center' });
 
   // Company name
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(...inkDark);
-  doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 15, { align: 'center' });
+  doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 14, { align: 'center' });
 
   // Address
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...inkDark);
-  doc.text(invoice.seller?.address || '', pageW / 2, y + 23, { align: 'center' });
+  doc.text(invoice.seller?.address || '', pageW / 2, y + 22, { align: 'center' });
 
   // Contact line
   const contactLine = 'Tel. : ' + (invoice.seller?.contact || '') + '   |   email : abhiyantsalescorporation@gmail.com';
   doc.setFontSize(7);
-  doc.text(contactLine, pageW / 2, y + 31, { align: 'center' });
+  doc.text(contactLine, pageW / 2, y + 30, { align: 'center' });
 
   y = headerH + 3;
 
@@ -175,8 +175,8 @@ export const generatePDF = (invoice) => {
   const isSame = invoice.isSameState;
 
   const tableHead = isSame
-    ? [['S.No.', 'Product / Service', 'HSN', 'Unit', 'Qty', 'Rate', 'Taxable', 'GST%', 'CGST', 'SGST', 'Amount']]
-    : [['S.No.', 'Product / Service', 'HSN', 'Unit', 'Qty', 'Rate', 'Taxable', 'GST%', 'IGST', 'Amount']];
+    ? [['S.No', 'Product / Service', 'HSN', 'Unit', 'Qty', 'Rate', 'Taxable', 'GST%', 'CGST', 'SGST', 'Amount']]
+    : [['S.No', 'Product / Service', 'HSN', 'Unit', 'Qty', 'Rate', 'Taxable', 'GST%', 'IGST', 'Amount']];
 
   const tableBody = (invoice.items || []).map((item, i) => {
     const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
@@ -201,28 +201,28 @@ export const generatePDF = (invoice) => {
   });
 
   const colStyles = isSame ? {
-    0: { cellWidth: 7, halign: 'center' },
-    1: { cellWidth: 42, halign: 'left' },
+    0: { cellWidth: 10, halign: 'center' },
+    1: { cellWidth: 40, halign: 'left' },
     2: { cellWidth: 14, halign: 'center' },
     3: { cellWidth: 11, halign: 'center' },
     4: { cellWidth: 9, halign: 'right' },
     5: { cellWidth: 18, halign: 'right' },
-    6: { cellWidth: 21, halign: 'right' },
+    6: { cellWidth: 19, halign: 'right' },
     7: { cellWidth: 10, halign: 'center' },
-    8: { cellWidth: 18, halign: 'right' },
-    9: { cellWidth: 18, halign: 'right' },
-    10: { cellWidth: 18, halign: 'right' },
+    8: { cellWidth: 17, halign: 'right' },
+    9: { cellWidth: 17, halign: 'right' },
+    10: { cellWidth: 21, halign: 'right' },
   } : {
-    0: { cellWidth: 7, halign: 'center' },
-    1: { cellWidth: 52, halign: 'left' },
+    0: { cellWidth: 10, halign: 'center' },
+    1: { cellWidth: 50, halign: 'left' },
     2: { cellWidth: 16, halign: 'center' },
     3: { cellWidth: 12, halign: 'center' },
     4: { cellWidth: 10, halign: 'right' },
-    5: { cellWidth: 22, halign: 'right' },
-    6: { cellWidth: 24, halign: 'right' },
+    5: { cellWidth: 20, halign: 'right' },
+    6: { cellWidth: 22, halign: 'right' },
     7: { cellWidth: 10, halign: 'center' },
-    8: { cellWidth: 13, halign: 'right' },
-    9: { cellWidth: 20, halign: 'right' },
+    8: { cellWidth: 15, halign: 'right' },
+    9: { cellWidth: 21, halign: 'right' },
   };
 
   doc.autoTable({
@@ -245,7 +245,9 @@ export const generatePDF = (invoice) => {
       fontStyle: 'bold',
       fontSize: 6.5,
       halign: 'center',
-      minCellHeight: 8,
+      minCellHeight: 7,
+      valign: 'middle',
+      overflow: 'ellipsize',
     },
     alternateRowStyles: { fillColor: accentBg },
     columnStyles: colStyles,
