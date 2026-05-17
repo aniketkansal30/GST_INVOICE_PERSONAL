@@ -10,11 +10,12 @@ const USER_EMAIL = 'aniketkansal3007@gmail.com'; // jis user ko edit karna hai
 
 const UPDATE_DATA = {
   name: 'Aniket Kansal',
-  companyName: 'NEW TECH ENTERPRISES',
-  gstNumber: '09HEVPS3324P1ZB',
-  address: 'C-1, KRISHNA KUNJ-II, NEAR BABA FARM HOUSE, Nand Gram, Ghaziabad, 201003\nPAN: HEVPS3324P\nMSME: UDYAM-UP-29-0185368',
+  companyName: 'Abhiyant Sales Corporation',
+  gstNumber: '09CMJPS0294K2ZD',
+  address: '52/2, Uday Park, Pallavpuram Phase-2, Modipuram, Meerut-250110',
   state: 'Uttar Pradesh',
-  contact: '+91 8126700718',
+  contact: '+91 9536535900,+91 9258385619',
+  email: 'abhiyantsalescorporation@gmail.com'
 };
 
 async function updateUser() {

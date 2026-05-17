@@ -14,7 +14,6 @@ import Layout from './components/Layout/Layout';
 import Report from './pages/Report';
 import PaymentsPage from './pages/PaymentsPage';
 import InventoryPage from './pages/InventoryPage';
-import LicenseGate from './components/LicenseGate';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -39,7 +38,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <LicenseGate>
+        
           <InvoiceProvider>
             <Router>
               <Toaster
@@ -69,7 +68,7 @@ export default function App() {
               </Routes>
             </Router>
           </InvoiceProvider>
-        </LicenseGate>
+        
       </AuthProvider>
     </ThemeProvider>
   );
