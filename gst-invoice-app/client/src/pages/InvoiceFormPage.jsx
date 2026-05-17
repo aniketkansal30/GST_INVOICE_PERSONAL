@@ -58,9 +58,9 @@ export default function InvoiceFormPage() {
     nug: '',
     poNo: '',
     grRrNo: '',
-    reverseCharge: 'No',    // ← add
-    bankDetails: '',         // ← add
-    termsConditions: '',
+    reverseCharge: 'No',
+    bankDetails: user?.bankDetails || 'Bank of Baroda\nA/C No.: 83760200001223\nIFSC Code: BARB0VJSIME\nBranch: Siwaya Pallavpuram Phase 2nd, UttarPradesh - 250110',
+    termsConditions: user?.termsConditions || '',
   });
   const [items, setItems] = useState([emptyItem()]);
 
@@ -339,14 +339,6 @@ export default function InvoiceFormPage() {
               <option value="Yes">Yes</option>
             </select>
           </div>
-          <div className="lg:col-span-3">
-            <label className="label">Bank Details</label>
-            <input value={meta.bankDetails} onChange={e => setMeta(p => ({ ...p, bankDetails: e.target.value }))} className="input" placeholder="Bank Name, A/C No, IFSC Code, Branch" />
-          </div>
-          <div className="lg:col-span-3">
-            <label className="label">Terms & Conditions</label>
-            <textarea value={meta.termsConditions} onChange={e => setMeta(p => ({ ...p, termsConditions: e.target.value }))} className="input resize-none" rows={2} placeholder="Payment terms, delivery terms..." />
-          </div>
         </div>
 
         {/* Seller & Buyer */}
@@ -597,7 +589,7 @@ export default function InvoiceFormPage() {
                           ))}
                         </datalist>
                       </td>
-                      <td className="px-3 py-3 min-w-[90px]">
+                      <td className="px-3 py-3 min-w-[110px]">
                         <input type="number" min="0" step="0.01" value={item.qty} onChange={e => updateItem(item.id, 'qty', e.target.value)} className="input text-center" />
                       </td>
                       <td className="px-3 py-3 min-w-[110px]">
