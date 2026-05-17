@@ -109,17 +109,27 @@ exports.duplicateInvoice = async (req, res) => {
     const original = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
     if (!original) return res.status(404).json({ message: 'Invoice not found' });
 
-    const { _id, createdAt, updatedAt, invoiceNumber, ...data } = original.toObject();
-    const yr = new Date().getFullYear().toString().slice(-2);
-    const mo = String(new Date().getMonth() + 1).padStart(2, '0');
-    const rand = String(Math.floor(Math.random() * 9000) + 1000);
-    const newNumber = `${invoiceNumber.split('-')[0]}-${yr}${mo}-${rand}`;
+    const { _id, createdAt, updatedAt, invoiceNumber, payments, amountPaid, amountDue, ...data } = original.toObject();
+
+    // Next sequential number — same logic as getNextInvoiceNumber
+    const lastInvoice = await Invoice.findOne({ user: req.user._id }).sort({ createdAt: -1 });
+    let nextNumber = 'INV-001';
+    if (lastInvoice && lastInvoice.invoiceNumber) {
+      const parts = lastInvoice.invoiceNumber.split('-');
+      const lastNum = parseInt(parts[parts.length - 1]);
+      if (!isNaN(lastNum)) {
+        nextNumber = `INV-${String(lastNum + 1).padStart(3, '0')}`;
+      }
+    }
 
     const duplicate = await Invoice.create({
       ...data,
-      invoiceNumber: newNumber,
+      invoiceNumber: nextNumber,
       invoiceDate: new Date(),
       status: 'draft',
+      payments: [],
+      amountPaid: 0,
+      amountDue: data.grandTotal || 0,
       user: req.user._id,
     });
     res.status(201).json(duplicate);

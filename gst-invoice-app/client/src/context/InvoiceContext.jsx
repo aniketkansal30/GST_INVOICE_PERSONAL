@@ -42,7 +42,26 @@ export const InvoiceProvider = ({ children }) => {
   }, []);
 
   const duplicateInvoice = useCallback(async (id) => {
-    const res = await api.post(`/invoices/${id}/duplicate`);
+    // Fetch original invoice
+    const original = await api.get(`/invoices/${id}`);
+    
+    // Fetch next sequential invoice number
+    const nextNumRes = await api.get('/invoices/meta/next-number');
+    const nextNumber = nextNumRes.data.nextNumber;
+
+    // Create new invoice with correct number
+    const { _id, invoiceNumber, createdAt, updatedAt, __v, payments, amountPaid, amountDue, ...rest } = original.data;
+    const payload = {
+      ...rest,
+      invoiceNumber: nextNumber,
+      invoiceDate: new Date().toISOString().split('T')[0],
+      status: 'draft',
+      payments: [],
+      amountPaid: 0,
+      amountDue: rest.grandTotal || 0,
+    };
+
+    const res = await api.post('/invoices', payload);
     toast.success('Invoice duplicated!');
     return res.data;
   }, []);
