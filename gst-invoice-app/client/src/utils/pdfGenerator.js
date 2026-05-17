@@ -22,7 +22,7 @@ export const generatePDF = (invoice) => {
   let y = margin;
 
   // ── HEADER ──
-  const headerH = 36;
+  const headerH = 42;
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageW, headerH, 'F');
   doc.setDrawColor(...inkLight);
@@ -33,24 +33,24 @@ export const generatePDF = (invoice) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6);
   doc.setTextColor(...inkDark);
-  doc.text('TAX INVOICE', pageW / 2, y + 5, { align: 'center' });
+  doc.text('TAX INVOICE', pageW / 2, y + 6, { align: 'center' });
 
   // Company name
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(...inkDark);
-  doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 13, { align: 'center' });
+  doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 15, { align: 'center' });
 
   // Address
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...inkDark);
-  doc.text(invoice.seller?.address || '', pageW / 2, y + 20, { align: 'center' });
+  doc.text(invoice.seller?.address || '', pageW / 2, y + 23, { align: 'center' });
 
   // Contact line
   const contactLine = 'Tel. : ' + (invoice.seller?.contact || '') + '   |   email : abhiyantsalescorporation@gmail.com';
   doc.setFontSize(7);
-  doc.text(contactLine, pageW / 2, y + 26, { align: 'center' });
+  doc.text(contactLine, pageW / 2, y + 31, { align: 'center' });
 
   y = headerH + 3;
 
