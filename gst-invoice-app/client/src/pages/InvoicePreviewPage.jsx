@@ -109,12 +109,12 @@ export default function InvoicePreviewPage() {
             <div style={{ borderRight: '1px solid #e8e8e0', padding: '10px 14px' }}>
               <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
                 <tbody>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px', width: '45%' }}>GSTIN</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {seller?.gstNumber}</td></tr>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px' }}>Invoice No.</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.invoiceNumber}</td></tr>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px' }}>Date of Invoice</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {formatDate(invoice.invoiceDate)}</td></tr>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px' }}>Place of Supply</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {seller?.state}</td></tr>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px' }}>Reverse Charge</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.reverseCharge || 'No'}</td></tr>
-                  <tr><td style={{ color: '#6e6e60' }}>GR/RR No.</td><td style={{ fontWeight: '600' }}>: {invoice.grRrNo || '-'}</td></tr>
+                 <tr><td style={{ color: '#1c1c18', paddingBottom: '3px', width: '45%' }}>GSTIN</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {seller?.gstNumber}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Invoice No.</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.invoiceNumber}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Date of Invoice</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {formatDate(invoice.invoiceDate)}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Place of Supply</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {seller?.state}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Reverse Charge</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.reverseCharge || 'No'}</td></tr>
+                  <tr><td style={{ color: '#1c1c18' }}>GR/RR No.</td><td style={{ fontWeight: '600' }}>: {invoice.grRrNo || '-'}</td></tr>
                 </tbody>
               </table>
             </div>
@@ -123,11 +123,11 @@ export default function InvoicePreviewPage() {
             <div style={{ padding: '10px 14px' }}>
               <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
                 <tbody>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px', width: '45%' }}>Transport</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.transport || '-'}</td></tr>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px' }}>Vehicle No</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.vehicleNo || '-'}</td></tr>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px' }}>Station</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.station || '-'}</td></tr>
-                  <tr><td style={{ color: '#6e6e60', paddingBottom: '3px' }}>NUG</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.nug || '-'}</td></tr>
-                  <tr><td style={{ color: '#6e6e60' }}>P O No.</td><td style={{ fontWeight: '600' }}>: {invoice.poNo || '-'}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px', width: '45%' }}>Transport</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.transport || '-'}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Vehicle No</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.vehicleNo || '-'}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Station</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.station || '-'}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>NUG</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.nug || '-'}</td></tr>
+                  <tr><td style={{ color: '#1c1c18' }}>P O No.</td><td style={{ fontWeight: '600' }}>: {invoice.poNo || '-'}</td></tr>
                 </tbody>
               </table>
             </div>
@@ -242,7 +242,7 @@ export default function InvoicePreviewPage() {
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 14px', background: '#1c1c18', color: 'white' }}>
               <span style={{ fontWeight: '700', fontSize: '13px' }}>TOTAL</span>
-              <span style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '13px' }}>{formatCurrency(grandTotal)}</span>
+              <span style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '13px' }}>{formatCurrency(Math.round(grandTotal))}</span>
             </div>
           </div>
         </div>

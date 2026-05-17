@@ -21,7 +21,7 @@ export const generatePDF = (invoice) => {
   let y = margin;
 
   // ── HEADER — Company centered ──
-const headerH = 28;
+const headerH = 32;
 doc.setFillColor(255, 255, 255);
 doc.rect(0, 0, pageW, headerH, 'F');
 doc.setDrawColor(...inkLight);
@@ -31,22 +31,22 @@ doc.line(0, headerH, pageW, headerH);
 doc.setFont('helvetica', 'bold');
 doc.setFontSize(6);
 doc.setTextColor(...inkMid);
-doc.text('TAX INVOICE', pageW / 2, y + 4, { align: 'center' });
+doc.text('TAX INVOICE', pageW / 2, y + 5, { align: 'center' });
 
 doc.setFont('helvetica', 'bold');
 doc.setFontSize(16);
 doc.setTextColor(...inkDark);
-doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 11, { align: 'center' });
+doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 13, { align: 'center' });
 
 doc.setFont('helvetica', 'normal');
 doc.setFontSize(7.5);
 doc.setTextColor(...inkDark);
-doc.text(invoice.seller?.address || '', pageW / 2, y + 17, { align: 'center' });
+doc.text(invoice.seller?.address || '', pageW / 2, y + 20, { align: 'center' });
 
 const contactLine = invoice.seller?.contact
   ? 'Tel. : ' + invoice.seller.contact + ' email : abhiyantsalescorporation@gmail.com'
   : 'email : abhiyantsalescorporation@gmail.com';
-doc.text(contactLine, pageW / 2, y + 22, { align: 'center' });
+doc.text(contactLine, pageW / 2, y + 26, { align: 'center' });
 
 y = headerH + 2;
 
@@ -73,7 +73,7 @@ leftRows.forEach((row, i) => {
   const ry = y + 5 + i * 5.2;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   doc.text(row[0], margin + 3, ry);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...inkDark);
@@ -94,7 +94,7 @@ rightRows.forEach((row, i) => {
   const rx = margin + halfW2 + 3;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(...inkMid);
+  doc.setTextColor(...inkDark);
   doc.text(row[0], rx, ry);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...inkDark);
@@ -102,47 +102,6 @@ rightRows.forEach((row, i) => {
 });
 
 y += boxH2 + 2;
-  // ── TRANSPORT DETAILS ──
-const transportFields = [
-  { label: 'Transport', value: invoice.transport },
-  { label: 'Vehicle No', value: invoice.vehicleNo },
-  { label: 'Station', value: invoice.station },
-  { label: 'NUG', value: invoice.nug },
-  { label: 'P O No.', value: invoice.poNo },
-  { label: 'GR/RR No.', value: invoice.grRrNo },
-].filter(f => f.value);
-
-if (transportFields.length > 0) {
-  const cols = 3;
-  const cellW = contentW / cols;
-  const cellH = 10;
-  const rows = Math.ceil(transportFields.length / cols);
-
-  doc.setFillColor(...accentBg);
-  doc.rect(margin, y, contentW, cellH * rows, 'F');
-  doc.setDrawColor(...inkLight);
-  doc.setLineWidth(0.25);
-  doc.rect(margin, y, contentW, cellH * rows);
-
-  transportFields.forEach((field, idx) => {
-    const col = idx % cols;
-    const row = Math.floor(idx / cols);
-    const cx = margin + col * cellW;
-    const cy = y + row * cellH;
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6);
-    doc.setTextColor(...inkMid);
-    doc.text(field.label.toUpperCase(), cx + 3, cy + 4);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(...inkDark);
-    doc.text(String(field.value), cx + 3, cy + 8.5);
-  });
-
-  y += cellH * rows + 4;
-}
 
   // ✅ BILL TO + SHIP TO (Supply Details hataya)
   const boxH = 32;
