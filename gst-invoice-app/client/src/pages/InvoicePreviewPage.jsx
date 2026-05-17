@@ -109,7 +109,7 @@ export default function InvoicePreviewPage() {
             <div style={{ borderRight: '1px solid #e8e8e0', padding: '10px 14px' }}>
               <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
                 <tbody>
-                 <tr><td style={{ color: '#1c1c18', paddingBottom: '3px', width: '45%' }}>GSTIN</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {seller?.gstNumber}</td></tr>
+                  <tr><td style={{ color: '#1c1c18', paddingBottom: '3px', width: '45%' }}>GSTIN</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {seller?.gstNumber}</td></tr>
                   <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Invoice No.</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {invoice.invoiceNumber}</td></tr>
                   <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Date of Invoice</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {formatDate(invoice.invoiceDate)}</td></tr>
                   <tr><td style={{ color: '#1c1c18', paddingBottom: '3px' }}>Place of Supply</td><td style={{ fontWeight: '600', paddingBottom: '3px' }}>: {seller?.state}</td></tr>
@@ -251,6 +251,14 @@ export default function InvoicePreviewPage() {
         <div style={{ margin: '14px 36px 0', padding: '10px 14px', background: '#f4f4f0', borderRadius: '8px' }}>
           <p style={{ fontSize: '11px', color: '#6e6e60', margin: 0, lineHeight: 1.6 }}>
             <strong style={{ color: '#1c1c18' }}>Amount in words:</strong> {numberToWords(grandTotal)}
+          </p>
+        </div>
+
+        {/* Bank Details */}
+        <div style={{ margin: '14px 36px 0', padding: '10px 14px', background: '#f4f4f0', borderRadius: '8px' }}>
+          <p style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', color: '#1c1c18', margin: '0 0 4px' }}>Bank Details</p>
+          <p style={{ fontSize: '11px', color: '#1c1c18', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+            {invoice.bankDetails || 'Bank of Baroda\nA/C No.: 83760200001223\nIFSC Code: BARB0VJSIME\nBranch: Siwaya Pallavpuram Phase 2nd, UttarPradesh - 250110'}
           </p>
         </div>
 

@@ -48,7 +48,7 @@ const contactLine = invoice.seller?.contact
   : 'email : abhiyantsalescorporation@gmail.com';
 doc.text(contactLine, pageW / 2, y + 26, { align: 'center' });
 
-y = headerH + 2;
+y = headerH + 4;
 
 // ── GSTIN + Invoice + Transport BOX ──
 const boxH2 = 36;
@@ -94,11 +94,12 @@ rightRows.forEach((row, i) => {
   const rx = margin + halfW2 + 3;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(...inkDark);
+  doc.setTextColor(...inkMid);
   doc.text(row[0], rx, ry);
   doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
   doc.setTextColor(...inkDark);
-  doc.text(': ' + row[1], rx + halfW2 / 2, ry);
+  doc.text(': ' + row[1], rx + 22, ry);
 });
 
 y += boxH2 + 2;
@@ -349,7 +350,7 @@ y += boxH2 + 2;
   y += 6;
 
   // ── BANK DETAILS + TERMS + SIGNATURE ──
-const footerH = 30;
+const footerH = 42;
 const halfFW = contentW / 2;
 
 doc.setDrawColor(...inkLight);
@@ -358,23 +359,26 @@ doc.rect(margin, y, contentW, footerH);
 doc.line(margin + halfFW, y, margin + halfFW, y + footerH);
 
 // Left — Bank + Terms
+const fixedBank = invoice.bankDetails ||
+  'Bank of Baroda\nA/C No.: 83760200001223\nIFSC Code: BARB0VJSIME\nBranch: Siwaya Pallavpuram Phase 2nd, UttarPradesh - 250110';
+
 doc.setFont('helvetica', 'bold');
 doc.setFontSize(7);
 doc.setTextColor(...inkDark);
-if (invoice.bankDetails) {
-  doc.text('Bank Details', margin + 3, y + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  const bankLines = doc.splitTextToSize(invoice.bankDetails, halfFW - 6);
-  doc.text(bankLines, margin + 3, y + 9);
-}
+doc.text('Bank Details', margin + 3, y + 5);
+doc.setFont('helvetica', 'normal');
+doc.setFontSize(6.5);
+const bankLines = doc.splitTextToSize(fixedBank, halfFW - 6);
+doc.text(bankLines, margin + 3, y + 9);
 
 if (invoice.termsConditions) {
   doc.setFont('helvetica', 'bold');
-  doc.text('Terms & Conditions', margin + 3, y + 18);
+  doc.setFontSize(7);
+  doc.text('Terms & Conditions', margin + 3, y + 22);
   doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
   const termLines = doc.splitTextToSize(invoice.termsConditions, halfFW - 6);
-  doc.text(termLines, margin + 3, y + 22);
+  doc.text(termLines, margin + 3, y + 26);
 }
 
 // Right — Signature
