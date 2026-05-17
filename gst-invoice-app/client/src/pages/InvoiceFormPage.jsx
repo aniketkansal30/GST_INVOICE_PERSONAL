@@ -522,7 +522,7 @@ export default function InvoiceFormPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-ink-100 dark:border-ink-800">
-                  {['#', 'Product/Service', 'HSN/SAC', 'UoM', 'QTY', 'Unit Price (₹)', 'Taxable Amt (₹)', 'GST %',
+                  {['S.No.', 'Product/Service', 'HSN/SAC', 'UoM', 'QTY', 'Unit Price (₹)', 'Taxable Amt (₹)', 'GST %',
                     ...(isSameState ? ['CGST (₹)', 'SGST (₹)'] : ['IGST (₹)']),
                     'Amount (₹)', ''].map(h => (
                       <th key={h} className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 whitespace-nowrap">{h}</th>
