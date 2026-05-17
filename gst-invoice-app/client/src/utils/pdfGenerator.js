@@ -14,7 +14,7 @@ export const generatePDF = (invoice) => {
   const contentW = pageW - margin * 2;
 
   const inkDark = [28, 28, 24];
-  const inkLight = [232, 232, 224];
+  const inkLight = [200, 200, 195];
   const accentBg = [244, 244, 240];
   const blue = [37, 99, 235];
   const amber = [217, 119, 6];
@@ -22,7 +22,7 @@ export const generatePDF = (invoice) => {
   let y = margin;
 
   // ── HEADER ──
-  const headerH = 32;
+  const headerH = 36;
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageW, headerH, 'F');
   doc.setDrawColor(...inkLight);
@@ -31,23 +31,30 @@ export const generatePDF = (invoice) => {
 
   // TAX INVOICE label
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6);
+  doc.setFontSize(7);
   doc.setTextColor(...inkDark);
   doc.text('TAX INVOICE', pageW / 2, y + 5, { align: 'center' });
 
   // Company name
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
+  doc.setFontSize(18);
   doc.setTextColor(...inkDark);
-  doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 13, { align: 'center' });
+  doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 14, { align: 'center' });
 
-  // Address on one line, Tel+email on next line
+  // Address line
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...inkDark);
+  doc.text(invoice.seller?.address || '', pageW / 2, y + 21, { align: 'center' });
+
+  // Tel and Email on separate styled line
+  const telStr = 'Tel. : ' + (invoice.seller?.contact || '');
+  const emailStr = 'email : abhiyantsalescorporation@gmail.com';
+  const contactFull = telStr + '   |   ' + emailStr;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(...inkDark);
-  doc.text(invoice.seller?.address || '', pageW / 2, y + 20, { align: 'center' });
-  const contactLine = 'Tel. : ' + (invoice.seller?.contact || '') + '   |   email : abhiyantsalescorporation@gmail.com';
-  doc.text(contactLine, pageW / 2, y + 26, { align: 'center' });
+  doc.text(contactFull, pageW / 2, y + 27, { align: 'center' });
 
   y = headerH + 3;
 
@@ -55,9 +62,11 @@ export const generatePDF = (invoice) => {
   const boxH = 38;
   const halfW = contentW / 2;
 
+  doc.setFillColor(255, 255, 255);
   doc.setDrawColor(...inkLight);
   doc.setLineWidth(0.3);
   doc.rect(margin, y, contentW, boxH);
+  // Divider line in middle
   doc.line(margin + halfW, y, margin + halfW, y + boxH);
 
   // Left column — Invoice details
@@ -70,15 +79,16 @@ export const generatePDF = (invoice) => {
     ['GR/RR No.', invoice.grRrNo || '-'],
   ];
 
+  const labelX = margin + 3;
+  const colonX = margin + 33;       // fixed position for colon + value start
   leftRows.forEach((row, i) => {
     const ry = y + 6 + i * 5.4;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...inkDark);
-    doc.text(row[0], margin + 3, ry);
+    doc.text(row[0], labelX, ry);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...inkDark);
-    doc.text(': ' + row[1], margin + halfW * 0.52, ry);
+    doc.text(': ' + row[1], colonX, ry);
   });
 
   // Right column — Transport details
@@ -90,16 +100,16 @@ export const generatePDF = (invoice) => {
     ['P O No.', invoice.poNo || '-'],
   ];
 
+  const rLabelX = margin + halfW + 3;
+  const rColonX = margin + halfW + 26;   // fixed position for colon + value
   rightRows.forEach((row, i) => {
     const ry = y + 6 + i * 5.4;
-    const rx = margin + halfW + 3;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...inkDark);
-    doc.text(row[0], rx, ry);
+    doc.text(row[0], rLabelX, ry);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...inkDark);
-    doc.text(': ' + row[1], rx + 24, ry);
+    doc.text(': ' + row[1], rColonX, ry);
   });
 
   y += boxH + 4;
@@ -114,8 +124,8 @@ export const generatePDF = (invoice) => {
   doc.rect(margin, y, partyHalfW, partyBoxH);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(...inkDark);
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
   doc.text('BILLED TO', margin + 3, y + 5);
 
   doc.setFont('helvetica', 'bold');
@@ -144,12 +154,13 @@ export const generatePDF = (invoice) => {
   doc.rect(supX, y, partyHalfW, partyBoxH);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(...inkDark);
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
   doc.text('SHIPPED TO', supX + 3, y + 5);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
+  doc.setTextColor(...inkDark);
   const shipNameLines = doc.splitTextToSize(shipToData?.clientName || '', partyHalfW - 6);
   doc.text(shipNameLines, supX + 3, y + 11);
 
@@ -197,29 +208,30 @@ export const generatePDF = (invoice) => {
     return row;
   });
 
+  // Column widths tuned so total = contentW (186mm)
   const colStyles = isSame ? {
-    0: { cellWidth: 10, halign: 'center' },
-    1: { cellWidth: 38, halign: 'left' },
+    0:  { cellWidth: 8,  halign: 'center' },
+    1:  { cellWidth: 36, halign: 'left'   },
+    2:  { cellWidth: 13, halign: 'center' },
+    3:  { cellWidth: 10, halign: 'center' },
+    4:  { cellWidth: 9,  halign: 'right'  },
+    5:  { cellWidth: 18, halign: 'right'  },
+    6:  { cellWidth: 20, halign: 'right'  },
+    7:  { cellWidth: 12, halign: 'center' },
+    8:  { cellWidth: 18, halign: 'right'  },   // CGST
+    9:  { cellWidth: 18, halign: 'right'  },   // SGST
+    10: { cellWidth: 24, halign: 'right'  },   // Amount  ← wider, no cutoff
+  } : {
+    0: { cellWidth: 8,  halign: 'center' },
+    1: { cellWidth: 50, halign: 'left'   },
     2: { cellWidth: 14, halign: 'center' },
     3: { cellWidth: 11, halign: 'center' },
-    4: { cellWidth: 9, halign: 'right' },
-    5: { cellWidth: 18, halign: 'right' },
-    6: { cellWidth: 19, halign: 'right' },
-    7: { cellWidth: 15, halign: 'center' },
-    8: { cellWidth: 16, halign: 'right' },
-    9: { cellWidth: 16, halign: 'right' },
-    10: { cellWidth: 22, halign: 'right' },
-  } : {
-    0: { cellWidth: 10, halign: 'center' },
-    1: { cellWidth: 48, halign: 'left' },
-    2: { cellWidth: 16, halign: 'center' },
-    3: { cellWidth: 12, halign: 'center' },
-    4: { cellWidth: 10, halign: 'right' },
-    5: { cellWidth: 20, halign: 'right' },
-    6: { cellWidth: 22, halign: 'right' },
-    7: { cellWidth: 15, halign: 'center' },
-    8: { cellWidth: 15, halign: 'right' },
-    9: { cellWidth: 20, halign: 'right' },
+    4: { cellWidth: 10, halign: 'right'  },
+    5: { cellWidth: 21, halign: 'right'  },
+    6: { cellWidth: 23, halign: 'right'  },
+    7: { cellWidth: 13, halign: 'center' },
+    8: { cellWidth: 16, halign: 'right'  },   // IGST
+    9: { cellWidth: 20, halign: 'right'  },   // Amount
   };
 
   doc.autoTable({
@@ -240,9 +252,9 @@ export const generatePDF = (invoice) => {
       fillColor: inkDark,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 6,
+      fontSize: 6.5,
       halign: 'center',
-      minCellHeight: 7,
+      minCellHeight: 8,
       valign: 'middle',
       overflow: 'linebreak',
     },
@@ -268,7 +280,7 @@ export const generatePDF = (invoice) => {
   y = doc.lastAutoTable.finalY + 6;
 
   // ── TOTALS SUMMARY ──
-  const sumW = 82;
+  const sumW = 86;
   const sumX = pageW - margin - sumW;
   const rowH = 7;
 
@@ -291,7 +303,10 @@ export const generatePDF = (invoice) => {
   ];
 
   if (Math.abs(roundOff) >= 0.001) {
-    summaryRows.push({ label: 'Round Off', value: (roundOff >= 0 ? '+' : '') + roundOff.toFixed(2) });
+    summaryRows.push({
+      label: 'Round Off',
+      value: (roundOff >= 0 ? '+' : '') + roundOff.toFixed(2),
+    });
   }
 
   doc.setDrawColor(...inkLight);
@@ -307,7 +322,7 @@ export const generatePDF = (invoice) => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...(row.color || inkDark));
-    doc.text(row.label, sumX + 3, ry + 5);
+    doc.text(row.label, sumX + 4, ry + 5);
     doc.setFont('helvetica', 'bold');
     doc.text(row.value, sumX + sumW - 3, ry + 5, { align: 'right' });
   });
@@ -318,7 +333,7 @@ export const generatePDF = (invoice) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(255, 255, 255);
-  doc.text('GRAND TOTAL', sumX + 3, gtY + 7);
+  doc.text('GRAND TOTAL', sumX + 4, gtY + 7);
   doc.text(fmtPDF(roundedTotal), sumX + sumW - 3, gtY + 7, { align: 'right' });
 
   y = gtY + 14;
@@ -353,10 +368,9 @@ export const generatePDF = (invoice) => {
     ? doc.splitTextToSize(invoice.termsConditions, (contentW / 2) - 8)
     : [];
 
-  // Calculate footer height dynamically
   const leftContentH = 6 + bankLines.length * 4
     + (termsLines.length > 0 ? 8 + termsLines.length * 4 : 0);
-  const footerH = Math.max(leftContentH + 8, 40);
+  const footerH = Math.max(leftContentH + 8, 42);
 
   const halfFW = contentW / 2;
 
@@ -367,26 +381,26 @@ export const generatePDF = (invoice) => {
 
   // Left — Bank Details
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
+  doc.setFontSize(7.5);
   doc.setTextColor(...inkDark);
   doc.text('Bank Details', margin + 3, y + 6);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(...inkDark);
-  doc.text(bankLines, margin + 3, y + 11);
+  doc.text(bankLines, margin + 3, y + 12);
 
   if (termsLines.length > 0) {
-    const termsStartY = y + 11 + bankLines.length * 4 + 3;
+    const termsStartY = y + 12 + bankLines.length * 4 + 3;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7);
+    doc.setFontSize(7.5);
     doc.text('Terms & Conditions', margin + 3, termsStartY);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.text(termsLines, margin + 3, termsStartY + 5);
   }
 
-  // Right — Signature
+  // Right — Receiver + Authorized Signatory
   const sigX = margin + halfFW;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
@@ -394,15 +408,17 @@ export const generatePDF = (invoice) => {
   doc.text('Receiver Signature:', sigX + 3, y + 6);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('For ' + (invoice.seller?.companyName || ''), sigX + halfFW / 2, y + footerH - 12, { align: 'center' });
+  doc.setFontSize(8.5);
+  doc.text('For ' + (invoice.seller?.companyName || ''), sigX + halfFW / 2, y + footerH - 13, { align: 'center' });
+
   doc.setLineWidth(0.3);
   doc.setDrawColor(...inkDark);
-  doc.line(sigX + 8, y + footerH - 6, sigX + halfFW - 8, y + footerH - 6);
+  doc.line(sigX + 8, y + footerH - 7, sigX + halfFW - 8, y + footerH - 7);
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(...inkDark);
-  doc.text('Authorized Signatory', sigX + halfFW / 2, y + footerH - 2, { align: 'center' });
+  doc.text('Authorized Signatory', sigX + halfFW / 2, y + footerH - 3, { align: 'center' });
 
   doc.save('Invoice-' + invoice.invoiceNumber + '.pdf');
 };
