@@ -52,6 +52,15 @@ export default function InvoiceFormPage() {
     dueDate: '',
     notes: '',
     status: 'draft',
+    transport: '',
+    vehicleNo: '',
+    station: '',
+    nug: '',
+    poNo: '',
+    grRrNo: '',
+    reverseCharge: 'No',    // ← add
+    bankDetails: '',         // ← add
+    termsConditions: '',
   });
   const [items, setItems] = useState([emptyItem()]);
 
@@ -105,6 +114,15 @@ export default function InvoiceFormPage() {
           dueDate: inv.dueDate?.split('T')[0] || '',
           notes: inv.notes || '',
           status: inv.status || 'draft',
+          transport: inv.transport || '',
+          vehicleNo: inv.vehicleNo || '',
+          station: inv.station || '',
+          nug: inv.nug || '',
+          poNo: inv.poNo || '',
+          grRrNo: inv.grRrNo || '',
+          reverseCharge: inv.reverseCharge || 'No',
+          bankDetails: inv.bankDetails || '',
+          termsConditions: inv.termsConditions || '',
         });
         setItems(inv.items.map(it => ({ ...it, id: Date.now() + Math.random() })));
       }).catch(() => {
@@ -204,10 +222,19 @@ export default function InvoiceFormPage() {
     dueDate: meta.dueDate,
     notes: meta.notes,
     status: meta.status,
+    transport: meta.transport,      // ← add
+    vehicleNo: meta.vehicleNo,      // ← add
+    station: meta.station,          // ← add
+    nug: meta.nug,                  // ← add
+    poNo: meta.poNo,                // ← add
+    grRrNo: meta.grRrNo,
     items: items.map(({ id: _id, ...rest }) => rest),
     subtotal: totals.subtotal,
     cgst: totals.cgst, sgst: totals.sgst, igst: totals.igst,
     totalGst: totals.totalGst, grandTotal: totals.grandTotal, isSameState,
+    reverseCharge: meta.reverseCharge,
+    bankDetails: meta.bankDetails,
+    termsConditions: meta.termsConditions,
   });
 
   const handleSave = async (e) => {
@@ -274,6 +301,51 @@ export default function InvoiceFormPage() {
               <label className="label">Due Date</label>
               <input type="date" value={meta.dueDate} onChange={e => setMeta(p => ({ ...p, dueDate: e.target.value }))} className="input" />
             </div>
+          </div>
+        </div>
+        {/* Transport Details */}
+        <div className="card p-6">
+          <p className="section-title">Transport Details</p>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="label">Transport Company</label>
+              <input value={meta.transport} onChange={e => setMeta(p => ({ ...p, transport: e.target.value }))} className="input" placeholder="A One Transport Co." />
+            </div>
+            <div>
+              <label className="label">Vehicle No</label>
+              <input value={meta.vehicleNo} onChange={e => setMeta(p => ({ ...p, vehicleNo: e.target.value }))} className="input" placeholder="UP 15 AB 1234" />
+            </div>
+            <div>
+              <label className="label">Station</label>
+              <input value={meta.station} onChange={e => setMeta(p => ({ ...p, station: e.target.value }))} className="input" placeholder="Station name" />
+            </div>
+            <div>
+              <label className="label">NUG</label>
+              <input value={meta.nug} onChange={e => setMeta(p => ({ ...p, nug: e.target.value }))} className="input" placeholder="NUG" />
+            </div>
+            <div>
+              <label className="label">P O No.</label>
+              <input value={meta.poNo} onChange={e => setMeta(p => ({ ...p, poNo: e.target.value }))} className="input" placeholder="PO Number" />
+            </div>
+            <div>
+              <label className="label">GR/RR No.</label>
+              <input value={meta.grRrNo} onChange={e => setMeta(p => ({ ...p, grRrNo: e.target.value }))} className="input" placeholder="GR/RR Number" />
+            </div>
+          </div>
+          <div>
+            <label className="label">Reverse Charge</label>
+            <select value={meta.reverseCharge} onChange={e => setMeta(p => ({ ...p, reverseCharge: e.target.value }))} className="input">
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+          <div className="lg:col-span-3">
+            <label className="label">Bank Details</label>
+            <input value={meta.bankDetails} onChange={e => setMeta(p => ({ ...p, bankDetails: e.target.value }))} className="input" placeholder="Bank Name, A/C No, IFSC Code, Branch" />
+          </div>
+          <div className="lg:col-span-3">
+            <label className="label">Terms & Conditions</label>
+            <textarea value={meta.termsConditions} onChange={e => setMeta(p => ({ ...p, termsConditions: e.target.value }))} className="input resize-none" rows={2} placeholder="Payment terms, delivery terms..." />
           </div>
         </div>
 
