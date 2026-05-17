@@ -107,7 +107,7 @@ export default function InvoicePreviewPage() {
               </div>
               <p style={{ color: '#6e6e60', fontSize: '12px', margin: '0 0 3px 42px', lineHeight: 1.6, wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{seller?.address}</p>
               <p style={{ color: '#1c1c18', fontSize: '12px', fontWeight: '600', margin: '0 0 3px 42px' }}>GSTIN: {seller?.gstNumber}</p>
-              {seller?.contact && <p style={{ color: '#6e6e60', fontSize: '11px', margin: '0 0 0 42px' }}>{seller?.contact} &middot; {seller?.email}</p>}
+              {seller?.contact && <p style={{ color: '#6e6e60', fontSize: '11px', margin: '0 0 0 42px' }}>{seller?.contact} &middot; abhiyantsalescorporation@gmail.com</p>}
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px', color: '#6e6e60', margin: '0 0 6px' }}>Tax Invoice</p>

@@ -11,12 +11,12 @@ export const generatePDF = (invoice) => {
   const margin = 12;
   const contentW = pageW - margin * 2;
 
-  const inkDark  = [28, 28, 24];
-  const inkMid   = [110, 110, 96];
+  const inkDark = [28, 28, 24];
+  const inkMid = [110, 110, 96];
   const inkLight = [232, 232, 224];
   const accentBg = [244, 244, 240];
-  const blue     = [37, 99, 235];
-  const amber    = [217, 119, 6];
+  const blue = [37, 99, 235];
+  const amber = [217, 119, 6];
 
   let y = margin;
 
@@ -60,12 +60,13 @@ export const generatePDF = (invoice) => {
   doc.setTextColor(...inkDark);
   doc.text('GSTIN: ' + (invoice.seller?.gstNumber || ''), margin, gstinY);
 
-  if (invoice.seller?.contact) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...inkMid);
-    doc.text(invoice.seller.contact, margin, gstinY + 4);
-  }
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(...inkMid);
+  const contactLine = invoice.seller?.contact
+    ? invoice.seller.contact + ' | abhiyantsalescorporation@gmail.com'
+    : 'abhiyantsalescorporation@gmail.com';
+  doc.text(contactLine, margin, gstinY + 4);
 
   y = 52;
 
@@ -147,7 +148,7 @@ export const generatePDF = (invoice) => {
     : [['#', 'Product / Service', 'HSN', 'Unit', 'Qty', 'Rate', 'Taxable', 'GST%', 'IGST', 'Amount']];
 
   const tableBody = (invoice.items || []).map((item, i) => {
-    const base     = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+    const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
     const totalGst = (base * (Number(item.gstPct) || 0)) / 100;
     const row = [
       String(i + 1),
@@ -169,28 +170,28 @@ export const generatePDF = (invoice) => {
   });
 
   const colStyles = isSame ? {
-    0:  { cellWidth: 7,  halign: 'center' },
-    1:  { cellWidth: 42, halign: 'left'   },
-    2:  { cellWidth: 14, halign: 'center' },
-    3:  { cellWidth: 11, halign: 'center' },
-    4:  { cellWidth: 9,  halign: 'right'  },
-    5:  { cellWidth: 18, halign: 'right'  },
-    6:  { cellWidth: 21, halign: 'right'  },
-    7:  { cellWidth: 10, halign: 'center' },
-    8:  { cellWidth: 18, halign: 'right'  },
-    9:  { cellWidth: 18, halign: 'right'  },
-    10: { cellWidth: 18, halign: 'right'  },
+    0: { cellWidth: 7, halign: 'center' },
+    1: { cellWidth: 42, halign: 'left' },
+    2: { cellWidth: 14, halign: 'center' },
+    3: { cellWidth: 11, halign: 'center' },
+    4: { cellWidth: 9, halign: 'right' },
+    5: { cellWidth: 18, halign: 'right' },
+    6: { cellWidth: 21, halign: 'right' },
+    7: { cellWidth: 10, halign: 'center' },
+    8: { cellWidth: 18, halign: 'right' },
+    9: { cellWidth: 18, halign: 'right' },
+    10: { cellWidth: 18, halign: 'right' },
   } : {
-    0: { cellWidth: 7,  halign: 'center' },
-    1: { cellWidth: 52, halign: 'left'   },
+    0: { cellWidth: 7, halign: 'center' },
+    1: { cellWidth: 52, halign: 'left' },
     2: { cellWidth: 16, halign: 'center' },
     3: { cellWidth: 12, halign: 'center' },
-    4: { cellWidth: 10, halign: 'right'  },
-    5: { cellWidth: 22, halign: 'right'  },
-    6: { cellWidth: 24, halign: 'right'  },
+    4: { cellWidth: 10, halign: 'right' },
+    5: { cellWidth: 22, halign: 'right' },
+    6: { cellWidth: 24, halign: 'right' },
     7: { cellWidth: 10, halign: 'center' },
-    8: { cellWidth: 13, halign: 'right'  },
-    9: { cellWidth: 20, halign: 'right'  },
+    8: { cellWidth: 13, halign: 'right' },
+    9: { cellWidth: 20, halign: 'right' },
   };
 
   doc.autoTable({
@@ -245,7 +246,7 @@ export const generatePDF = (invoice) => {
     { label: 'Subtotal (Taxable)', value: fmtPDF(invoice.subtotal), bold: false },
     ...(isSame
       ? [{ label: 'CGST', value: fmtPDF(invoice.cgst), bold: false, color: blue },
-         { label: 'SGST', value: fmtPDF(invoice.sgst), bold: false, color: blue }]
+      { label: 'SGST', value: fmtPDF(invoice.sgst), bold: false, color: blue }]
       : [{ label: 'IGST', value: fmtPDF(invoice.igst), bold: false, color: amber }]
     ),
   ];
