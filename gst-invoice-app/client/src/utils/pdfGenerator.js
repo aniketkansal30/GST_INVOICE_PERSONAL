@@ -22,7 +22,7 @@ export const generatePDF = (invoice) => {
   let y = margin;
 
   // ── HEADER ──
-  const headerH = 40;
+  const headerH = 32;
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageW, headerH, 'F');
   doc.setDrawColor(...inkLight);
@@ -39,18 +39,15 @@ export const generatePDF = (invoice) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(...inkDark);
-  doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 14, { align: 'center' });
+  doc.text(invoice.seller?.companyName || 'Company Name', pageW / 2, y + 13, { align: 'center' });
 
-  // Address
+  // Address on one line, Tel+email on next line
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...inkDark);
-  doc.text(invoice.seller?.address || '', pageW / 2, y + 22, { align: 'center' });
-
-  // Contact line
-  const contactLine = 'Tel. : ' + (invoice.seller?.contact || '') + '   |   email : abhiyantsalescorporation@gmail.com';
   doc.setFontSize(7);
-  doc.text(contactLine, pageW / 2, y + 30, { align: 'center' });
+  doc.setTextColor(...inkDark);
+  doc.text(invoice.seller?.address || '', pageW / 2, y + 20, { align: 'center' });
+  const contactLine = 'Tel. : ' + (invoice.seller?.contact || '') + '   |   email : abhiyantsalescorporation@gmail.com';
+  doc.text(contactLine, pageW / 2, y + 26, { align: 'center' });
 
   y = headerH + 3;
 
@@ -202,27 +199,27 @@ export const generatePDF = (invoice) => {
 
   const colStyles = isSame ? {
     0: { cellWidth: 10, halign: 'center' },
-    1: { cellWidth: 40, halign: 'left' },
+    1: { cellWidth: 38, halign: 'left' },
     2: { cellWidth: 14, halign: 'center' },
     3: { cellWidth: 11, halign: 'center' },
     4: { cellWidth: 9, halign: 'right' },
     5: { cellWidth: 18, halign: 'right' },
     6: { cellWidth: 19, halign: 'right' },
-    7: { cellWidth: 10, halign: 'center' },
-    8: { cellWidth: 17, halign: 'right' },
-    9: { cellWidth: 17, halign: 'right' },
-    10: { cellWidth: 21, halign: 'right' },
+    7: { cellWidth: 13, halign: 'center' },
+    8: { cellWidth: 16, halign: 'right' },
+    9: { cellWidth: 16, halign: 'right' },
+    10: { cellWidth: 22, halign: 'right' },
   } : {
     0: { cellWidth: 10, halign: 'center' },
-    1: { cellWidth: 50, halign: 'left' },
+    1: { cellWidth: 48, halign: 'left' },
     2: { cellWidth: 16, halign: 'center' },
     3: { cellWidth: 12, halign: 'center' },
     4: { cellWidth: 10, halign: 'right' },
     5: { cellWidth: 20, halign: 'right' },
     6: { cellWidth: 22, halign: 'right' },
-    7: { cellWidth: 10, halign: 'center' },
+    7: { cellWidth: 13, halign: 'center' },
     8: { cellWidth: 15, halign: 'right' },
-    9: { cellWidth: 21, halign: 'right' },
+    9: { cellWidth: 20, halign: 'right' },
   };
 
   doc.autoTable({
@@ -247,7 +244,7 @@ export const generatePDF = (invoice) => {
       halign: 'center',
       minCellHeight: 7,
       valign: 'middle',
-      overflow: 'ellipsize',
+      overflow: 'linebreak',
     },
     alternateRowStyles: { fillColor: accentBg },
     columnStyles: colStyles,
