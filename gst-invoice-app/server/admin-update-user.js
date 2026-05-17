@@ -6,7 +6,7 @@ const User = require('./models/User');
 const MONGO_URI = process.env.MONGO_URI;
 
 // ✏️ YAHAN APNI DETAILS BHARO
-const USER_EMAIL = 'aniketkansal3007@gmail.com'; // jis user ko edit karna hai
+const USER_EMAIL = 'abhiyantsalescorporation@gmail.com'; // jis user ko edit karna hai
 
 const UPDATE_DATA = {
   name: 'Abhiyant Sales Corporation',
@@ -15,6 +15,7 @@ const UPDATE_DATA = {
   address: '52/2, Uday Park, Pallavpuram Phase-2, Modipuram, Meerut-250110',
   state: 'Uttar Pradesh',
   contact: '+91 9536535900,+91 9258385619',
+  email: 'abhiyantsalescorporation@gmail.com'
 };
 
 async function updateUser() {

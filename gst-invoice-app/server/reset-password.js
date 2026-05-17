@@ -1,7 +1,7 @@
 ﻿const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const EMAIL = 'aniketkansal3007@gmail.com';
+const EMAIL = 'abhiyantsalescorporation@gmail.com';
 const NEW_PASSWORD = 'abhiyantsalescorporation';
 
 const MONGO_URI = 'mongodb+srv://aniketkansal3007:aniketkansal3007@cluster0.ftqtfuq.mongodb.net/gstDB';
