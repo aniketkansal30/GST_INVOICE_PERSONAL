@@ -855,9 +855,9 @@ export default function PosBillingPage() {
                     key={key}
                     type="button"
                     onClick={() => setPaymentMode(key)}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                    className={`py-2.5 px-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
                       paymentMode === key
-                        ? 'border-ink-900 bg-ink-900 text-white dark:border-amber-500 dark:bg-amber-500 dark:text-ink-950 shadow-sm'
+                        ? '!border-black !bg-black !text-white dark:!border-amber-500 dark:!bg-amber-500 dark:!text-black shadow-sm'
                         : 'border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:border-ink-300'
                     }`}
                   >

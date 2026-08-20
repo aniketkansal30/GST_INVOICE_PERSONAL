@@ -118,7 +118,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             {/* Store Header */}
             <div className="text-center pb-2 border-b border-dashed border-black space-y-0.5">
               <p className="font-bold text-sm tracking-tight uppercase">{seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName}</p>
-              {seller.address && <p className="text-[10px] leading-3 text-neutral-700">{seller.address}</p>}
+              {seller.address && <p className="text-[10px] leading-3 text-black">{seller.address}</p>}
               {seller.contact && <p className="text-[10px]">Mobile: {seller.contact}</p>}
               {seller.gstNumber && <p className="text-[10px] font-semibold">GSTIN: {seller.gstNumber}</p>}
               {sellerPan && <p className="text-[10px] font-semibold">PAN No: {sellerPan}</p>}
@@ -131,7 +131,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                 <span>Bill No: <strong className="font-bold">{invoice.invoiceNumber}</strong></span>
                 <span>{invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}</span>
               </div>
-              <div className="flex justify-between text-neutral-600">
+              <div className="flex justify-between text-black">
                 <span>Time: {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                 <span>Mode: <strong>{paymentMode}</strong></span>
               </div>
@@ -168,7 +168,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                       <span className="w-14 text-right">{itemTotal.toFixed(2)}</span>
                     </div>
                     {tagInfo && (
-                      <div className="text-[9px] text-neutral-600 flex justify-between">
+                      <div className="text-[9px] text-black flex justify-between">
                         <span>[{tagInfo}] {item.hsn ? `HSN:${item.hsn}` : ''}</span>
                         <span>GST {item.gstPct || 5}%</span>
                       </div>
@@ -186,19 +186,19 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
               </div>
 
               {cgst > 0 && (
-                <div className="flex justify-between text-[10px] text-neutral-700">
+                <div className="flex justify-between text-[10px] text-black">
                   <span>CGST:</span>
                   <span>₹{cgst.toFixed(2)}</span>
                 </div>
               )}
               {sgst > 0 && (
-                <div className="flex justify-between text-[10px] text-neutral-700">
+                <div className="flex justify-between text-[10px] text-black">
                   <span>SGST:</span>
                   <span>₹{sgst.toFixed(2)}</span>
                 </div>
               )}
               {igst > 0 && (
-                <div className="flex justify-between text-[10px] text-neutral-700">
+                <div className="flex justify-between text-[10px] text-black">
                   <span>IGST:</span>
                   <span>₹{igst.toFixed(2)}</span>
                 </div>
@@ -211,7 +211,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             </div>
 
             {/* GST Tax Summary Table */}
-            <div className="py-1 border-b border-dashed border-black text-[9px] text-neutral-700">
+            <div className="py-1 border-b border-dashed border-black text-[9px] text-black">
               <p className="font-bold text-[9px] uppercase mb-0.5">GST Tax Summary:</p>
               <div className="flex justify-between font-semibold border-b border-dotted border-neutral-400 pb-0.5">
                 <span>HSN/Rate</span>
@@ -234,7 +234,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             {/* Footer */}
             <div className="pt-2 text-center text-[10px] space-y-1">
               <p className="font-bold tracking-wider">*** THANK YOU! VISIT AGAIN ***</p>
-              <p className="text-[8px] text-neutral-600">
+              <p className="text-[8px] text-black">
                 Goods once sold can be exchanged within 7 days with bill & intact barcode tags.
               </p>
               <div className="pt-1 flex justify-center">
