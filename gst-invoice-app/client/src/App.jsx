@@ -58,7 +58,6 @@ export default function App() {
                 <Route path="pos" element={<PosBillingPage />} />
                 <Route path="pos-billing" element={<PosBillingPage />} />
                 <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="invoices/new" element={<InvoiceFormPage />} />
                 <Route path="invoices/:id/edit" element={<InvoiceFormPage />} />
                 <Route path="invoices/:id" element={<InvoicePreviewPage />} />
                 <Route path="settings" element={<SettingsPage />} />

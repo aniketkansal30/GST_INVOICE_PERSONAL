@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
-  LayoutDashboard, FileText, Plus, Settings, LogOut,
+  LayoutDashboard, FileText, Settings, LogOut,
   Moon, Sun, Monitor, Menu, X, Info, Wallet, Package,
   Scan, ShoppingBag, Receipt, Sparkles
 } from 'lucide-react';
@@ -95,23 +95,6 @@ export default function Layout() {
               )}
             </NavLink>
           ))}
-
-          <div className="pt-2 border-t border-ink-100 dark:border-ink-800">
-            <NavLink
-              to="/invoices/new"
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) => `
-    flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium transition-all
-    ${isActive
-                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }
-  `}
-            >
-              <Plus size={15} />
-              <span>Full GST Invoice Form</span>
-            </NavLink>
-          </div>
 
           <button
             onClick={() => { setAboutOpen(true); setSidebarOpen(false); }}

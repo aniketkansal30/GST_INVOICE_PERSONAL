@@ -896,18 +896,12 @@ export default function PosBillingPage() {
               </div>
             )}
 
-            {/* UPI QR Demo Preview */}
+            {/* UPI Mode Info */}
             {paymentMode === 'upi' && (
-              <div className="bg-ink-50 dark:bg-ink-800/50 p-3 rounded-xl border border-ink-200 dark:border-ink-700 text-center space-y-2">
-                <p className="text-xs font-semibold text-ink-800 dark:text-ink-200">
-                  Scan to Pay ₹{grandTotal}
+              <div className="bg-ink-50 dark:bg-ink-800/50 p-3 rounded-xl border border-ink-200 dark:border-ink-700 text-center">
+                <p className="text-sm font-bold text-ink-800 dark:text-ink-200">
+                  UPI: {user?.contact || 'pay@upi'}
                 </p>
-                <div className="w-28 h-28 mx-auto bg-white p-2 rounded-lg border border-ink-200 flex items-center justify-center shadow-xs">
-                  <div className="font-mono text-[9px] text-center text-ink-500">
-                    <QrCode size={70} className="mx-auto text-ink-800" />
-                    <span>UPI: {user?.contact || 'pay@upi'}</span>
-                  </div>
-                </div>
               </div>
             )}
 
