@@ -48,10 +48,21 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    // ✅ Naya — state add karo
     const { name, email, companyName, gstNumber, panNumber, address, state, contact, theme } = req.body;
-    const allowedFields = { name, email, companyName, gstNumber, panNumber, address, state, contact, theme };
-    // Remove undefined fields
+
+    // 🔒 Sirf admin hi store/profile details change kar sakta hai
+    const isAdmin = req.user.role === 'admin';
+    const restrictedFields = { name, email, companyName, gstNumber, panNumber, address, state, contact };
+    const wantsRestrictedChange = Object.values(restrictedFields).some(v => v !== undefined);
+
+    if (wantsRestrictedChange && !isAdmin) {
+      return res.status(403).json({ message: 'Only admin can update store/profile details' });
+    }
+
+    const allowedFields = isAdmin
+      ? { name, email, companyName, gstNumber, panNumber, address, state, contact, theme }
+      : { theme }; // non-admin sirf theme change kar sakta hai
+
     Object.keys(allowedFields).forEach(k => allowedFields[k] === undefined && delete allowedFields[k]);
 
     if (allowedFields.email) {

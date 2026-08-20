@@ -8,6 +8,7 @@ import { INDIAN_STATES, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth();
+  const isLocked = user?.role !== 'admin';
   const { theme, changeTheme } = useTheme();
   const [profile, setProfile] = useState({
     name: user?.name || DEFAULT_STORE_DETAILS.companyName,
@@ -75,6 +76,7 @@ export default function SettingsPage() {
           <div>
             <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Appearance</p>
             <p className="text-xs text-ink-400">Choose your preferred theme</p>
+            {isLocked ? '🔒 Locked — contact admin to change store details' : 'Update your personal details'}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -83,8 +85,8 @@ export default function SettingsPage() {
               key={key}
               onClick={() => changeTheme(key)}
               className={`p-4 rounded-xl border-2 text-left transition-all ${theme === key
-                  ? 'border-ink-800 dark:border-amber-500 bg-ink-50 dark:bg-amber-500/10'
-                  : 'border-ink-200 dark:border-ink-700 hover:border-ink-400 dark:hover:border-ink-600'
+                ? 'border-ink-800 dark:border-amber-500 bg-ink-50 dark:bg-amber-500/10'
+                : 'border-ink-200 dark:border-ink-700 hover:border-ink-400 dark:hover:border-ink-600'
                 }`}
             >
               <Icon size={20} className={theme === key ? 'text-ink-800 dark:text-amber-400' : 'text-ink-400'} />
@@ -115,6 +117,7 @@ export default function SettingsPage() {
                 onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
                 placeholder="e.g. Ramesh Kumar"
                 className="input"
+                disabled={isLocked}
                 required
               />
             </div>
@@ -199,9 +202,9 @@ export default function SettingsPage() {
             </select>
           </div>
           <div className="flex justify-end pt-2">
-            <button type="submit" disabled={saving} className="btn-primary">
+            <button type="submit" disabled={saving || isLocked} className="btn-primary">
               {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={15} />}
-              {saving ? 'Saving...' : 'Save Store Details'}
+              {isLocked ? 'Locked' : saving ? 'Saving...' : 'Save Store Details'}
             </button>
           </div>
         </form>
