@@ -11,6 +11,7 @@ export default function SettingsPage() {
   const { theme, changeTheme } = useTheme();
   const [profile, setProfile] = useState({
     name: user?.name || DEFAULT_STORE_DETAILS.companyName,
+    email: user?.email || '',
     companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
     gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
     panNumber: user?.panNumber || DEFAULT_STORE_DETAILS.panNumber,
@@ -119,7 +120,14 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="label">Email Address</label>
-              <input value={user?.email} disabled className="input opacity-60 cursor-not-allowed bg-ink-50 dark:bg-ink-900" />
+              <input
+                type="email"
+                value={profile.email}
+                onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
+                placeholder="you@example.com"
+                className="input"
+                required
+              />
             </div>
           </div>
           <div>
@@ -241,5 +249,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-

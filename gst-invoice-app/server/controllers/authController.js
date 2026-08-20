@@ -49,10 +49,17 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     // ✅ Naya — state add karo
-    const { name, companyName, gstNumber, panNumber, address, state, contact, theme } = req.body;
-    const allowedFields = { name, companyName, gstNumber, panNumber, address, state, contact, theme };
+    const { name, email, companyName, gstNumber, panNumber, address, state, contact, theme } = req.body;
+    const allowedFields = { name, email, companyName, gstNumber, panNumber, address, state, contact, theme };
     // Remove undefined fields
     Object.keys(allowedFields).forEach(k => allowedFields[k] === undefined && delete allowedFields[k]);
+
+    if (allowedFields.email) {
+      const existing = await User.findOne({ email: allowedFields.email });
+      if (existing && String(existing._id) !== String(req.user._id)) {
+        return res.status(400).json({ message: 'Email already in use by another account' });
+      }
+    }
 
     const user = await User.findByIdAndUpdate(req.user._id, allowedFields, { new: true, runValidators: true });
     res.json({ user });
