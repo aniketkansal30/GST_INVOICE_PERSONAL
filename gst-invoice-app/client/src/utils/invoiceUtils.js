@@ -1,4 +1,13 @@
-﻿export const GST_RATES = [0, 5, 12, 18, 28];
+﻿export const DEFAULT_STORE_DETAILS = {
+  companyName: 'Manish Enterprises',
+  gstNumber: '09AJTPK3679H1ZG',
+  panNumber: 'AADFI0426M',
+  address: 'Shop No 188 T, Abulane, Near Nishant Cinema, Meerut Cantt, Uttar Pradesh',
+  contact: '9719201802',
+  state: 'Uttar Pradesh',
+};
+
+export const GST_RATES = [0, 5, 12, 18, 28];
 
 export const CLOTHING_SIZES = [
   'Free Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL',

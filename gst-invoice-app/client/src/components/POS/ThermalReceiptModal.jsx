@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Printer, X, Download, Check, Sparkles } from 'lucide-react';
-import { formatCurrency, formatDate } from '../../utils/invoiceUtils';
+import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../../utils/invoiceUtils';
 
 export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint = false }) {
   const [paperWidth, setPaperWidth] = useState('80mm'); // '80mm' or '58mm'
@@ -9,12 +9,15 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   if (!invoice) return null;
 
   const seller = invoice.seller || {
-    companyName: user?.companyName || 'XYZ FASHION STORE',
-    address: user?.address || 'Main Market, Meerut, UP',
-    gstNumber: user?.gstNumber || '09AAAAA0000A1Z5',
-    contact: user?.contact || '+91 98765 43210',
-    state: user?.state || 'Uttar Pradesh',
+    companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
+    address: user?.address || DEFAULT_STORE_DETAILS.address,
+    gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
+    panNumber: user?.panNumber || DEFAULT_STORE_DETAILS.panNumber,
+    contact: user?.contact || DEFAULT_STORE_DETAILS.contact,
+    state: user?.state || DEFAULT_STORE_DETAILS.state,
   };
+
+  const sellerPan = seller.panNumber || user?.panNumber || (seller.gstNumber && seller.gstNumber.length >= 12 ? seller.gstNumber.substring(2, 12) : '') || DEFAULT_STORE_DETAILS.panNumber;
 
   const buyer = invoice.buyer || {
     clientName: 'Walk-in Customer',
@@ -114,10 +117,11 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
           >
             {/* Store Header */}
             <div className="text-center pb-2 border-b border-dashed border-black space-y-0.5">
-              <p className="font-bold text-sm tracking-tight uppercase">{seller.companyName || user?.companyName || 'XYZ FASHION'}</p>
+              <p className="font-bold text-sm tracking-tight uppercase">{seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName}</p>
               {seller.address && <p className="text-[10px] leading-3 text-neutral-700">{seller.address}</p>}
-              {seller.contact && <p className="text-[10px]">Ph: {seller.contact}</p>}
+              {seller.contact && <p className="text-[10px]">Mobile: {seller.contact}</p>}
               {seller.gstNumber && <p className="text-[10px] font-semibold">GSTIN: {seller.gstNumber}</p>}
+              {sellerPan && <p className="text-[10px] font-semibold">PAN No: {sellerPan}</p>}
               {seller.state && <p className="text-[10px]">State: {seller.state}</p>}
             </div>
 

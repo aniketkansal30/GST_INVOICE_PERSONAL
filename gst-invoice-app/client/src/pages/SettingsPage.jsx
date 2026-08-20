@@ -1,21 +1,22 @@
 ﻿import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Sun, Moon, Monitor, Save, User, Building2, Shield } from 'lucide-react';
+import { Sun, Moon, Monitor, Save, User, Building2, Shield, CreditCard } from 'lucide-react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { INDIAN_STATES } from '../utils/invoiceUtils';
+import { INDIAN_STATES, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth();
   const { theme, changeTheme } = useTheme();
   const [profile, setProfile] = useState({
-    name: user?.name || '',
-    companyName: user?.companyName || '',
-    gstNumber: user?.gstNumber || '',
-    address: user?.address || '',
-    contact: user?.contact || '',
-    state: user?.state || '',
+    name: user?.name || DEFAULT_STORE_DETAILS.companyName,
+    companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
+    gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
+    panNumber: user?.panNumber || DEFAULT_STORE_DETAILS.panNumber,
+    address: user?.address || DEFAULT_STORE_DETAILS.address,
+    contact: user?.contact || DEFAULT_STORE_DETAILS.contact,
+    state: user?.state || DEFAULT_STORE_DETAILS.state,
   });
   const [passwords, setPasswords] = useState({ current: '', newPw: '', confirm: '' });
   const [saving, setSaving] = useState(false);
@@ -126,28 +127,45 @@ export default function SettingsPage() {
             <input
               value={profile.companyName}
               onChange={e => setProfile(p => ({ ...p, companyName: e.target.value }))}
-              placeholder="e.g. XYZ FASHION STORE"
+              placeholder="e.g. Manish Enterprises"
               className="input font-semibold"
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="label">GSTIN / GST Number</label>
               <input
                 value={profile.gstNumber}
-                onChange={e => setProfile(p => ({ ...p, gstNumber: e.target.value.toUpperCase() }))}
-                placeholder="e.g. 09AAAAA0000A1Z5"
+                onChange={e => {
+                  const val = e.target.value.toUpperCase();
+                  setProfile(p => {
+                    // Auto-extract PAN from GSTIN if PAN is empty or matches previous GSTIN
+                    const extractedPan = val.length >= 12 ? val.substring(2, 12) : p.panNumber;
+                    return { ...p, gstNumber: val, panNumber: p.panNumber ? p.panNumber : extractedPan };
+                  });
+                }}
+                placeholder="09AJTPK3679H1ZG"
                 className="input font-mono uppercase"
               />
             </div>
             <div>
-              <label className="label">Contact / Phone Number</label>
+              <label className="label">PAN No.</label>
+              <input
+                value={profile.panNumber}
+                onChange={e => setProfile(p => ({ ...p, panNumber: e.target.value.toUpperCase() }))}
+                placeholder="AADFI0426M"
+                maxLength={10}
+                className="input font-mono uppercase"
+              />
+            </div>
+            <div>
+              <label className="label">Contact / Mobile Number</label>
               <input
                 value={profile.contact}
                 onChange={e => setProfile(p => ({ ...p, contact: e.target.value }))}
-                placeholder="e.g. +91 98765 43210"
-                className="input"
+                placeholder="9719201802"
+                className="input font-mono"
               />
             </div>
           </div>
@@ -156,7 +174,7 @@ export default function SettingsPage() {
             <textarea
               value={profile.address}
               onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
-              placeholder="e.g. Shop #12, Main Cloth Market, Meerut, Uttar Pradesh"
+              placeholder="Shop No 188 T, Abulane, Near Nishant Cinema, Meerut Cantt, Uttar Pradesh"
               className="input resize-none"
               rows={2}
             />

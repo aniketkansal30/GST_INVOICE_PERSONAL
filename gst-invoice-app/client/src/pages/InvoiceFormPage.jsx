@@ -4,7 +4,8 @@ import { useInvoices } from '../context/InvoiceContext';
 import { useAuth } from '../context/AuthContext';
 import {
   formatCurrency, generateInvoiceNumber,
-  GST_RATES, INDIAN_STATES, getHSNSuggestion
+  GST_RATES, INDIAN_STATES, getHSNSuggestion,
+  DEFAULT_STORE_DETAILS
 } from '../utils/invoiceUtils';
 import { Plus, Trash2, Save, ArrowLeft, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -33,11 +34,12 @@ export default function InvoiceFormPage() {
   const clientRef = useRef(null);
 
   const [seller, setSeller] = useState({
-    companyName: user?.companyName || '',
-    gstNumber: user?.gstNumber || '',
-    address: user?.address || '',
-    state: user?.state || '',
-    contact: user?.contact || '',
+    companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
+    gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
+    panNumber: user?.panNumber || DEFAULT_STORE_DETAILS.panNumber,
+    address: user?.address || DEFAULT_STORE_DETAILS.address,
+    state: user?.state || DEFAULT_STORE_DETAILS.state,
+    contact: user?.contact || DEFAULT_STORE_DETAILS.contact,
     email: user?.email || '',
   });
   const [buyer, setBuyer] = useState({ clientName: '', gstNumber: '', address: '', state: '', contact: '' });
@@ -59,7 +61,7 @@ export default function InvoiceFormPage() {
     poNo: '',
     grRrNo: '',
     reverseCharge: 'No',
-    bankDetails: user?.bankDetails || 'Bank of Baroda\nA/C No.: 83760200001223\nIFSC Code: BARB0VJSIME\nBranch: Siwaya Pallavpuram Phase 2nd, UttarPradesh - 250110',
+    bankDetails: user?.bankDetails || '',
     termsConditions: user?.termsConditions || '',
   });
   const [items, setItems] = useState([emptyItem()]);

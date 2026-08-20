@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { formatCurrency, GST_RATES } from '../utils/invoiceUtils';
+import { formatCurrency, GST_RATES, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
 
 export default function PosBillingPage() {
@@ -368,11 +368,12 @@ export default function PosBillingPage() {
         invoiceDate: new Date(),
         status: 'paid',
         seller: {
-          companyName: user?.companyName || 'XYZ FASHION STORE',
-          gstNumber: user?.gstNumber || '',
-          address: user?.address || '',
-          state: user?.state || 'Uttar Pradesh',
-          contact: user?.contact || '',
+          companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
+          gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
+          panNumber: user?.panNumber || DEFAULT_STORE_DETAILS.panNumber,
+          address: user?.address || DEFAULT_STORE_DETAILS.address,
+          state: user?.state || DEFAULT_STORE_DETAILS.state,
+          contact: user?.contact || DEFAULT_STORE_DETAILS.contact,
           email: user?.email || '',
         },
         buyer: {
@@ -451,16 +452,20 @@ export default function PosBillingPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display text-xl font-bold text-ink-900 dark:text-ink-50 tracking-tight">
-                {user?.companyName || 'XYZ FASHION STORE'}
+                {user?.companyName || DEFAULT_STORE_DETAILS.companyName}
               </h1>
               <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> POS Counter Active
               </span>
             </div>
-            <p className="text-xs text-ink-500 dark:text-ink-400 font-mono flex items-center gap-2 mt-0.5">
-              <span>GSTIN: {user?.gstNumber || 'Not configured'}</span>
+            <p className="text-xs text-ink-500 dark:text-ink-400 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
+              <span>GSTIN: {user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber}</span>
               <span>•</span>
-              <span>{user?.state || 'Uttar Pradesh'}</span>
+              <span>PAN: {user?.panNumber || DEFAULT_STORE_DETAILS.panNumber}</span>
+              <span>•</span>
+              <span>Ph: {user?.contact || DEFAULT_STORE_DETAILS.contact}</span>
+              <span>•</span>
+              <span>{user?.state || DEFAULT_STORE_DETAILS.state}</span>
             </p>
           </div>
         </div>

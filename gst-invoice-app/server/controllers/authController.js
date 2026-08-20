@@ -49,8 +49,8 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     // ✅ Naya — state add karo
-    const { name, companyName, gstNumber, address, state, contact, theme } = req.body;
-    const allowedFields = { name, companyName, gstNumber, address, state, contact, theme };
+    const { name, companyName, gstNumber, panNumber, address, state, contact, theme } = req.body;
+    const allowedFields = { name, companyName, gstNumber, panNumber, address, state, contact, theme };
     // Remove undefined fields
     Object.keys(allowedFields).forEach(k => allowedFields[k] === undefined && delete allowedFields[k]);
 

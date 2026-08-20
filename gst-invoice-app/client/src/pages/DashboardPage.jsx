@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices } from '../context/InvoiceContext';
 import { useAuth } from '../context/AuthContext';
-import { formatCurrency, formatDate } from '../utils/invoiceUtils';
+import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 import {
   Plus, Search, Eye, Edit2, Trash2, Copy, FileText,
   ChevronLeft, ChevronRight, TrendingUp, IndianRupee, Clock, CheckCircle,
@@ -82,10 +82,18 @@ export default function DashboardPage() {
             <ShoppingBag size={14} /> CLOTHING SHOP POS SYSTEM
           </div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            {user?.companyName || 'XYZ FASHION STORE'}
+            {user?.companyName || DEFAULT_STORE_DETAILS.companyName}
           </h1>
-          <p className="text-ink-300 text-xs sm:text-sm font-mono">
-            Owner: {user?.name} · GSTIN: {user?.gstNumber || 'Not Configured'} · {user?.state || 'Uttar Pradesh'}
+          <p className="text-ink-300 text-xs sm:text-sm font-mono flex items-center gap-2 flex-wrap">
+            <span>Owner: {user?.name || DEFAULT_STORE_DETAILS.companyName}</span>
+            <span>·</span>
+            <span>GSTIN: {user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber}</span>
+            <span>·</span>
+            <span>PAN: {user?.panNumber || DEFAULT_STORE_DETAILS.panNumber}</span>
+            <span>·</span>
+            <span>Ph: {user?.contact || DEFAULT_STORE_DETAILS.contact}</span>
+            <span>·</span>
+            <span>{user?.state || DEFAULT_STORE_DETAILS.state}</span>
           </p>
         </div>
 

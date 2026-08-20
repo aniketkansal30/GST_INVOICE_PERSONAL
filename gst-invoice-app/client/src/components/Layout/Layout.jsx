@@ -8,6 +8,7 @@ import {
   Scan, ShoppingBag, Receipt, Sparkles
 } from 'lucide-react';
 import AboutModal from './AboutModal';
+import { DEFAULT_STORE_DETAILS } from '../../utils/invoiceUtils';
 
 const navItems = [
   { to: '/pos', icon: Scan, label: 'POS Billing', highlight: true },
@@ -55,7 +56,7 @@ export default function Layout() {
             </div>
             <div>
               <p className="font-display font-bold text-ink-900 dark:text-ink-100 text-sm leading-none">
-                {user?.companyName || 'ClothPOS Studio'}
+                {user?.companyName || DEFAULT_STORE_DETAILS.companyName}
               </p>
               <p className="text-[10px] text-amber-600 dark:text-amber-400 font-mono mt-1 font-semibold">
                 GST Clothing Billing

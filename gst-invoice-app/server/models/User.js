@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, minlength: 6 },
   companyName: { type: String, trim: true },
   gstNumber: { type: String, trim: true },
+  panNumber: { type: String, trim: true },
   address: { type: String, trim: true },
   state: { type: String, default: '' },
   contact: { type: String, trim: true },
