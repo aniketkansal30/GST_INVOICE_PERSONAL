@@ -6,7 +6,7 @@ const User = require('./models/User');
 const MONGO_URI = process.env.MONGO_URI;
 
 // ✏️ YAHAN APNI DETAILS BHARO
-const USER_EMAIL = 'abhiyantsalescorporation@gmail.com'; // jis user ko edit karna hai
+const USER_EMAIL = 'manishkumarimage@gmail.com'; // jis user ko edit karna hai
 
 const UPDATE_DATA = {
   name: 'Manish Enterprises',

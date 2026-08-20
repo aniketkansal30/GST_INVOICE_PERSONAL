@@ -75,14 +75,14 @@ export default function Layout() {
               to={to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) => `
-                flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150
-                ${isActive
-                  ? 'bg-ink-900 dark:bg-amber-500 text-white dark:text-ink-950 shadow-sm'
+    flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150
+    ${isActive
+                  ? 'bg-gray-900 dark:bg-amber-500 text-white dark:text-gray-950 shadow-sm'
                   : highlight
-                  ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30'
-                  : 'text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800'
+                    ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }
-              `}
+  `}
             >
               <div className="flex items-center gap-3">
                 <Icon size={16} />
@@ -101,12 +101,12 @@ export default function Layout() {
               to="/invoices/new"
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) => `
-                flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium transition-all
-                ${isActive
-                  ? 'bg-ink-200 dark:bg-ink-700 text-ink-900 dark:text-white'
-                  : 'text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800'
+    flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium transition-all
+    ${isActive
+                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }
-              `}
+  `}
             >
               <Plus size={15} />
               <span>Full GST Invoice Form</span>
@@ -137,11 +137,10 @@ export default function Layout() {
                 <button
                   key={key}
                   onClick={() => changeTheme(key)}
-                  className={`p-1.5 rounded transition-all ${
-                    theme === key
-                      ? 'bg-ink-800 dark:bg-amber-500 text-white dark:text-ink-950'
-                      : 'text-ink-400 hover:text-ink-600 dark:hover:text-ink-200'
-                  }`}
+                  className={`p-1.5 rounded transition-all ${theme === key
+                    ? 'bg-ink-800 dark:bg-amber-500 text-white dark:text-ink-950'
+                    : 'text-ink-400 hover:text-ink-600 dark:hover:text-ink-200'
+                    }`}
                 >
                   <Icon size={12} />
                 </button>

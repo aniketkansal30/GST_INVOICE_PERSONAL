@@ -49,7 +49,7 @@ export const generatePDF = (invoice) => {
 
   // Tel and Email on separate styled line
   const telStr = 'Tel. : ' + (invoice.seller?.contact || '');
-  const emailStr = 'email : abhiyantsalescorporation@gmail.com';
+  const emailStr = 'email : manishkumarimage@gmail.com';
   const contactFull = telStr + '   |   ' + emailStr;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);

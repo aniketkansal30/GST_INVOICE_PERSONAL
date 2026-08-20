@@ -120,7 +120,7 @@ export default function InvoicePreviewPage() {
             <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1c1c18', margin: '0 0 4px' }}>{seller?.companyName || 'Company Name'}</h1>
             <p style={{ fontSize: '11px', color: '#6e6e60', margin: '0 0 2px' }}>{seller?.address}</p>
             <p style={{ fontSize: '11px', color: '#1c1c18', margin: '0 0 2px' }}>
-              Tel. : {seller?.contact} &nbsp;|&nbsp; email : abhiyantsalescorporation@gmail.com
+              Tel. : {seller?.contact} &nbsp;|&nbsp; email : manishkumarimage@gmail.com
             </p>
           </div>
 

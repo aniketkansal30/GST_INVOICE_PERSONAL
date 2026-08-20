@@ -81,7 +81,7 @@ export default function DashboardPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-mono font-semibold mb-1">
             <ShoppingBag size={14} /> CLOTHING SHOP POS SYSTEM
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
             {user?.companyName || DEFAULT_STORE_DETAILS.companyName}
           </h1>
           <p className="text-ink-300 text-xs sm:text-sm font-mono flex items-center gap-2 flex-wrap">
