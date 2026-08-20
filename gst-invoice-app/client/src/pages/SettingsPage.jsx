@@ -8,8 +8,9 @@ import { INDIAN_STATES, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth();
-  const isLocked = user?.role !== 'admin';
   const { theme, changeTheme } = useTheme();
+  const isLocked = user?.role !== 'admin';   // 🔒 owner ke liye true, admin ke liye false
+
   const [profile, setProfile] = useState({
     name: user?.name || DEFAULT_STORE_DETAILS.companyName,
     email: user?.email || '',
@@ -26,6 +27,7 @@ export default function SettingsPage() {
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
+    if (isLocked) return; // extra safety
     setSaving(true);
     try {
       const res = await api.put('/auth/profile', profile);
@@ -74,10 +76,8 @@ export default function SettingsPage() {
             <Monitor size={15} className="text-ink-600 dark:text-ink-300" />
           </div>
           <div>
-            <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Profile</p>
-            <p className="text-xs text-ink-400">
-              {isLocked ? '🔒 Locked — contact admin to change store details' : 'Update your personal details'}
-            </p>
+            <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Appearance</p>
+            <p className="text-xs text-ink-400">Choose your preferred theme</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -86,8 +86,8 @@ export default function SettingsPage() {
               key={key}
               onClick={() => changeTheme(key)}
               className={`p-4 rounded-xl border-2 text-left transition-all ${theme === key
-                ? 'border-ink-800 dark:border-amber-500 bg-ink-50 dark:bg-amber-500/10'
-                : 'border-ink-200 dark:border-ink-700 hover:border-ink-400 dark:hover:border-ink-600'
+                  ? 'border-ink-800 dark:border-amber-500 bg-ink-50 dark:bg-amber-500/10'
+                  : 'border-ink-200 dark:border-ink-700 hover:border-ink-400 dark:hover:border-ink-600'
                 }`}
             >
               <Icon size={20} className={theme === key ? 'text-ink-800 dark:text-amber-400' : 'text-ink-400'} />
@@ -106,109 +106,104 @@ export default function SettingsPage() {
           </div>
           <div>
             <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Profile</p>
-            <p className="text-xs text-ink-400">Update your personal details</p>
+            <p className="text-xs text-ink-400">
+              {isLocked ? '🔒 Locked — contact admin to change store details' : 'Update your personal details'}
+            </p>
           </div>
         </div>
         <form onSubmit={handleProfileSave} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Owner Name</label>
+          <fieldset disabled={isLocked} className={isLocked ? 'opacity-60 cursor-not-allowed' : ''}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Owner Name</label>
+                <input
+                  value={profile.name}
+                  onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Ramesh Kumar"
+                  className="input"
+                  required
+                />
+              </div>
+              <div>
+                <label className="label">Email Address</label>
+                <input
+                  type="email"
+                  value={profile.email}
+                  onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
+                  placeholder="you@example.com"
+                  className="input"
+                  required
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="label">Clothing Shop / Store Name</label>
               <input
-                value={profile.name}
-                onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-                placeholder="e.g. Ramesh Kumar"
-                className="input"
-                disabled={isLocked}
+                value={profile.companyName}
+                onChange={e => setProfile(p => ({ ...p, companyName: e.target.value }))}
+                placeholder="e.g. Manish Enterprises"
+                className="input font-semibold"
                 required
               />
             </div>
-            <div>
-              <label className="label">Email Address</label>
-              <input
-                type="email"
-                value={profile.email}
-                onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-                placeholder="you@example.com"
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label className="label">GSTIN / GST Number</label>
+                <input
+                  value={profile.gstNumber}
+                  onChange={e => {
+                    const val = e.target.value.toUpperCase();
+                    setProfile(p => {
+                      const extractedPan = val.length >= 12 ? val.substring(2, 12) : p.panNumber;
+                      return { ...p, gstNumber: val, panNumber: p.panNumber ? p.panNumber : extractedPan };
+                    });
+                  }}
+                  placeholder="09AJTPK3679H1ZG"
+                  className="input font-mono uppercase"
+                />
+              </div>
+              <div>
+                <label className="label">PAN No.</label>
+                <input
+                  value={profile.panNumber}
+                  onChange={e => setProfile(p => ({ ...p, panNumber: e.target.value.toUpperCase() }))}
+                  placeholder="AADFI0426M"
+                  maxLength={10}
+                  className="input font-mono uppercase"
+                />
+              </div>
+              <div>
+                <label className="label">Contact / Mobile Number</label>
+                <input
+                  value={profile.contact}
+                  onChange={e => setProfile(p => ({ ...p, contact: e.target.value }))}
+                  placeholder="9719201802"
+                  className="input font-mono"
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="label">Shop Address</label>
+              <textarea
+                value={profile.address}
+                onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
+                placeholder="Shop No 188 T, Abulane, Near Nishant Cinema, Meerut Cantt, Uttar Pradesh"
+                className="input resize-none"
+                rows={2}
+              />
+            </div>
+            <div className="mt-4">
+              <label className="label">State / Place of Supply</label>
+              <select
+                value={profile.state}
+                onChange={e => setProfile(p => ({ ...p, state: e.target.value }))}
                 className="input"
-                disabled={isLocked}
-                required
-              />
+              >
+                <option value="">Select State</option>
+                {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
-          </div>
-          <div>
-            <label className="label">Clothing Shop / Store Name</label>
-            <input
-              value={profile.companyName}
-              onChange={e => setProfile(p => ({ ...p, companyName: e.target.value }))}
-              placeholder="e.g. Manish Enterprises"
-              className="input font-semibold"
-              disabled={isLocked}
-              required
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="label">GSTIN / GST Number</label>
-              <input
-                value={profile.gstNumber}
-                onChange={e => {
-                  const val = e.target.value.toUpperCase();
-                  setProfile(p => {
-                    // Auto-extract PAN from GSTIN if PAN is empty or matches previous GSTIN
-                    const extractedPan = val.length >= 12 ? val.substring(2, 12) : p.panNumber;
-                    return { ...p, gstNumber: val, panNumber: p.panNumber ? p.panNumber : extractedPan };
-                  });
-                }}
-                placeholder="09AJTPK3679H1ZG"
-                className="input font-mono uppercase"
-                disabled={isLocked}
-              />
-            </div>
-            <div>
-              <label className="label">PAN No.</label>
-              <input
-                value={profile.panNumber}
-                onChange={e => setProfile(p => ({ ...p, panNumber: e.target.value.toUpperCase() }))}
-                placeholder="AADFI0426M"
-                maxLength={10}
-                className="input font-mono uppercase"
-                disabled={isLocked}
-              />
-            </div>
-            <div>
-              <label className="label">Contact / Mobile Number</label>
-              <input
-                value={profile.contact}
-                onChange={e => setProfile(p => ({ ...p, contact: e.target.value }))}
-                placeholder="9719201802"
-                className="input font-mono"
-                disabled={isLocked}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="label">Shop Address</label>
-            <textarea
-              value={profile.address}
-              onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
-              placeholder="Shop No 188 T, Abulane, Near Nishant Cinema, Meerut Cantt, Uttar Pradesh"
-              className="input resize-none"
-              rows={2}
-              disabled={isLocked}
-            />
-          </div>
-          <div>
-            <label className="label">State / Place of Supply</label>
-            <select
-              value={profile.state}
-              onChange={e => setProfile(p => ({ ...p, state: e.target.value }))}
-              className="input"
-              disabled={isLocked}
-            >
-              <option value="">Select State</option>
-              {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
+          </fieldset>
           <div className="flex justify-end pt-2">
             <button type="submit" disabled={saving || isLocked} className="btn-primary">
               {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={15} />}
@@ -225,8 +220,8 @@ export default function SettingsPage() {
             <Shield size={15} className="text-ink-600 dark:text-ink-300" />
           </div>
           <div>
-            <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Appearance</p>
-            <p className="text-xs text-ink-400">Choose your preferred theme</p>
+            <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Security</p>
+            <p className="text-xs text-ink-400">Change your password</p>
           </div>
         </div>
         <form onSubmit={handlePasswordSave} className="space-y-4">
