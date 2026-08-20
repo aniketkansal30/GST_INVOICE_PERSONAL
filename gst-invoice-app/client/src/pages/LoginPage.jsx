@@ -47,7 +47,7 @@ export default function LoginPage() {
             Generate GST-compliant invoices with automatic tax calculations, professional PDF export, and complete audit trails.
           </p>
         </div>
-        <p className="text-ink-500 text-xs font-mono">Â© 2024 GST Studio Â· All rights reserved</p>
+        <p className="text-ink-500 text-xs font-mono">© 2024 GST Studio · All rights reserved</p>
       </div>
 
       {/* Right panel */}
@@ -97,7 +97,12 @@ export default function LoginPage() {
             </button>
           </form>
 
-          
+          <p className="mt-6 text-center text-sm text-ink-500 dark:text-ink-400">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-ink-800 dark:text-amber-400 font-semibold hover:underline">
+              Create an account
+            </Link>
+          </p>
         </div>
       </div>
     </div>

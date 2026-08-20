@@ -7,6 +7,7 @@ import { InvoiceProvider } from './context/InvoiceContext';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
+import PosBillingPage from './pages/PosBillingPage';
 import InvoiceFormPage from './pages/InvoiceFormPage';
 import InvoicePreviewPage from './pages/InvoicePreviewPage';
 import SettingsPage from './pages/SettingsPage';
@@ -31,44 +32,44 @@ const PrivateRoute = ({ children }) => {
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return !user ? children : <Navigate to="/dashboard" />;
+  return !user ? children : <Navigate to="/pos" />;
 };
 
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        
-          <InvoiceProvider>
-            <Router>
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  className: 'font-sans text-sm',
-                  style: { borderRadius: '10px', background: '#18181600', color: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' },
-                  success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
-                  error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-                }}
-              />
-              <Routes>
-                <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-                <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-                <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-                  <Route index element={<Navigate to="/dashboard" />} />
-                  <Route path="dashboard" element={<DashboardPage />} />
-                  <Route path="invoices/new" element={<InvoiceFormPage />} />
-                  <Route path="invoices/:id/edit" element={<InvoiceFormPage />} />
-                  <Route path="invoices/:id" element={<InvoicePreviewPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="invoice_details" element={<Report />} />
-                  <Route path="gstr1" element={<Report />} />
-                  <Route path="payments" element={<PaymentsPage />} />
-                  <Route path="inventory" element={<InventoryPage />} />
-                </Route>
-              </Routes>
-            </Router>
-          </InvoiceProvider>
-        
+        <InvoiceProvider>
+          <Router>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                className: 'font-sans text-sm',
+                style: { borderRadius: '10px', background: '#1c1c18', color: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' },
+                success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+                error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+              }}
+            />
+            <Routes>
+              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+              <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+              <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+                <Route index element={<Navigate to="/pos" />} />
+                <Route path="pos" element={<PosBillingPage />} />
+                <Route path="pos-billing" element={<PosBillingPage />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="invoices/new" element={<InvoiceFormPage />} />
+                <Route path="invoices/:id/edit" element={<InvoiceFormPage />} />
+                <Route path="invoices/:id" element={<InvoicePreviewPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="invoice_details" element={<Report />} />
+                <Route path="gstr1" element={<Report />} />
+                <Route path="payments" element={<PaymentsPage />} />
+                <Route path="inventory" element={<InventoryPage />} />
+              </Route>
+            </Routes>
+          </Router>
+        </InvoiceProvider>
       </AuthProvider>
     </ThemeProvider>
   );

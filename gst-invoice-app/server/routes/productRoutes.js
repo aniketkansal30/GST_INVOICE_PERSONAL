@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  getProducts, createProduct, updateProduct, deleteProduct,
+  getProducts, getProductByBarcode, createProduct, updateProduct, deleteProduct,
   addStock, getStockHistory, getInventoryReport
 } = require('../controllers/productController');
 const { auth } = require('../middleware/auth');
@@ -9,6 +9,7 @@ const { auth } = require('../middleware/auth');
 router.use(auth);
 
 router.get('/report/inventory', getInventoryReport);
+router.get('/barcode/:barcode', getProductByBarcode);
 router.get('/', getProducts);
 router.post('/', createProduct);
 router.put('/:id', updateProduct);

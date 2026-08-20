@@ -4,8 +4,7 @@ import { formatCurrency } from '../utils/invoiceUtils';
 import { Wallet, Plus, Trash2, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
-
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import api from '../utils/api';
 
 export default function PaymentsPage() {
   const { invoices, fetchInvoices } = useInvoices();
@@ -30,35 +29,34 @@ export default function PaymentsPage() {
 
   const statusColor = (s) => ({ draft: '#888', sent: '#2563eb', paid: '#16a34a', partial: '#d97706', overdue: '#dc2626' }[s] || '#888');
   const statusBg = (s) => ({ draft: '#f3f4f6', sent: '#eff6ff', paid: '#f0fdf4', partial: '#fffbeb', overdue: '#fef2f2' }[s] || '#f3f4f6');
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
   const addPayment = async () => {
     if (!form.amount || isNaN(form.amount)) return toast.error('Valid amount daalo');
     try {
-      const res = await fetch(`${API}/invoices/${selected._id}/payments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...form, amount: Number(form.amount) }),
+      const res = await api.post(`/invoices/${selected._id}/payments`, {
+        ...form,
+        amount: Number(form.amount)
       });
-      const updated = await res.json();
+      const updated = res.data;
       setAllInvoices(prev => prev.map(i => i._id === updated._id ? updated : i));
       setSelected(updated);
       setForm({ amount: '', date: '', mode: 'bank', note: '' });
       toast.success('Payment record ho gaya!');
-    } catch { toast.error('Error aaya, dobara try karo'); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error aaya, dobara try karo');
+    }
   };
 
   const deletePayment = async (pid) => {
     try {
-      const res = await fetch(`${API}/invoices/${selected._id}/payments/${pid}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const updated = await res.json();
+      const res = await api.delete(`/invoices/${selected._id}/payments/${pid}`);
+      const updated = res.data;
       setAllInvoices(prev => prev.map(i => i._id === updated._id ? updated : i));
       setSelected(updated);
       toast.success('Payment hata diya');
-    } catch { toast.error('Error aaya'); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error aaya');
+    }
   };
 
   const exportExcel = () => {

@@ -1,18 +1,49 @@
-﻿export const GST_RATES = [0, 5, 18];
+﻿export const GST_RATES = [0, 5, 12, 18, 28];
+
+export const CLOTHING_SIZES = [
+  'Free Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL',
+  '26', '28', '30', '32', '34', '36', '38', '40', '42', '44',
+  '1-2Y', '3-4Y', '5-6Y', '7-8Y', '9-10Y', '11-12Y', '13-14Y'
+];
+
+export const CLOTHING_CATEGORIES = [
+  'Shirts', 'T-Shirts & Polos', 'Jeans & Denims', 'Trousers & Chinos',
+  'Kurta & Kurti', 'Sarees & Suits', 'Dresses & Gowns', 'Jackets & Blazers',
+  'Trackpants & Joggers', 'Kids Wear', 'Ethnic Wear', 'Nightwear',
+  'Innerwear', 'Accessories & Belts', 'Others'
+];
+
+export const COMMON_COLORS = [
+  'Black', 'White', 'Navy Blue', 'Royal Blue', 'Sky Blue',
+  'Grey', 'Charcoal', 'Red', 'Maroon', 'Green', 'Olive',
+  'Beige', 'Cream', 'Brown', 'Yellow', 'Pink', 'Purple', 'Multi / Print'
+];
 
 export const HSN_SUGGESTIONS = {
+  'shirt': { hsn: '6205', gst: 5 },
+  'mens shirt': { hsn: '6205', gst: 5 },
+  'jeans': { hsn: '6203', gst: 5 },
+  't-shirt': { hsn: '6109', gst: 5 },
+  'tshirt': { hsn: '6109', gst: 5 },
+  'polo': { hsn: '6109', gst: 5 },
+  'trouser': { hsn: '6203', gst: 5 },
+  'pants': { hsn: '6203', gst: 5 },
+  'kurta': { hsn: '6205', gst: 5 },
+  'kurti': { hsn: '6206', gst: 5 },
+  'saree': { hsn: '5208', gst: 5 },
+  'dress': { hsn: '6204', gst: 5 },
+  'jacket': { hsn: '6201', gst: 12 },
+  'hoodie': { hsn: '6101', gst: 12 },
+  'suit': { hsn: '6203', gst: 12 },
+  'textile': { hsn: '520100', gst: 5 },
   'software': { hsn: '998314', gst: 18 },
   'consulting': { hsn: '998311', gst: 18 },
-  'design': { hsn: '998311', gst: 18 },
   'hardware': { hsn: '847130', gst: 18 },
-  'laptop': { hsn: '847130', gst: 18 },
   'mobile': { hsn: '851712', gst: 12 },
-  'food': { hsn: '210690', gst: 5 },
-  'textile': { hsn: '520100', gst: 5 },
   'medicine': { hsn: '300490', gst: 5 },
   'furniture': { hsn: '940360', gst: 28 },
-  'car': { hsn: '870322', gst: 28 },
 };
+
 
 export const getHSNSuggestion = (itemName) => {
   const lower = itemName.toLowerCase();

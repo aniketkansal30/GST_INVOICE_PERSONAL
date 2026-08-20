@@ -4,17 +4,18 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
   LayoutDashboard, FileText, Plus, Settings, LogOut,
-  Moon, Sun, Monitor, Menu, X, Info, Wallet, Package
+  Moon, Sun, Monitor, Menu, X, Info, Wallet, Package,
+  Scan, ShoppingBag, Receipt, Sparkles
 } from 'lucide-react';
 import AboutModal from './AboutModal';
 
 const navItems = [
+  { to: '/pos', icon: Scan, label: 'POS Billing', highlight: true },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/invoices/new', icon: Plus, label: 'New Invoice' },
-  { to: '/gstr1', icon: FileText, label: 'Report' },
+  { to: '/inventory', icon: Package, label: 'Clothing & Stock' },
+  { to: '/gstr1', icon: FileText, label: 'GST Reports' },
   { to: '/payments', icon: Wallet, label: 'Payments' },
-  { to: '/inventory', icon: Package, label: 'Inventory Report' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/settings', icon: Settings, label: 'Store Settings' },
 ];
 
 export default function Layout() {
@@ -49,12 +50,16 @@ export default function Layout() {
       `}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-ink-100 dark:border-ink-800">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-ink-800 dark:bg-amber-500 flex items-center justify-center">
-              <FileText size={16} className="text-white dark:text-ink-950" />
+            <div className="w-9 h-9 rounded-xl bg-ink-900 dark:bg-amber-500 flex items-center justify-center shadow-xs">
+              <ShoppingBag size={18} className="text-white dark:text-ink-950" />
             </div>
             <div>
-              <p className="font-display font-semibold text-ink-800 dark:text-ink-100 text-sm leading-none">GST Studio</p>
-              <p className="text-[10px] text-ink-400 mt-0.5 font-mono">Invoice Manager</p>
+              <p className="font-display font-bold text-ink-900 dark:text-ink-100 text-sm leading-none">
+                {user?.companyName || 'ClothPOS Studio'}
+              </p>
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-mono mt-1 font-semibold">
+                GST Clothing Billing
+              </p>
             </div>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-ink-400 hover:text-ink-600">
@@ -62,33 +67,60 @@ export default function Layout() {
           </button>
         </div>
 
-        <nav className="flex-1 py-6 px-3 space-y-1">
-          {navItems.map(({ to, icon: Icon, label }) => (
+        <nav className="flex-1 py-4 px-3 space-y-1.5 overflow-y-auto">
+          {navItems.map(({ to, icon: Icon, label, highlight }) => (
             <NavLink
               key={to}
               to={to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) => `
-                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150
                 ${isActive
-                  ? 'bg-ink-800 dark:bg-amber-500 text-white dark:text-ink-950'
+                  ? 'bg-ink-900 dark:bg-amber-500 text-white dark:text-ink-950 shadow-sm'
+                  : highlight
+                  ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30'
                   : 'text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800'
                 }
               `}
             >
-              <Icon size={16} />
-              {label}
+              <div className="flex items-center gap-3">
+                <Icon size={16} />
+                <span>{label}</span>
+              </div>
+              {highlight && (
+                <span className="text-[10px] bg-amber-500 text-ink-950 font-bold px-1.5 py-0.2 rounded font-mono">
+                  FAST
+                </span>
+              )}
             </NavLink>
           ))}
 
+          <div className="pt-2 border-t border-ink-100 dark:border-ink-800">
+            <NavLink
+              to="/invoices/new"
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) => `
+                flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium transition-all
+                ${isActive
+                  ? 'bg-ink-200 dark:bg-ink-700 text-ink-900 dark:text-white'
+                  : 'text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800'
+                }
+              `}
+            >
+              <Plus size={15} />
+              <span>Full GST Invoice Form</span>
+            </NavLink>
+          </div>
+
           <button
             onClick={() => { setAboutOpen(true); setSidebarOpen(false); }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800"
+            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800"
           >
-            <Info size={16} />
-            About
+            <Info size={15} />
+            About POS
           </button>
         </nav>
+
 
         <div className="px-3 py-2 border-t border-ink-100 dark:border-ink-800">
           <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-ink-50 dark:bg-ink-800">

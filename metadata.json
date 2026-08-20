@@ -1,0 +1,9 @@
+{
+  "name": "GST Invoice App",
+  "description": "Clothing Shop POS Billing System with high-speed barcode scanning, auto-stock management, GST calculations, thermal receipt printing, and inventory reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
+

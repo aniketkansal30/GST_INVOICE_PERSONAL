@@ -15,6 +15,7 @@ export default function SettingsPage() {
     gstNumber: user?.gstNumber || '',
     address: user?.address || '',
     contact: user?.contact || '',
+    state: user?.state || '',
   });
   const [passwords, setPasswords] = useState({ current: '', newPw: '', confirm: '' });
   const [saving, setSaving] = useState(false);
@@ -106,44 +107,77 @@ export default function SettingsPage() {
         <form onSubmit={handleProfileSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Full Name</label>
-              <input value={profile.name} readOnly className="input bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" />
+              <label className="label">Owner Name</label>
+              <input
+                value={profile.name}
+                onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
+                placeholder="e.g. Ramesh Kumar"
+                className="input"
+                required
+              />
             </div>
             <div>
-              <label className="label">Email</label>
-              <input value={user?.email} disabled className="input opacity-60 cursor-not-allowed" />
+              <label className="label">Email Address</label>
+              <input value={user?.email} disabled className="input opacity-60 cursor-not-allowed bg-ink-50 dark:bg-ink-900" />
             </div>
           </div>
           <div>
-            <label className="label">Company Name</label>
-            <input value={profile.companyName} readOnly className="input bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" />
+            <label className="label">Clothing Shop / Store Name</label>
+            <input
+              value={profile.companyName}
+              onChange={e => setProfile(p => ({ ...p, companyName: e.target.value }))}
+              placeholder="e.g. XYZ FASHION STORE"
+              className="input font-semibold"
+              required
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">GST Number</label>
-              <input value={profile.gstNumber} readOnly className="input font-mono uppercase bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" />
+              <label className="label">GSTIN / GST Number</label>
+              <input
+                value={profile.gstNumber}
+                onChange={e => setProfile(p => ({ ...p, gstNumber: e.target.value.toUpperCase() }))}
+                placeholder="e.g. 09AAAAA0000A1Z5"
+                className="input font-mono uppercase"
+              />
             </div>
             <div>
-              <label className="label">Contact</label>
-              <input value={profile.contact} readOnly className="input bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" />
+              <label className="label">Contact / Phone Number</label>
+              <input
+                value={profile.contact}
+                onChange={e => setProfile(p => ({ ...p, contact: e.target.value }))}
+                placeholder="e.g. +91 98765 43210"
+                className="input"
+              />
             </div>
           </div>
           <div>
-            <label className="label">Company Address</label>
-            <textarea value={profile.address} readOnly className="input resize-none bg-ink-100 dark:bg-ink-900 cursor-not-allowed opacity-70" rows={2} />
+            <label className="label">Shop Address</label>
+            <textarea
+              value={profile.address}
+              onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
+              placeholder="e.g. Shop #12, Main Cloth Market, Meerut, Uttar Pradesh"
+              className="input resize-none"
+              rows={2}
+            />
           </div>
           <div>
-            <label className="label">State</label>
+            <label className="label">State / Place of Supply</label>
             <select
               value={profile.state}
               onChange={e => setProfile(p => ({ ...p, state: e.target.value }))}
               className="input"
             >
               <option value="">Select State</option>
-              {INDIAN_STATES.map(s => <option key={s}>{s}</option>)}
+              {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          <div class="text-xs text-ink-400 italic mt-2">Contact admin to update company details.</div>
+          <div className="flex justify-end pt-2">
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={15} />}
+              {saving ? 'Saving...' : 'Save Store Details'}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -179,7 +213,7 @@ export default function SettingsPage() {
           <div className="flex justify-end">
             <button type="submit" disabled={savingPw} className="btn-primary">
               {savingPw ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Shield size={15} />}
-              {savingPw ? 'Savingâ€¦' : 'Change Password'}
+              {savingPw ? 'Saving...' : 'Change Password'}
             </button>
           </div>
         </form>

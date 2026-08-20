@@ -1,15 +1,20 @@
 ﻿const mongoose = require('mongoose');
 
 const itemSchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
   name: { type: String, required: true },
+  barcode: { type: String, default: '' },
+  size: { type: String, default: '' },
+  color: { type: String, default: '' },
   hsn: { type: String, default: '' },
   unit: { type: String, default: 'Nos' },
   qty: { type: Number, required: true, min: 0 },
   rate: { type: Number, required: true, min: 0 },
-  gstPct: { type: Number, default: 18 },
+  gstPct: { type: Number, default: 5 },
   baseAmount: Number,
   gstAmount: Number,
 }, { _id: false });
+
 
 const paymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },

@@ -57,28 +57,49 @@ exports.createInvoice = async (req, res) => {
     }
 
     const invoiceNumber = req.body.invoiceNumber || nextNumber;
-    const invoice = await Invoice.create({
-      ...req.body,
-      invoiceNumber,
-      user: req.user._id
-    });
+    
+    // Set default payments if grandTotal and paymentMode provided
+    const invoiceData = { ...req.body, invoiceNumber, user: req.user._id };
+    
+    if (invoiceData.payments && Array.isArray(invoiceData.payments) && invoiceData.payments.length > 0) {
+      invoiceData.amountPaid = invoiceData.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      invoiceData.amountDue = Math.max(0, (invoiceData.grandTotal || 0) - invoiceData.amountPaid);
+      if (invoiceData.amountDue <= 0) {
+        invoiceData.status = 'paid';
+      } else if (invoiceData.amountPaid > 0) {
+        invoiceData.status = 'partial';
+      }
+    }
+
+    const invoice = await Invoice.create(invoiceData);
 
     // Stock auto deduct
     for (const item of req.body.items || []) {
-      if (item.name) {
-        const product = await Product.findOne({
-          user: req.user._id,
-          name: { $regex: new RegExp(`^${item.name.trim()}$`, 'i') }
-        });
+      if (item.name || item.barcode || item.productId) {
+        let product = null;
+        if (item.productId) {
+          product = await Product.findOne({ _id: item.productId, user: req.user._id });
+        }
+        if (!product && item.barcode && item.barcode.trim()) {
+          product = await Product.findOne({ user: req.user._id, barcode: item.barcode.trim() });
+        }
+        if (!product && item.name) {
+          product = await Product.findOne({
+            user: req.user._id,
+            name: { $regex: new RegExp(`^${item.name.trim()}$`, 'i') }
+          });
+        }
+
         if (product) {
-          product.currentStock -= Number(item.qty) || 0;
+          const qtyDeducted = Number(item.qty) || 0;
+          product.currentStock -= qtyDeducted;
           await product.save();
           await StockTransaction.create({
             user: req.user._id,
             product: product._id,
             type: 'SALE',
-            qty: -(Number(item.qty) || 0),
-            note: `Invoice ${invoiceNumber}`,
+            qty: -qtyDeducted,
+            note: `POS Bill ${invoiceNumber}`,
             invoiceId: invoice._id,
           });
         }
@@ -93,6 +114,7 @@ exports.createInvoice = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 exports.deleteInvoice = async (req, res) => {
   try {
