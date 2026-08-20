@@ -74,9 +74,10 @@ export default function SettingsPage() {
             <Monitor size={15} className="text-ink-600 dark:text-ink-300" />
           </div>
           <div>
-            <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Appearance</p>
-            <p className="text-xs text-ink-400">Choose your preferred theme</p>
-            {isLocked ? '🔒 Locked — contact admin to change store details' : 'Update your personal details'}
+            <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Profile</p>
+            <p className="text-xs text-ink-400">
+              {isLocked ? '🔒 Locked — contact admin to change store details' : 'Update your personal details'}
+            </p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -129,6 +130,7 @@ export default function SettingsPage() {
                 onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
                 placeholder="you@example.com"
                 className="input"
+                disabled={isLocked}
                 required
               />
             </div>
@@ -140,6 +142,7 @@ export default function SettingsPage() {
               onChange={e => setProfile(p => ({ ...p, companyName: e.target.value }))}
               placeholder="e.g. Manish Enterprises"
               className="input font-semibold"
+              disabled={isLocked}
               required
             />
           </div>
@@ -158,6 +161,7 @@ export default function SettingsPage() {
                 }}
                 placeholder="09AJTPK3679H1ZG"
                 className="input font-mono uppercase"
+                disabled={isLocked}
               />
             </div>
             <div>
@@ -168,6 +172,7 @@ export default function SettingsPage() {
                 placeholder="AADFI0426M"
                 maxLength={10}
                 className="input font-mono uppercase"
+                disabled={isLocked}
               />
             </div>
             <div>
@@ -177,6 +182,7 @@ export default function SettingsPage() {
                 onChange={e => setProfile(p => ({ ...p, contact: e.target.value }))}
                 placeholder="9719201802"
                 className="input font-mono"
+                disabled={isLocked}
               />
             </div>
           </div>
@@ -188,6 +194,7 @@ export default function SettingsPage() {
               placeholder="Shop No 188 T, Abulane, Near Nishant Cinema, Meerut Cantt, Uttar Pradesh"
               className="input resize-none"
               rows={2}
+              disabled={isLocked}
             />
           </div>
           <div>
@@ -196,6 +203,7 @@ export default function SettingsPage() {
               value={profile.state}
               onChange={e => setProfile(p => ({ ...p, state: e.target.value }))}
               className="input"
+              disabled={isLocked}
             >
               <option value="">Select State</option>
               {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -217,8 +225,8 @@ export default function SettingsPage() {
             <Shield size={15} className="text-ink-600 dark:text-ink-300" />
           </div>
           <div>
-            <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Security</p>
-            <p className="text-xs text-ink-400">Change your password</p>
+            <p className="font-semibold text-ink-800 dark:text-ink-100 text-sm">Appearance</p>
+            <p className="text-xs text-ink-400">Choose your preferred theme</p>
           </div>
         </div>
         <form onSubmit={handlePasswordSave} className="space-y-4">
