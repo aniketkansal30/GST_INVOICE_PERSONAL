@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useInvoices } from '../context/InvoiceContext';
 import {
   Scan, Search, Plus, Minus, Trash2, Printer, CheckCircle2,
   AlertCircle, Sparkles, User, CreditCard, Banknote, QrCode,
   RotateCcw, PauseCircle, PlayCircle, ShoppingBag, ArrowRight,
-  Receipt, ArrowUpRight, Zap
+  Receipt, ArrowUpRight, Zap, Edit2, ArrowLeft
 } from 'lucide-react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -14,7 +15,10 @@ import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
 
 export default function PosBillingPage() {
   const { user } = useAuth();
-  const { createInvoice } = useInvoices();
+  const { createInvoice, updateInvoice, getInvoice } = useInvoices();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEditMode = !!id;
 
   // Barcode input & state
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -35,7 +39,10 @@ export default function PosBillingPage() {
   // Payment details
   const [splitPayments, setSplitPayments] = useState([{ mode: 'cash', amount: '' }]); // 'cash', 'upi', 'card', 'credit'
   const [cashTendered, setCashTendered] = useState('');
-  
+
+  // ── Edit / View mode: loaded invoice metadata (id, number, original date, status) ──
+  const [loadingInvoice, setLoadingInvoice] = useState(isEditMode);
+  const [invoiceMeta, setInvoiceMeta] = useState(null);
 
   const addPaymentLine = () => {
     setSplitPayments(prev => [...prev, { mode: 'cash', amount: '' }]);
@@ -98,10 +105,10 @@ export default function PosBillingPage() {
     loadAllProducts();
 
     const handleKeyDown = (e) => {
-      // F2 -> Print / Complete Bill
+      // F2 -> Print / Complete Bill (or Update Bill in edit mode)
       if (e.key === 'F2') {
         e.preventDefault();
-        handlePrintAndComplete();
+        handleSubmitBill();
       }
       // F3 -> Search Catalogue
       if (e.key === 'F3') {
@@ -138,6 +145,56 @@ export default function PosBillingPage() {
   useEffect(() => {
     localStorage.setItem('pos_held_carts', JSON.stringify(heldCarts));
   }, [heldCarts]);
+
+  // ── Load existing invoice into the cart when opened via Dashboard's
+  // View / Edit (route has an :id) — same POS screen, pre-filled. ──
+  useEffect(() => {
+    if (!id) {
+      setLoadingInvoice(false);
+      return;
+    }
+    setLoadingInvoice(true);
+    getInvoice(id)
+      .then((inv) => {
+        setInvoiceMeta({
+          _id: inv._id,
+          invoiceNumber: inv.invoiceNumber,
+          invoiceDate: inv.invoiceDate,
+          status: inv.status,
+        });
+
+        const buyer = inv.buyer || {};
+        setCustomer({
+          name: buyer.clientName || 'Walk-in Customer',
+          contact: buyer.contact || '',
+          state: buyer.state || user?.state || 'Uttar Pradesh',
+        });
+        setShowCustomerFields(!!(buyer.clientName && buyer.clientName !== 'Walk-in Customer') || !!buyer.contact);
+
+        setCart((inv.items || []).map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          barcode: item.barcode || '',
+          size: item.size || '',
+          color: item.color || '',
+          hsn: item.hsn || '6205',
+          unit: item.unit || 'Nos',
+          rate: Number(item.rate) || 0,
+          qty: Number(item.qty) || 1,
+          gstPct: Number(item.gstPct) || 0,
+          discountPct: Number(item.discountPct) || 0,
+        })));
+
+        if (inv.payments && inv.payments.length > 0) {
+          setSplitPayments(inv.payments.map(p => ({ mode: p.mode || 'cash', amount: String(p.amount ?? '') })));
+        }
+      })
+      .catch(() => {
+        toast.error('Invoice not found');
+        navigate('/dashboard');
+      })
+      .finally(() => setLoadingInvoice(false));
+  }, [id]);
 
   const focusBarcodeInput = () => {
     setTimeout(() => {
@@ -536,8 +593,9 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
   const tenderedNum = Number(cashTendered) || 0;
   const changeToReturn = tenderedNum > grandTotal ? tenderedNum - grandTotal : 0;
 
-  // 7. PRINT BILL & COMPLETE SALE
-  const handlePrintAndComplete = async () => {
+  // 7. SAVE BILL — creates a new POS sale, or (in edit mode) updates the
+  // existing invoice loaded above, instead of always creating a new one.
+  const handleSubmitBill = async () => {
     if (cart.length === 0) {
       toast.error('Scan or add at least one clothing item to print bill', { id: 'empty-cart' });
       focusBarcodeInput();
@@ -548,7 +606,7 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
     try {
       // Prepare invoice payload compatible with existing Invoice model
       const invoicePayload = {
-        invoiceDate: new Date(),
+        invoiceDate: (isEditMode && invoiceMeta?.invoiceDate) ? invoiceMeta.invoiceDate : new Date(),
         status: 'paid',
         seller: {
           companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
@@ -584,6 +642,13 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
         amountDue: Math.max(0, grandTotal - totalTendered),
       };
 
+      if (isEditMode) {
+        const updated = await updateInvoice(id, invoicePayload);
+        toast.success(`Bill #${updated.invoiceNumber} updated!`, { icon: '✅', duration: 3000 });
+        navigate('/dashboard');
+        return;
+      }
+
       const savedInvoice = await createInvoice(invoicePayload);
 
       setCompletedInvoice(savedInvoice);
@@ -607,7 +672,7 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
         duration: 3000,
       });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error creating POS bill');
+      toast.error(err.response?.data?.message || (isEditMode ? 'Error updating bill' : 'Error creating POS bill'));
     } finally {
       setCompleting(false);
     }
@@ -626,11 +691,28 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
     );
   });
 
+  if (loadingInvoice) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-ink-800 dark:border-amber-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
       {/* Top Shop Banner & Status Bar */}
       <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
+          {isEditMode && (
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-400 transition-all"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
           <div className="w-11 h-11 rounded-xl bg-ink-800 dark:bg-amber-500 text-white dark:text-ink-950 flex items-center justify-center font-bold shadow-md">
             <ShoppingBag size={22} />
           </div>
@@ -639,9 +721,15 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
               <h1 className="font-display text-xl font-bold text-ink-900 dark:text-ink-50 tracking-tight">
                 {user?.companyName || DEFAULT_STORE_DETAILS.companyName}
               </h1>
-              <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> POS Counter Active
-              </span>
+              {isEditMode ? (
+                <span className="bg-blue-500/10 text-blue-700 dark:text-blue-400 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Edit2 size={12} /> Editing Bill #{invoiceMeta?.invoiceNumber || id}
+                </span>
+              ) : (
+                <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> POS Counter Active
+                </span>
+              )}
             </div>
             <p className="text-xs text-ink-500 dark:text-ink-400 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
               <span>GSTIN: {user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber}</span>
@@ -681,14 +769,16 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
             <Search size={14} /> Catalogue (F3)
           </button>
 
-          <button
-            onClick={handleHoldCart}
-            disabled={cart.length === 0}
-            className="btn-secondary text-xs px-3 py-2 flex items-center gap-1.5 disabled:opacity-40"
-            title="Hold current customer bill"
-          >
-            <PauseCircle size={14} /> Park Bill
-          </button>
+          {!isEditMode && (
+            <button
+              onClick={handleHoldCart}
+              disabled={cart.length === 0}
+              className="btn-secondary text-xs px-3 py-2 flex items-center gap-1.5 disabled:opacity-40"
+              title="Hold current customer bill"
+            >
+              <PauseCircle size={14} /> Park Bill
+            </button>
+          )}
 
           <button
             onClick={handleClearCart}
@@ -1120,18 +1210,24 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
               </div>
             )}
 
-            {/* HUGE PRINT BILL BUTTON */}
+            {/* HUGE PRINT / UPDATE BILL BUTTON */}
             <button
-              onClick={handlePrintAndComplete}
+              onClick={handleSubmitBill}
               disabled={completing || cart.length === 0}
-              className="w-full btn-primary py-4 text-base font-bold bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-ink-950 flex items-center justify-center gap-2.5 rounded-xl shadow-lg shadow-emerald-600/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className={`w-full btn-primary py-4 text-base font-bold flex items-center justify-center gap-2.5 rounded-xl shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all ${
+                isEditMode
+                  ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:text-ink-950 shadow-blue-600/20'
+                  : 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-ink-950 shadow-emerald-600/20'
+              }`}
             >
               {completing ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : isEditMode ? (
+                <CheckCircle2 size={20} />
               ) : (
                 <Printer size={20} />
               )}
-              <span>PRINT BILL & COMPLETE SALE (F2)</span>
+              <span>{isEditMode ? 'UPDATE BILL (F2)' : 'PRINT BILL & COMPLETE SALE (F2)'}</span>
             </button>
           </div>
         </div>
