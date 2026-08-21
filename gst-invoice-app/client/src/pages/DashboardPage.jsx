@@ -26,27 +26,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-import { AlertTriangle } from 'lucide-react';
-import api from '../utils/api';
-
-export default function LowStockAlert() {
-  const [lowStock, setLowStock] = useState([]);
-
-  useEffect(() => {
-    api.get('/products/low-stock')
-      .then(res => setLowStock(res.data))
-      .catch(() => {});
-  }, []);
-
-  if (lowStock.length === 0) return null;
-
-  return (
-    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-2 text-amber-700 dark:text-amber-400 text-xs font-semibold">
-      <AlertTriangle size={16} />
-      <span>{lowStock.length} item(s) low on stock: {lowStock.slice(0, 3).map(p => p.name).join(', ')}{lowStock.length > 3 ? '...' : ''}</span>
-    </div>
-  );
-}
 export default function DashboardPage() {
   const { invoices, loading, pagination, fetchInvoices, deleteInvoice, duplicateInvoice } = useInvoices();
   const { user } = useAuth();
