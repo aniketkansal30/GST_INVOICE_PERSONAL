@@ -23,7 +23,7 @@ export default function PosBillingPage() {
 
   // Cart / Bill Items
   const [cart, setCart] = useState([]);
-  
+
   // Customer details (optional)
   const [customer, setCustomer] = useState({
     name: 'Walk-in Customer',
@@ -138,7 +138,7 @@ export default function PosBillingPage() {
       // Barcode not found in database
       const notFoundMsg = err.response?.data?.message || `Barcode "${cleanCode}" not registered`;
       toast.error(notFoundMsg, { id: 'barcode-error', duration: 3000 });
-      
+
       // Offer 1-click quick add with this barcode
       setUnknownBarcode(cleanCode);
       setNewQuickProduct(prev => ({
@@ -165,7 +165,7 @@ export default function PosBillingPage() {
         // Increment quantity of existing line
         const updated = [...prevCart];
         const currentQty = updated[existingIdx].qty;
-        
+
         // Stock check
         if (product.currentStock !== undefined && currentQty + 1 > product.currentStock) {
           toast(`⚠️ Stock alert: Only ${product.currentStock} pcs available`, { icon: '⚠️' });
@@ -179,6 +179,7 @@ export default function PosBillingPage() {
         return updated;
       } else {
         // Add new line item
+        // NOTE: `rate` is treated as the MRP (GST-inclusive) selling price of the product.
         const rate = Number(product.sellingPrice) || 0;
         const gstPct = Number(product.gstPct) !== undefined ? Number(product.gstPct) : 5;
 
@@ -315,17 +316,27 @@ export default function PosBillingPage() {
   };
 
   // 6. Calculations
+  // IMPORTANT: `item.rate` is the final MRP per unit (GST already included).
+  // So the taxable value and GST are REVERSE-calculated out of the rate,
+  // instead of being added on top. This keeps qty*rate == line total always.
   const isSameState = !customer.state || !user?.state ||
     customer.state.trim().toLowerCase() === user?.state.trim().toLowerCase();
 
-  let subtotal = 0;
-  let totalGst = 0;
+  let subtotal = 0;   // sum of taxable (ex-GST) values
+  let totalGst = 0;   // sum of GST extracted from MRP
 
   const processedItems = cart.map((item) => {
-    const itemTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-    const itemGst = (itemTotal * (Number(item.gstPct) || 0)) / 100;
-    subtotal += itemTotal;
-    totalGst += itemGst;
+    const qty = Number(item.qty) || 0;
+    const rate = Number(item.rate) || 0; // MRP per unit, GST-inclusive
+    const gstPct = Number(item.gstPct) || 0;
+
+    const lineMrpTotal = qty * rate; // what the customer actually pays for this line
+    const lineTaxable = gstPct > 0 ? lineMrpTotal / (1 + gstPct / 100) : lineMrpTotal;
+    const lineGst = lineMrpTotal - lineTaxable;
+
+    subtotal += lineTaxable;
+    totalGst += lineGst;
+
     return {
       productId: item.productId,
       name: item.name,
@@ -334,17 +345,21 @@ export default function PosBillingPage() {
       color: item.color,
       hsn: item.hsn,
       unit: item.unit || 'Nos',
-      qty: Number(item.qty),
-      rate: Number(item.rate),
-      gstPct: Number(item.gstPct),
-      baseAmount: itemTotal,
-      gstAmount: itemGst,
+      qty: qty,
+      rate: rate,
+      gstPct: gstPct,
+      baseAmount: Number(lineTaxable.toFixed(2)),
+      gstAmount: Number(lineGst.toFixed(2)),
+      lineTotal: Number(lineMrpTotal.toFixed(2)),
     };
   });
 
   const cgst = isSameState ? totalGst / 2 : 0;
   const sgst = isSameState ? totalGst / 2 : 0;
   const igst = !isSameState ? totalGst : 0;
+
+  // subtotal + totalGst always reconstructs back to sum(qty*rate) since GST
+  // was extracted from the MRP rather than added on top.
   const totalBeforeDiscount = subtotal + totalGst;
   const finalDiscount = Number(discountAmount) || 0;
   const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
@@ -405,7 +420,7 @@ export default function PosBillingPage() {
 
       setCompletedInvoice(savedInvoice);
       setShowReceiptModal(true);
-      
+
       // Reset Billing state
       setCart([]);
       setCashTendered('');
@@ -416,7 +431,7 @@ export default function PosBillingPage() {
         state: user?.state || 'Uttar Pradesh',
       });
       loadAllProducts(); // refresh stock numbers
-      
+
       toast.success(`Bill #${savedInvoice.invoiceNumber} created & stock deducted!`, {
         icon: '🧾',
         duration: 3000,
@@ -621,9 +636,12 @@ export default function PosBillingPage() {
                   </thead>
                   <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
                     {cart.map((item, idx) => {
-                      const lineBase = item.qty * item.rate;
-                      const lineTax = (lineBase * item.gstPct) / 100;
-                      const lineTotal = lineBase + lineTax;
+                      // `item.rate` is MRP (GST-inclusive) per unit, so the
+                      // displayed line "Amount" is simply qty * rate — the
+                      // taxable/GST split is reverse-derived from it.
+                      const lineTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+                      const lineBase = item.gstPct > 0 ? lineTotal / (1 + item.gstPct / 100) : lineTotal;
+                      const lineTax = lineTotal - lineBase;
 
                       return (
                         <tr key={idx} className="hover:bg-ink-50/70 dark:hover:bg-ink-800/40 transition-colors">
@@ -702,7 +720,7 @@ export default function PosBillingPage() {
                             </span>
                           </td>
 
-                          {/* Line Total */}
+                          {/* Line Total (this stays qty*rate — GST is inside it now, not added) */}
                           <td className="py-3 px-4 text-right font-mono font-bold text-ink-900 dark:text-ink-100 text-sm">
                             ₹{lineTotal.toFixed(2)}
                           </td>
