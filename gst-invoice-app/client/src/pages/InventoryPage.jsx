@@ -4,9 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency, CLOTHING_SIZES, CLOTHING_CATEGORIES, COMMON_COLORS, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 import {
   Package, Download, Plus, X, History, AlertTriangle,
-  Scan, Tag, Search, Edit2, Printer, Sparkles, Filter, Check
+  Scan, Tag, Search, Edit2, Printer, Sparkles, Filter, Check, Upload
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { useRef } from 'react'; // agar useRef already import nahi hai
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -61,6 +62,8 @@ export default function InventoryPage() {
   const [tagProduct, setTagProduct] = useState(null);
   const [tagCount, setTagCount] = useState(6);
 
+  const fileInputRef = useRef(null);
+const [importing, setImporting] = useState(false);
   useEffect(() => {
     fetchInvoices({ limit: 1000, page: 1 });
     loadProducts();
@@ -297,6 +300,57 @@ export default function InventoryPage() {
     XLSX.writeFile(wb, `Clothing_Inventory_${selectedYear || 'All'}.xlsx`);
     toast.success('Inventory exported to Excel!');
   };
+    const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const row of rows) {
+        const payload = {
+          name: row['Product Name'] || row['name'] || '',
+          barcode: String(row['Barcode'] || row['barcode'] || ''),
+          category: row['Category'] || row['category'] || 'Shirts',
+          size: row['Size'] || row['size'] || 'M',
+          color: row['Color'] || row['color'] || '',
+          hsn: String(row['HSN'] || row['hsn'] || '6205'),
+          unit: row['Unit'] || row['unit'] || 'Pcs',
+          sellingPrice: Number(row['Selling Price'] || row['sellingPrice'] || 0),
+          purchasePrice: Number(row['Purchase Price'] || row['purchasePrice'] || 0),
+          gstPct: Number(row['GST%'] || row['gstPct'] || 5),
+          openingStock: Number(row['Current Stock'] || row['Stock'] || row['openingStock'] || 0),
+        };
+
+        if (!payload.name || payload.sellingPrice <= 0) {
+          failCount++;
+          continue;
+        }
+
+        try {
+          await api.post('/products', payload);
+          successCount++;
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      toast.success(`Imported ${successCount} items${failCount ? `, ${failCount} failed` : ''}`);
+      loadProducts();
+    } catch (err) {
+      toast.error('Failed to read Excel file');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const lowStockProducts = products.filter(p => p.currentStock <= 5);
 
@@ -324,13 +378,29 @@ export default function InventoryPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+               <div className="flex items-center gap-2">
           <button
             onClick={handleOpenCreate}
             className="btn-primary text-xs px-4 py-2.5 flex items-center gap-1.5 shadow-sm"
           >
             <Plus size={16} /> Add Clothing Item
           </button>
+
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            ref={fileInputRef}
+            onChange={handleImportExcel}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="btn-secondary text-xs px-3.5 py-2.5 text-sky-600 dark:text-sky-400 flex items-center gap-1.5"
+          >
+            <Upload size={15} /> {importing ? 'Importing...' : 'Import Excel'}
+          </button>
+
           <button
             onClick={exportToExcel}
             className="btn-secondary text-xs px-3.5 py-2.5 text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5"
