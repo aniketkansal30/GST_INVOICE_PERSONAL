@@ -25,7 +25,7 @@ const StatusBadge = ({ status }) => {
     </span>
   );
 };
-import React, { useEffect, useState } from 'react';
+
 import { AlertTriangle } from 'lucide-react';
 import api from '../utils/api';
 
