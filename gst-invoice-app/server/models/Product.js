@@ -14,6 +14,7 @@ const productSchema = new mongoose.Schema({
   category: { type: String, default: 'Clothing', trim: true },
   openingStock: { type: Number, default: 0 },
   currentStock: { type: Number, default: 0 },
+  lowStockThreshold: { type: Number, default: 5 }, 
 }, { timestamps: true });
 
 // Barcode must be unique per user (sparse allows empty barcode products)

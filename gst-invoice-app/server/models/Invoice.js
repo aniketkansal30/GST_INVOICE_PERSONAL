@@ -56,6 +56,7 @@ const invoiceSchema = new mongoose.Schema({
   igst: { type: Number, default: 0 },
   totalGst: { type: Number, default: 0 },
   grandTotal: { type: Number, default: 0 },
+  discountAmount: { type: Number, default: 0 },
   isSameState: { type: Boolean, default: false },
   notes: { type: String, default: '' },
   payments: [paymentSchema],

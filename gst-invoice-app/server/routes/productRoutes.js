@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const {
   getProducts, getProductByBarcode, createProduct, updateProduct, deleteProduct,
-  addStock, getStockHistory, getInventoryReport
+  addStock, getStockHistory, getInventoryReport, getLowStockProducts
 } = require('../controllers/productController');
 const { auth } = require('../middleware/auth');
 
 router.use(auth);
 
 router.get('/report/inventory', getInventoryReport);
+router.get('/report/low-stock', getLowStockProducts);
 router.get('/barcode/:barcode', getProductByBarcode);
 router.get('/', getProducts);
 router.post('/', createProduct);

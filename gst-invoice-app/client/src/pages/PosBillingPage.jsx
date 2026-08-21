@@ -33,9 +33,35 @@ export default function PosBillingPage() {
   const [showCustomerFields, setShowCustomerFields] = useState(false);
 
   // Payment details
-  const [paymentMode, setPaymentMode] = useState('cash'); // 'cash', 'upi', 'card', 'credit'
+  const [splitPayments, setSplitPayments] = useState([{ mode: 'cash', amount: '' }]); // 'cash', 'upi', 'card', 'credit'
   const [cashTendered, setCashTendered] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
+
+  const addPaymentLine = () => {
+    setSplitPayments(prev => [...prev, { mode: 'cash', amount: '' }]);
+  };
+
+  const removePaymentLine = (idx) => {
+    setSplitPayments(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const updatePaymentLine = (idx, field, val) => {
+    setSplitPayments(prev => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: val };
+      return updated;
+    });
+  };
+
+  const totalTendered = splitPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  // NOTE: `remainingToPay` needs grandTotal, which is only known after the
+  // cart/GST calculations below — it is computed further down, right after
+  // grandTotal is defined, instead of here (grandTotal doesn't exist yet at this point).
+
+  // Whether cash / upi mode is currently part of the split payment lines
+  // (replaces the old single `paymentMode` state that no longer exists).
+  const hasCashLine = splitPayments.some(p => p.mode === 'cash');
+  const hasUpiLine = splitPayments.some(p => p.mode === 'upi');
 
   // Catalogue search modal (for items without readable barcode)
   const [showCatalogue, setShowCatalogue] = useState(false);
@@ -100,6 +126,19 @@ export default function PosBillingPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Held carts persistence (moved here from inside the JSX return, where a
+  // bare `useEffect(...)` call is invalid syntax and breaks the render).
+  useEffect(() => {
+    const saved = localStorage.getItem('pos_held_carts');
+    if (saved) {
+      try { setHeldCarts(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('pos_held_carts', JSON.stringify(heldCarts));
+  }, [heldCarts]);
+
   const focusBarcodeInput = () => {
     setTimeout(() => {
       if (barcodeInputRef.current) {
@@ -116,6 +155,30 @@ export default function PosBillingPage() {
     } catch (err) {
       console.warn('Could not prefetch product catalogue');
     }
+  };
+
+  const sendBillOnWhatsApp = (invoice) => {
+    const phone = (customer.contact || '').replace(/\D/g, ''); // sirf digits
+    if (!phone || phone.length < 10) {
+      toast.error('Customer ka mobile number nahi mila');
+      return;
+    }
+    const fullPhone = phone.length === 10 ? `91${phone}` : phone;
+
+    const itemLines = invoice.items
+      .map(i => `• ${i.name} (${i.size || '-'}) x${i.qty} = ₹${(i.qty * i.rate).toFixed(0)}`)
+      .join('\n');
+
+    const message =
+      `🧾 *${user?.companyName || DEFAULT_STORE_DETAILS.companyName}*\n` +
+      `Bill No: ${invoice.invoiceNumber}\n` +
+      `Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}\n\n` +
+      `${itemLines}\n\n` +
+      `*Total: ₹${invoice.grandTotal}*\n\n` +
+      `Dhanyavaad! 🙏`;
+
+    const waLink = `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waLink, '_blank');
   };
 
   // 1. Barcode Submission Handler (USB Scanner / Typing + Enter)
@@ -361,9 +424,12 @@ export default function PosBillingPage() {
   // subtotal + totalGst always reconstructs back to sum(qty*rate) since GST
   // was extracted from the MRP rather than added on top.
   const totalBeforeDiscount = subtotal + totalGst;
-const discountPct = Math.min(100, Math.max(0, Number(discountAmount) || 0));
-const finalDiscount = (totalBeforeDiscount * discountPct) / 100;
-const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
+  const discountPct = Math.min(100, Math.max(0, Number(discountAmount) || 0));
+  const finalDiscount = (totalBeforeDiscount * discountPct) / 100;
+  const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
+
+  // Now that grandTotal exists, we can safely compute how much is left to pay.
+  const remainingToPay = grandTotal - totalTendered;
 
   // Change calculator
   const tenderedNum = Number(cashTendered) || 0;
@@ -403,24 +469,28 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
         sgst: Number(sgst.toFixed(2)),
         igst: Number(igst.toFixed(2)),
         totalGst: Number(totalGst.toFixed(2)),
+        discountAmount: Number(finalDiscount.toFixed(2)),
         grandTotal: grandTotal,
         isSameState: isSameState,
-        payments: [
-          {
-            amount: grandTotal,
-            mode: paymentMode,
+        payments: splitPayments
+          .filter(p => Number(p.amount) > 0)
+          .map(p => ({
+            amount: Number(p.amount),
+            mode: p.mode,
             date: new Date(),
-            note: `POS Counter ${paymentMode.toUpperCase()}`,
-          },
-        ],
-        amountPaid: grandTotal,
-        amountDue: 0,
+            note: `POS Counter ${p.mode.toUpperCase()}`,
+          })),
+        amountPaid: totalTendered,
+        amountDue: Math.max(0, grandTotal - totalTendered),
       };
 
       const savedInvoice = await createInvoice(invoicePayload);
 
       setCompletedInvoice(savedInvoice);
       setShowReceiptModal(true);
+      if (customer.contact && customer.contact.trim()) {
+        setTimeout(() => sendBillOnWhatsApp(savedInvoice), 500);
+      }
 
       // Reset Billing state
       setCart([]);
@@ -828,7 +898,7 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
                 </div>
               )}
 
-                            {/* Discount Input */}
+              {/* Discount Input */}
               <div className="flex items-center justify-between text-ink-600 dark:text-ink-300 pt-1">
                 <span>Discount (%):</span>
                 <div className="flex items-center gap-1">
@@ -869,36 +939,56 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
               </div>
             </div>
 
-            {/* Payment Mode Selector */}
+            {/* Split Payment */}
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">
-                Select Payment Mode
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { key: 'cash', label: 'Cash', icon: Banknote },
-                  { key: 'upi', label: 'UPI / QR', icon: QrCode },
-                  { key: 'card', label: 'Card', icon: CreditCard },
-                ].map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setPaymentMode(key)}
-                    className={`py-2.5 px-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
-                      paymentMode === key
-                        ? '!border-black !bg-black !text-white dark:!border-amber-500 dark:!bg-amber-500 dark:!text-black shadow-sm'
-                        : 'border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:border-ink-300'
-                    }`}
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">
+                  Payment (Split allowed)
+                </label>
+                <button type="button" onClick={addPaymentLine} className="text-xs text-amber-600 font-semibold hover:underline">
+                  + Add Payment Mode
+                </button>
+              </div>
+
+              {splitPayments.map((p, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <select
+                    value={p.mode}
+                    onChange={(e) => updatePaymentLine(idx, 'mode', e.target.value)}
+                    className="input text-xs py-1.5 flex-1"
                   >
-                    <Icon size={16} />
-                    <span>{label}</span>
-                  </button>
-                ))}
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    value={p.amount}
+                    onChange={(e) => updatePaymentLine(idx, 'amount', e.target.value)}
+                    placeholder="Amount"
+                    className="input text-xs py-1.5 w-28 font-mono"
+                  />
+                  {splitPayments.length > 1 && (
+                    <button type="button" onClick={() => removePaymentLine(idx)} className="text-rose-500 text-xs">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-ink-200 dark:border-ink-700">
+                <span className="font-semibold text-ink-700 dark:text-ink-200">
+                  {remainingToPay > 0 ? 'Remaining:' : remainingToPay < 0 ? 'Extra (Change):' : 'Fully Paid ✓'}
+                </span>
+                <span className={`font-mono font-black ${remainingToPay > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  ₹{Math.abs(remainingToPay).toFixed(2)}
+                </span>
               </div>
             </div>
 
             {/* Cash Tendered & Change Return Calculator */}
-            {paymentMode === 'cash' && (
+            {hasCashLine && (
               <div className="bg-ink-50 dark:bg-ink-800/50 p-3 rounded-xl border border-ink-200 dark:border-ink-700 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-ink-600 dark:text-ink-300 font-medium">Cash Received:</span>
@@ -926,7 +1016,7 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
             )}
 
             {/* UPI Mode Info */}
-            {paymentMode === 'upi' && (
+            {hasUpiLine && (
               <div className="bg-ink-50 dark:bg-ink-800/50 p-3 rounded-xl border border-ink-200 dark:border-ink-700 text-center">
                 <p className="text-sm font-bold text-ink-800 dark:text-ink-200">
                   UPI: {user?.contact || 'pay@upi'}
