@@ -361,8 +361,9 @@ export default function PosBillingPage() {
   // subtotal + totalGst always reconstructs back to sum(qty*rate) since GST
   // was extracted from the MRP rather than added on top.
   const totalBeforeDiscount = subtotal + totalGst;
-  const finalDiscount = Number(discountAmount) || 0;
-  const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
+const discountPct = Math.min(100, Math.max(0, Number(discountAmount) || 0));
+const finalDiscount = (totalBeforeDiscount * discountPct) / 100;
+const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
 
   // Change calculator
   const tenderedNum = Number(cashTendered) || 0;
@@ -827,18 +828,28 @@ export default function PosBillingPage() {
                 </div>
               )}
 
-              {/* Discount Input */}
+                            {/* Discount Input */}
               <div className="flex items-center justify-between text-ink-600 dark:text-ink-300 pt-1">
-                <span>Discount (₹):</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={discountAmount || ''}
-                  onChange={(e) => setDiscountAmount(e.target.value)}
-                  placeholder="0"
-                  className="w-20 text-right font-mono font-semibold bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded px-2 py-0.5 text-xs focus:outline-hidden"
-                />
+                <span>Discount (%):</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={discountAmount || ''}
+                    onChange={(e) => setDiscountAmount(e.target.value)}
+                    placeholder="0"
+                    className="w-16 text-right font-mono font-semibold bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded px-2 py-0.5 text-xs focus:outline-hidden"
+                  />
+                  <span className="text-[11px] text-ink-400">%</span>
+                </div>
               </div>
+              {finalDiscount > 0 && (
+                <div className="flex justify-between text-rose-500 dark:text-rose-400">
+                  <span>Discount Amount:</span>
+                  <span>- ₹{finalDiscount.toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             {/* Big Grand Total Display */}
