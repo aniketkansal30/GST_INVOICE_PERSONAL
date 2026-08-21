@@ -62,6 +62,10 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
     return acc;
   }, {}));
 
+  // FIX: total discount across all items (was wrongly using a single undefined "item" before)
+  const totalDiscountAmount = items.reduce((s, i) => s + (Number(i.discountAmount) || 0), 0);
+  const hasDiscount = totalDiscountAmount > 0;
+
   const handlePrint = () => {
     window.print();
   };
@@ -204,41 +208,41 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             </div>
 
             {/* Totals Section */}
-<div className="py-1.5 border-b border-dashed border-black text-[11px] space-y-1">
-  <div className="flex justify-between">
-    <span>Items Count ({items.reduce((s, i) => s + (Number(i.qty) || 0), 0)} pcs):</span>
-    <span>₹{subtotal.toFixed(2)}</span>
-  </div>
+            <div className="py-1.5 border-b border-dashed border-black text-[11px] space-y-1">
+              <div className="flex justify-between">
+                <span>Items Count ({items.reduce((s, i) => s + (Number(i.qty) || 0), 0)} pcs):</span>
+                <span>₹{subtotal.toFixed(2)}</span>
+              </div>
 
-  {cgst > 0 && (
-    <div className="flex justify-between text-[10px] text-black">
-      <span>CGST:</span>
-      <span>₹{cgst.toFixed(2)}</span>
-    </div>
-  )}
-  {sgst > 0 && (
-    <div className="flex justify-between text-[10px] text-black">
-      <span>SGST:</span>
-      <span>₹{sgst.toFixed(2)}</span>
-    </div>
-  )}
-  {igst > 0 && (
-    <div className="flex justify-between text-[10px] text-black">
-      <span>IGST:</span>
-      <span>₹{igst.toFixed(2)}</span>
-    </div>
-  )}
-{item.discountPct > 0 && (
-  <div className="text-[9px] text-black flex justify-between">
-    <span>Discount Applied:</span>
-    <span>-{item.discountPct}% (₹{Number(item.discountAmount || 0).toFixed(2)})</span>
-  </div>
-)}
-  <div className="flex justify-between pt-1 border-t border-black font-bold text-sm">
-    <span>NET TOTAL:</span>
-    <span>₹{grandTotal.toFixed(2)}</span>
-  </div>
-</div>
+              {cgst > 0 && (
+                <div className="flex justify-between text-[10px] text-black">
+                  <span>CGST:</span>
+                  <span>₹{cgst.toFixed(2)}</span>
+                </div>
+              )}
+              {sgst > 0 && (
+                <div className="flex justify-between text-[10px] text-black">
+                  <span>SGST:</span>
+                  <span>₹{sgst.toFixed(2)}</span>
+                </div>
+              )}
+              {igst > 0 && (
+                <div className="flex justify-between text-[10px] text-black">
+                  <span>IGST:</span>
+                  <span>₹{igst.toFixed(2)}</span>
+                </div>
+              )}
+              {hasDiscount && (
+                <div className="text-[9px] text-black flex justify-between">
+                  <span>Discount Applied:</span>
+                  <span>-₹{totalDiscountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-1 border-t border-black font-bold text-sm">
+                <span>NET TOTAL:</span>
+                <span>₹{grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
 
             {/* GST Tax Summary Table */}
             <div className="py-1 border-b border-dashed border-black text-[9px] text-black">
@@ -265,7 +269,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             <div className="pt-2 text-center text-[10px] space-y-1">
               <p className="font-bold tracking-wider">*** THANK YOU! VISIT AGAIN ***</p>
               <p className="text-[8px] text-black">
-                Goods once sold can be exchanged within 7 days with bill & intact barcode tags.
+                Goods once sold can be exchanged within 7 days with bill &amp; intact barcode tags.
               </p>
               <div className="pt-1 flex justify-center">
                 <div className="font-mono text-[9px] tracking-widest bg-neutral-100 px-3 py-1 border border-neutral-300 rounded-xs">
