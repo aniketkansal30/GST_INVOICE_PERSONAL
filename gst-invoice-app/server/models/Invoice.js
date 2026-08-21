@@ -11,6 +11,8 @@ const itemSchema = new mongoose.Schema({
   qty: { type: Number, required: true, min: 0 },
   rate: { type: Number, required: true, min: 0 },
   gstPct: { type: Number, default: 5 },
+  discountPct: { type: Number, default: 0 },      // 👈 NAYA
+  discountAmount: { type: Number, default: 0 }, 
   baseAmount: Number,
   gstAmount: Number,
 }, { _id: false });
