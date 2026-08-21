@@ -68,6 +68,31 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in no-print-bg">
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #thermal-receipt-printable,
+          #thermal-receipt-printable * {
+            visibility: visible !important;
+          }
+          #thermal-receipt-printable {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: ${paperWidth} !important;
+            margin: 0 !important;
+            padding: 4px !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          @page {
+            size: ${paperWidth} auto;
+            margin: 0;
+          }
+        }
+      `}</style>
       <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100 dark:border-ink-800 no-print">
