@@ -3,13 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useInvoices } from '../context/InvoiceContext';
 import { formatCurrency, formatDate, numberToWords } from '../utils/invoiceUtils';
 import { generatePDF } from '../utils/pdfGenerator';
-import { ArrowLeft, Edit2, Download, Printer, FileText } from 'lucide-react';
+import { ArrowLeft, Edit2, Download, Printer, FileText, Lock, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const FIXED_BANK_DETAILS = `Bank of Baroda
 A/C No.: 83760200001223
 IFSC Code: BARB0VJSIME
 Branch: Siwaya Pallavpuram Phase 2nd, UttarPradesh – 250110`;
+
+// Same manager PIN used on the Dashboard's Edit / Delete actions — keeps
+// the gate consistent everywhere Edit can be triggered from.
+const DEFAULT_MANAGER_PIN = '1234';
+const getManagerPin = () => localStorage.getItem('pos_manager_pin') || DEFAULT_MANAGER_PIN;
 
 export default function InvoicePreviewPage() {
   const { id } = useParams();
@@ -19,6 +24,11 @@ export default function InvoicePreviewPage() {
   const [loading, setLoading] = useState(true);
   const printRef = useRef();
   const [scale, setScale] = useState(1);
+
+  // ── Password gate for the Edit button ──
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
 
   useEffect(() => {
     const updateScale = () => {
@@ -41,6 +51,27 @@ export default function InvoicePreviewPage() {
   const handleDownloadPDF = () => {
     try { generatePDF(invoice); }
     catch { toast.error('PDF generation failed'); }
+  };
+
+  const requestEdit = () => {
+    setPinInput('');
+    setPinError('');
+    setShowPinModal(true);
+  };
+  const closePinModal = () => {
+    setShowPinModal(false);
+    setPinInput('');
+    setPinError('');
+  };
+  const handlePinSubmit = (e) => {
+    e.preventDefault();
+    if (pinInput !== getManagerPin()) {
+      setPinError('Galat password! Dobara try karein.');
+      setPinInput('');
+      return;
+    }
+    closePinModal();
+    navigate(`/invoices/${id}/edit`);
   };
 
   if (loading) return (
@@ -83,7 +114,7 @@ export default function InvoicePreviewPage() {
           <p className="text-sm text-ink-400 font-mono">{invoice.invoiceNumber}</p>
         </div>
         <div className="ml-auto flex gap-2">
-          <button onClick={() => navigate(`/invoices/${id}/edit`)} className="btn-secondary">
+          <button onClick={requestEdit} className="btn-secondary" title="Edit (password protected)">
             <Edit2 size={15} /> Edit
           </button>
           <button onClick={handlePrint} className="btn-secondary">
@@ -306,6 +337,54 @@ export default function InvoicePreviewPage() {
 
       </div>
       <div className="h-12" />
+
+      {/* ── Password Gate Modal — shown before Edit page opens ── */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in no-print">
+          <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-5 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Lock size={17} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-ink-900 dark:text-ink-100 text-sm">Password Required</h3>
+                  <p className="text-xs text-ink-400">Invoice edit karne ke liye</p>
+                </div>
+              </div>
+              <button onClick={closePinModal} className="p-1.5 rounded-lg text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handlePinSubmit} className="p-5 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-ink-500 dark:text-ink-400">Enter Password</label>
+                <input
+                  type="password"
+                  autoFocus
+                  value={pinInput}
+                  onChange={(e) => { setPinInput(e.target.value); setPinError(''); }}
+                  placeholder="••••"
+                  className="input mt-1 font-mono tracking-widest text-center text-lg"
+                />
+                {pinError && (
+                  <p className="text-xs text-red-500 font-semibold mt-1.5">{pinError}</p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={closePinModal} className="btn-secondary flex-1 text-xs">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary flex-1 text-xs">
+                  Confirm
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
