@@ -202,6 +202,12 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                         <span>GST {item.gstPct || 5}%</span>
                       </div>
                     )}
+                    {Number(item.discountPct) > 0 && (
+                      <div className="text-[9px] text-black flex justify-between">
+                        <span>Discount:</span>
+                        <span>-{item.discountPct}% (₹{Number(item.discountAmount || 0).toFixed(2)})</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
