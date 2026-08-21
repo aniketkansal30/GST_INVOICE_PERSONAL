@@ -275,9 +275,16 @@ export default function PosBillingPage() {
         const updated = [...prevCart];
         const currentQty = updated[existingIdx].qty;
 
-        // Stock check
+        // Stock check — block overselling by default; only proceed if the
+        // user explicitly confirms (e.g. for a manual override).
         if (product.currentStock !== undefined && currentQty + 1 > product.currentStock) {
-          toast(`⚠️ Stock alert: Only ${product.currentStock} pcs available`, { icon: '⚠️' });
+          const proceed = window.confirm(
+            `⚠️ Stock Alert!\n\n"${product.name}" mein sirf ${product.currentStock} pcs bache hain, lekin bill mein ${currentQty + 1} pcs jaa rahe hain.\n\nPhir bhi aage badhein? (Stock negative ho jayega)`
+          );
+          if (!proceed) {
+            toast.error('Item add nahi kiya — stock kam hai', { id: 'stock-blocked' });
+            return prevCart;
+          }
         }
 
         updated[existingIdx] = {
@@ -291,6 +298,17 @@ export default function PosBillingPage() {
         // NOTE: `rate` is treated as the MRP (GST-inclusive) selling price of the product.
         const rate = Number(product.sellingPrice) || 0;
         const gstPct = Number(product.gstPct) !== undefined ? Number(product.gstPct) : 5;
+
+        // Stock check for a brand-new line (e.g. product already at 0 stock)
+        if (product.currentStock !== undefined && product.currentStock <= 0) {
+          const proceed = window.confirm(
+            `⚠️ Stock Alert!\n\n"${product.name}" ka stock khatam ho chuka hai (${product.currentStock} pcs).\n\nPhir bhi bill mein add karein? (Stock negative ho jayega)`
+          );
+          if (!proceed) {
+            toast.error('Item add nahi kiya — stock khatam hai', { id: 'stock-blocked' });
+            return prevCart;
+          }
+        }
 
         toast.success(`Added ${product.name}`, { icon: '🛍️', duration: 1500 });
         return [
@@ -325,6 +343,13 @@ export default function PosBillingPage() {
       if (newQty <= 0) {
         return updated.filter((_, i) => i !== index);
       }
+      // Block increasing beyond available stock unless user confirms.
+      if (delta > 0 && item.currentStock !== undefined && newQty > item.currentStock) {
+        const proceed = window.confirm(
+          `⚠️ Stock Alert!\n\n"${item.name}" mein sirf ${item.currentStock} pcs bache hain, lekin qty ${newQty} ho rahi hai.\n\nPhir bhi aage badhein?`
+        );
+        if (!proceed) return prev;
+      }
       updated[index] = { ...item, qty: newQty };
       return updated;
     });
@@ -335,6 +360,13 @@ export default function PosBillingPage() {
     const num = parseInt(val, 10);
     if (isNaN(num) || num <= 0) return;
     setCart((prev) => {
+      const item = prev[index];
+      if (item.currentStock !== undefined && num > item.currentStock) {
+        const proceed = window.confirm(
+          `⚠️ Stock Alert!\n\n"${item.name}" mein sirf ${item.currentStock} pcs bache hain, lekin qty ${num} type ki hai.\n\nPhir bhi aage badhein?`
+        );
+        if (!proceed) return prev;
+      }
       const updated = [...prev];
       updated[index] = { ...updated[index], qty: num };
       return updated;
@@ -351,6 +383,17 @@ export default function PosBillingPage() {
     });
   };
   const handleUpdateDiscount = (index, val) => {
+    // Allow the box to go fully empty while typing/backspacing — treat
+    // empty as 0 instead of ignoring the update (which was making the
+    // field get "stuck" on the last digit).
+    if (val === '') {
+      setCart((prev) => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], discountPct: 0 };
+        return updated;
+      });
+      return;
+    }
     const num = parseFloat(val);
     if (isNaN(num) || num < 0 || num > 100) return;
     setCart((prev) => {
