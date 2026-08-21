@@ -204,36 +204,41 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             </div>
 
             {/* Totals Section */}
-            <div className="py-1.5 border-b border-dashed border-black text-[11px] space-y-1">
-              <div className="flex justify-between">
-                <span>Items Count ({items.reduce((s, i) => s + (Number(i.qty) || 0), 0)} pcs):</span>
-                <span>₹{subtotal.toFixed(2)}</span>
-              </div>
+<div className="py-1.5 border-b border-dashed border-black text-[11px] space-y-1">
+  <div className="flex justify-between">
+    <span>Items Count ({items.reduce((s, i) => s + (Number(i.qty) || 0), 0)} pcs):</span>
+    <span>₹{subtotal.toFixed(2)}</span>
+  </div>
 
-              {cgst > 0 && (
-                <div className="flex justify-between text-[10px] text-black">
-                  <span>CGST:</span>
-                  <span>₹{cgst.toFixed(2)}</span>
-                </div>
-              )}
-              {sgst > 0 && (
-                <div className="flex justify-between text-[10px] text-black">
-                  <span>SGST:</span>
-                  <span>₹{sgst.toFixed(2)}</span>
-                </div>
-              )}
-              {igst > 0 && (
-                <div className="flex justify-between text-[10px] text-black">
-                  <span>IGST:</span>
-                  <span>₹{igst.toFixed(2)}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between pt-1 border-t border-black font-bold text-sm">
-                <span>NET TOTAL:</span>
-                <span>₹{grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
+  {cgst > 0 && (
+    <div className="flex justify-between text-[10px] text-black">
+      <span>CGST:</span>
+      <span>₹{cgst.toFixed(2)}</span>
+    </div>
+  )}
+  {sgst > 0 && (
+    <div className="flex justify-between text-[10px] text-black">
+      <span>SGST:</span>
+      <span>₹{sgst.toFixed(2)}</span>
+    </div>
+  )}
+  {igst > 0 && (
+    <div className="flex justify-between text-[10px] text-black">
+      <span>IGST:</span>
+      <span>₹{igst.toFixed(2)}</span>
+    </div>
+  )}
+{item.discountPct > 0 && (
+  <div className="text-[9px] text-black flex justify-between">
+    <span>Discount Applied:</span>
+    <span>-{item.discountPct}% (₹{Number(item.discountAmount || 0).toFixed(2)})</span>
+  </div>
+)}
+  <div className="flex justify-between pt-1 border-t border-black font-bold text-sm">
+    <span>NET TOTAL:</span>
+    <span>₹{grandTotal.toFixed(2)}</span>
+  </div>
+</div>
 
             {/* GST Tax Summary Table */}
             <div className="py-1 border-b border-dashed border-black text-[9px] text-black">

@@ -35,7 +35,7 @@ export default function PosBillingPage() {
   // Payment details
   const [splitPayments, setSplitPayments] = useState([{ mode: 'cash', amount: '' }]); // 'cash', 'upi', 'card', 'credit'
   const [cashTendered, setCashTendered] = useState('');
-  const [discountAmount, setDiscountAmount] = useState(0);
+  
 
   const addPaymentLine = () => {
     setSplitPayments(prev => [...prev, { mode: 'cash', amount: '' }]);
@@ -131,7 +131,7 @@ export default function PosBillingPage() {
   useEffect(() => {
     const saved = localStorage.getItem('pos_held_carts');
     if (saved) {
-      try { setHeldCarts(JSON.parse(saved)); } catch (e) {}
+      try { setHeldCarts(JSON.parse(saved)); } catch (e) { }
     }
   }, []);
 
@@ -260,6 +260,7 @@ export default function PosBillingPage() {
             rate: rate,
             qty: 1,
             gstPct: gstPct,
+            discountPct: 0,
             currentStock: product.currentStock,
           },
         ];
@@ -303,6 +304,15 @@ export default function PosBillingPage() {
       return updated;
     });
   };
+  const handleUpdateDiscount = (index, val) => {
+    const num = parseFloat(val);
+    if (isNaN(num) || num < 0 || num > 100) return;
+    setCart((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], discountPct: num };
+      return updated;
+    });
+  };
 
   const handleRemoveItem = (index) => {
     setCart((prev) => prev.filter((_, i) => i !== index));
@@ -314,7 +324,6 @@ export default function PosBillingPage() {
     if (window.confirm('Clear all items from current bill?')) {
       setCart([]);
       setCashTendered('');
-      setDiscountAmount(0);
       focusBarcodeInput();
     }
   };
@@ -390,10 +399,14 @@ export default function PosBillingPage() {
 
   const processedItems = cart.map((item) => {
     const qty = Number(item.qty) || 0;
-    const rate = Number(item.rate) || 0; // MRP per unit, GST-inclusive
+    const rate = Number(item.rate) || 0;
     const gstPct = Number(item.gstPct) || 0;
+    const discountPct = Number(item.discountPct) || 0;   // 👈 naya
 
-    const lineMrpTotal = qty * rate; // what the customer actually pays for this line
+    const lineMrpBeforeDiscount = qty * rate;
+    const lineDiscount = (lineMrpBeforeDiscount * discountPct) / 100;   // 👈 naya
+    const lineMrpTotal = lineMrpBeforeDiscount - lineDiscount;           // 👈 discount ke baad
+
     const lineTaxable = gstPct > 0 ? lineMrpTotal / (1 + gstPct / 100) : lineMrpTotal;
     const lineGst = lineMrpTotal - lineTaxable;
 
@@ -411,12 +424,13 @@ export default function PosBillingPage() {
       qty: qty,
       rate: rate,
       gstPct: gstPct,
+      discountPct: discountPct,                          // 👈 invoice mein save karo
+      discountAmount: Number(lineDiscount.toFixed(2)),    // 👈 invoice mein save karo
       baseAmount: Number(lineTaxable.toFixed(2)),
       gstAmount: Number(lineGst.toFixed(2)),
       lineTotal: Number(lineMrpTotal.toFixed(2)),
     };
   });
-
   const cgst = isSameState ? totalGst / 2 : 0;
   const sgst = isSameState ? totalGst / 2 : 0;
   const igst = !isSameState ? totalGst : 0;
@@ -424,9 +438,7 @@ export default function PosBillingPage() {
   // subtotal + totalGst always reconstructs back to sum(qty*rate) since GST
   // was extracted from the MRP rather than added on top.
   const totalBeforeDiscount = subtotal + totalGst;
-  const discountPct = Math.min(100, Math.max(0, Number(discountAmount) || 0));
-  const finalDiscount = (totalBeforeDiscount * discountPct) / 100;
-  const grandTotal = Math.max(0, Math.round(totalBeforeDiscount - finalDiscount));
+const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
 
   // Now that grandTotal exists, we can safely compute how much is left to pay.
   const remainingToPay = grandTotal - totalTendered;
@@ -469,7 +481,6 @@ export default function PosBillingPage() {
         sgst: Number(sgst.toFixed(2)),
         igst: Number(igst.toFixed(2)),
         totalGst: Number(totalGst.toFixed(2)),
-        discountAmount: Number(finalDiscount.toFixed(2)),
         grandTotal: grandTotal,
         isSameState: isSameState,
         payments: splitPayments
@@ -495,7 +506,6 @@ export default function PosBillingPage() {
       // Reset Billing state
       setCart([]);
       setCashTendered('');
-      setDiscountAmount(0);
       setCustomer({
         name: 'Walk-in Customer',
         contact: '',
@@ -701,6 +711,7 @@ export default function PosBillingPage() {
                       <th className="py-2.5 px-3 font-semibold text-center">Qty</th>
                       <th className="py-2.5 px-3 font-semibold text-right">Rate (₹)</th>
                       <th className="py-2.5 px-3 font-semibold text-center">GST %</th>
+                      <th className="py-2.5 px-3 font-semibold text-center">Disc %</th>
                       <th className="py-2.5 px-4 font-semibold text-right">Amount (₹)</th>
                       <th className="py-2.5 px-2 text-center"></th>
                     </tr>
@@ -789,6 +800,18 @@ export default function PosBillingPage() {
                             <span className="font-mono text-xs text-ink-600 dark:text-ink-300 bg-ink-100 dark:bg-ink-800 px-2 py-0.5 rounded">
                               {item.gstPct}%
                             </span>
+                          </td>
+                          {/* Discount % - naya */}
+                          <td className="py-3 px-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={item.discountPct || ''}
+                              onChange={(e) => handleUpdateDiscount(idx, e.target.value)}
+                              placeholder="0"
+                              className="w-14 text-center font-mono font-semibold bg-transparent border-b border-dashed border-ink-300 dark:border-ink-700 focus:border-amber-500 focus:outline-hidden"
+                            />
                           </td>
 
                           {/* Line Total (this stays qty*rate — GST is inside it now, not added) */}
@@ -898,28 +921,12 @@ export default function PosBillingPage() {
                 </div>
               )}
 
-              {/* Discount Input */}
-              <div className="flex items-center justify-between text-ink-600 dark:text-ink-300 pt-1">
-                <span>Discount (%):</span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={discountAmount || ''}
-                    onChange={(e) => setDiscountAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-16 text-right font-mono font-semibold bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded px-2 py-0.5 text-xs focus:outline-hidden"
-                  />
-                  <span className="text-[11px] text-ink-400">%</span>
-                </div>
-              </div>
-              {finalDiscount > 0 && (
-                <div className="flex justify-between text-rose-500 dark:text-rose-400">
-                  <span>Discount Amount:</span>
-                  <span>- ₹{finalDiscount.toFixed(2)}</span>
-                </div>
-              )}
+              {cart.some(i => i.discountPct > 0) && (
+  <div className="flex justify-between text-rose-500 dark:text-rose-400">
+    <span>Total Discount Given:</span>
+    <span>- ₹{cart.reduce((s, i) => s + (((Number(i.qty)*Number(i.rate)) * (Number(i.discountPct)||0))/100), 0).toFixed(2)}</span>
+  </div>
+)}
             </div>
 
             {/* Big Grand Total Display */}
