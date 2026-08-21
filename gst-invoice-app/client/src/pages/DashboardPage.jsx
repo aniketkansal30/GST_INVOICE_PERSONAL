@@ -6,7 +6,7 @@ import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../utils/invo
 import {
   Plus, Search, Eye, Edit2, Trash2, Copy, FileText,
   ChevronLeft, ChevronRight, TrendingUp, IndianRupee, Clock, CheckCircle,
-  Scan, Printer, ShoppingBag, ArrowRight
+  Scan, Printer, ShoppingBag, ArrowRight, Lock, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
@@ -26,6 +26,11 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// Same manager PIN used on the Invoice Preview page's Edit gate — keeps
+// the gate consistent everywhere Edit/Delete can be triggered from.
+const DEFAULT_MANAGER_PIN = '1234';
+const getManagerPin = () => localStorage.getItem('pos_manager_pin') || DEFAULT_MANAGER_PIN;
+
 export default function DashboardPage() {
   const { invoices, loading, pagination, fetchInvoices, deleteInvoice, duplicateInvoice } = useInvoices();
   const { user } = useAuth();
@@ -37,12 +42,17 @@ export default function DashboardPage() {
   // Thermal Receipt Modal State
   const [receiptInvoice, setReceiptInvoice] = useState(null);
 
+  // ── Password gate for Edit / Delete actions ──
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [pendingAction, setPendingAction] = useState(null); // { type: 'edit' | 'delete', id }
+
   useEffect(() => {
     fetchInvoices({ search, page, limit: 10 });
   }, [search, page]);
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this invoice? This cannot be undone.')) return;
     setDeleting(id);
     try {
       await deleteInvoice(id);
@@ -58,6 +68,35 @@ export default function DashboardPage() {
       fetchInvoices({ search, page, limit: 10 });
     } catch {
       toast.error('Failed to duplicate');
+    }
+  };
+
+  const requestAction = (type, id) => {
+    setPendingAction({ type, id });
+    setPinInput('');
+    setPinError('');
+    setShowPinModal(true);
+  };
+  const closePinModal = () => {
+    setShowPinModal(false);
+    setPendingAction(null);
+    setPinInput('');
+    setPinError('');
+  };
+  const handlePinSubmit = (e) => {
+    e.preventDefault();
+    if (pinInput !== getManagerPin()) {
+      setPinError('Galat password! Dobara try karein.');
+      setPinInput('');
+      return;
+    }
+    const action = pendingAction;
+    closePinModal();
+    if (!action) return;
+    if (action.type === 'edit') {
+      navigate(`/invoices/${action.id}/edit`);
+    } else if (action.type === 'delete') {
+      handleDelete(action.id);
     }
   };
 
@@ -197,7 +236,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-4"><StatusBadge status={inv.status} /></td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1">
                           {/* Thermal Print Receipt button */}
                           <button
                             onClick={() => setReceiptInvoice(inv)}
@@ -211,16 +250,16 @@ export default function DashboardPage() {
                             className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 transition-all" title="Full GST Invoice View">
                             <Eye size={15} />
                           </button>
-                          <button onClick={() => navigate(`/invoices/${inv._id}/edit`)}
-                            className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 transition-all" title="Edit">
+                          <button onClick={() => requestAction('edit', inv._id)}
+                            className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 transition-all" title="Edit (password protected)">
                             <Edit2 size={15} />
                           </button>
                           <button onClick={() => handleDuplicate(inv._id)}
                             className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 transition-all" title="Duplicate">
                             <Copy size={15} />
                           </button>
-                          <button onClick={() => handleDelete(inv._id)} disabled={deleting === inv._id}
-                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-400 hover:text-red-600 transition-all" title="Delete">
+                          <button onClick={() => requestAction('delete', inv._id)} disabled={deleting === inv._id}
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-400 hover:text-red-600 transition-all" title="Delete (password protected)">
                             {deleting === inv._id
                               ? <div className="w-3.5 h-3.5 border border-red-500 border-t-transparent rounded-full animate-spin" />
                               : <Trash2 size={15} />
@@ -269,6 +308,59 @@ export default function DashboardPage() {
           user={user}
           onClose={() => setReceiptInvoice(null)}
         />
+      )}
+
+      {/* ── Password Gate Modal — shown before Edit / Delete runs ── */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in no-print">
+          <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-5 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Lock size={17} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-ink-900 dark:text-ink-100 text-sm">Password Required</h3>
+                  <p className="text-xs text-ink-400">
+                    {pendingAction?.type === 'delete' ? 'Invoice delete karne ke liye' : 'Invoice edit karne ke liye'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={closePinModal} className="p-1.5 rounded-lg text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handlePinSubmit} className="p-5 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-ink-500 dark:text-ink-400">Enter Password</label>
+                <input
+                  type="password"
+                  autoFocus
+                  value={pinInput}
+                  onChange={(e) => { setPinInput(e.target.value); setPinError(''); }}
+                  placeholder="••••"
+                  className="input mt-1 font-mono tracking-widest text-center text-lg"
+                />
+                {pinError && (
+                  <p className="text-xs text-red-500 font-semibold mt-1.5">{pinError}</p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={closePinModal} className="btn-secondary flex-1 text-xs">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`btn-primary flex-1 text-xs ${pendingAction?.type === 'delete' ? 'bg-red-600 hover:bg-red-500' : ''}`}
+                >
+                  Confirm
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
