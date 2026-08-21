@@ -164,18 +164,6 @@ const [importing, setImporting] = useState(false);
       setSavingProduct(false);
     }
   };
-  <div>
-  <label className="label">Low Stock Alert At (Qty)</label>
-  <input
-    type="number"
-    min="0"
-    value={product.lowStockThreshold ?? 5}
-    onChange={(e) => setProduct(p => ({ ...p, lowStockThreshold: Number(e.target.value) }))}
-    placeholder="5"
-    className="input"
-  />
-</div>
-
   // Add stock
   const handleAddStock = async () => {
     if (!stockQty || Number(stockQty) <= 0) return toast.error('Please enter a valid quantity');
