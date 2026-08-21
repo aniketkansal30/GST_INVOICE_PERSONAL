@@ -157,6 +157,10 @@ export default function PosBillingPage() {
     }
   };
 
+  // Builds a WhatsApp-friendly plain-text version of the printed thermal
+  // bill: store header, item lines (with per-item discount if any), GST
+  // breakdown, and net total — so what the customer receives on WhatsApp
+  // matches the paper receipt they were handed.
   const sendBillOnWhatsApp = (invoice) => {
     const phone = (customer.contact || '').replace(/\D/g, ''); // sirf digits
     if (!phone || phone.length < 10) {
@@ -165,17 +169,59 @@ export default function PosBillingPage() {
     }
     const fullPhone = phone.length === 10 ? `91${phone}` : phone;
 
-    const itemLines = invoice.items
-      .map(i => `• ${i.name} (${i.size || '-'}) x${i.qty} = ₹${(i.qty * i.rate).toFixed(0)}`)
-      .join('\n');
+    const seller = invoice.seller || {};
+    const companyName = seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName;
+    const address = seller.address || user?.address || DEFAULT_STORE_DETAILS.address;
+    const gstNumber = seller.gstNumber || user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber;
+
+    const billDate = invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date();
+    const dateStr = billDate.toLocaleDateString('en-IN');
+    const timeStr = billDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const paymentMode = (invoice.payments?.[0]?.mode || 'cash').toUpperCase();
+
+    // Plain dashes as a separator — safe on every phone/WhatsApp client,
+    // unlike emoji which can render as "?" boxes on some devices.
+    const line = '--------------------------------';
+
+    // Item lines, matching the thermal bill: name, qty/rate/amt, discount if any
+    const itemLines = (invoice.items || []).map((i) => {
+      const itemAmt = (Number(i.qty) || 0) * (Number(i.rate) || 0);
+      let block = `${i.name}${i.size ? ` (${i.size})` : ''}\n`;
+      block += `  Qty: ${i.qty}  Rate: Rs.${Number(i.rate).toFixed(2)}  Amt: Rs.${itemAmt.toFixed(2)}\n`;
+      if (Number(i.discountPct) > 0) {
+        block += `  Discount: -${i.discountPct}% (Rs.${Number(i.discountAmount || 0).toFixed(2)})\n`;
+      }
+      return block;
+    }).join('\n');
+
+    const cgst = invoice.cgst || 0;
+    const sgst = invoice.sgst || 0;
+    const igst = invoice.igst || 0;
+    const totalDiscount = (invoice.items || []).reduce((s, i) => s + (Number(i.discountAmount) || 0), 0);
+
+    let taxLines = '';
+    if (cgst > 0) taxLines += `CGST: Rs.${cgst.toFixed(2)}\n`;
+    if (sgst > 0) taxLines += `SGST: Rs.${sgst.toFixed(2)}\n`;
+    if (igst > 0) taxLines += `IGST: Rs.${igst.toFixed(2)}\n`;
+    if (totalDiscount > 0) taxLines += `Discount Applied: -Rs.${totalDiscount.toFixed(2)}\n`;
 
     const message =
-      `🧾 *${user?.companyName || DEFAULT_STORE_DETAILS.companyName}*\n` +
-      `Bill No: ${invoice.invoiceNumber}\n` +
-      `Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}\n\n` +
-      `${itemLines}\n\n` +
-      `*Total: ₹${invoice.grandTotal}*\n\n` +
-      `Dhanyavaad! 🙏`;
+      `*${companyName}*\n` +
+      `${address}\n` +
+      `GSTIN: ${gstNumber}\n` +
+      `${line}\n` +
+      `Bill No: *${invoice.invoiceNumber}*\n` +
+      `Date: ${dateStr}   Time: ${timeStr}\n` +
+      `Mode: ${paymentMode}\n` +
+      `${line}\n` +
+      `${itemLines}` +
+      `${line}\n` +
+      `Subtotal: Rs.${Number(invoice.subtotal || 0).toFixed(2)}\n` +
+      `${taxLines}` +
+      `${line}\n` +
+      `*NET TOTAL: Rs.${Number(invoice.grandTotal || 0).toFixed(2)}*\n` +
+      `${line}\n` +
+      `Thank you! Visit again.`;
 
     const waLink = `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
     window.open(waLink, '_blank');
