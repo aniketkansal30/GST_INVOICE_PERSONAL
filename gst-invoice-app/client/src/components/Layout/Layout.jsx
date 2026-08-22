@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
   LayoutDashboard, FileText, Settings, LogOut,
-  Moon, Sun, Monitor, Menu, X, Info, Wallet, Package,
+  Moon, Sun, Monitor, Menu, X, Info, Package,
   Scan, ShoppingBag, Receipt, Sparkles
 } from 'lucide-react';
 import AboutModal from './AboutModal';
@@ -15,7 +15,6 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/inventory', icon: Package, label: 'Clothing & Stock' },
   { to: '/gstr1', icon: FileText, label: 'GST Reports' },
-  { to: '/payments', icon: Wallet, label: 'Payments' },
   { to: '/settings', icon: Settings, label: 'Store Settings' },
 ];
 

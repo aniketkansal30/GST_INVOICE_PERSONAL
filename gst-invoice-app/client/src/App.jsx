@@ -13,7 +13,6 @@ import InvoicePreviewPage from './pages/InvoicePreviewPage';
 import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout/Layout';
 import Report from './pages/Report';
-import PaymentsPage from './pages/PaymentsPage';
 import InventoryPage from './pages/InventoryPage';
 
 const PrivateRoute = ({ children }) => {
@@ -63,7 +62,6 @@ export default function App() {
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="invoice_details" element={<Report />} />
                 <Route path="gstr1" element={<Report />} />
-                <Route path="payments" element={<PaymentsPage />} />
                 <Route path="inventory" element={<InventoryPage />} />
               </Route>
             </Routes>
