@@ -234,6 +234,11 @@ export default function InventoryPage() {
     return monthMatch && yearMatch;
   });
 
+  // NOTE: `item.rate` is the MRP (GST-inclusive) selling price per unit.
+  // If the invoice item already has `baseAmount` / `gstAmount` saved (POS
+  // billing now stores these using the reverse-GST split), we use those
+  // directly. Otherwise we fall back to reverse-calculating them from the
+  // MRP so old invoices without these fields still add up correctly.
   const itemWise = Object.values(
     filteredInvoices.reduce((acc, inv) => {
       (inv.items || []).forEach(item => {
@@ -272,8 +277,14 @@ export default function InventoryPage() {
           gstPct: item.gstPct || 0,
           qtySold: 0, taxable: 0, totalGst: 0, grandTotal: 0,
         };
-        const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-        const gst = (base * (Number(item.gstPct) || 0)) / 100;
+        const qty = Number(item.qty) || 0;
+        const lineMrpTotal = qty * (Number(item.rate) || 0);
+        const base = item.baseAmount !== undefined
+          ? Number(item.baseAmount)
+          : (item.gstPct > 0 ? lineMrpTotal / (1 + Number(item.gstPct) / 100) : lineMrpTotal);
+        const gst = item.gstAmount !== undefined
+          ? Number(item.gstAmount)
+          : (lineMrpTotal - base);
         acc[key].qtySold += qty;
         acc[key].taxable += base;
         acc[key].totalGst += gst;
