@@ -41,7 +41,7 @@ export default function DateRangeFilter({ preset, customFrom, customTo, onChange
       </button>
 
       {open && (
-        <div className="absolute z-40 mt-1 right-0 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl shadow-xl p-3 w-64 space-y-1">
+        <div className="absolute z-[100] mt-1 left-0 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl shadow-xl p-3 w-64 space-y-1">
           {Object.entries(PRESET_LABELS).filter(([k]) => k !== 'custom').map(([k, label]) => (
             <button
               key={k}
