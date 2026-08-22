@@ -11,6 +11,8 @@ import {
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
+import DateRangeFilter from '../components/DateRangeFilter';
+import { filterByDateRange } from '../utils/dateRangeUtils';
 
 const StatusBadge = ({ status }) => {
   const styles = {
@@ -226,6 +228,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
           </div>
           
           <div className="flex items-center gap-3">
+          <DateRangeFilter {...dateFilter} onChange={setDateFilter} />
             <p className="text-xs text-ink-400 dark:text-ink-500 font-mono">{pagination.total} total bills</p>
             <button onClick={() => navigate('/pos')} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
               <Plus size={14} /> New POS Bill
