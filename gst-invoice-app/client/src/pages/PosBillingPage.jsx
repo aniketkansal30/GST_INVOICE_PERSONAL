@@ -145,12 +145,6 @@ export default function PosBillingPage() {
   }, []);
   // Jab tak manager manually amount na chhede, single payment line ko
   // hamesha grandTotal se auto-fill rakho.
-  useEffect(() => {
-    setSplitPayments(prev => {
-      if (paymentTouched || prev.length !== 1) return prev;
-      return [{ ...prev[0], amount: grandTotal > 0 ? String(grandTotal) : '' }];
-    });
-  }, [grandTotal, paymentTouched]);
 
   useEffect(() => {
     localStorage.setItem('pos_held_carts', JSON.stringify(heldCarts));
@@ -600,6 +594,12 @@ export default function PosBillingPage() {
 
   // Now that grandTotal exists, we can safely compute how much is left to pay.
   const remainingToPay = grandTotal - totalTendered;
+  useEffect(() => {
+  setSplitPayments(prev => {
+    if (paymentTouched || prev.length !== 1) return prev;
+    return [{ ...prev[0], amount: grandTotal > 0 ? String(grandTotal) : '' }];
+  });
+}, [grandTotal, paymentTouched]);
 
   // Change calculator
   const tenderedNum = Number(cashTendered) || 0;
