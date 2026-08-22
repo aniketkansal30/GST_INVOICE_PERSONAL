@@ -3,12 +3,15 @@ import { useInvoices } from '../context/InvoiceContext';
 import { formatCurrency } from '../utils/invoiceUtils';
 import { FileText, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import DateRangeFilter from '../components/DateRangeFilter';
+import { filterByDateRange } from '../utils/dateRangeUtils';
 
 export default function Report() {
   const { invoices, fetchInvoices } = useInvoices();
   const [allInvoices, setAllInvoices] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [dateFilter, setDateFilter] = useState({ preset: 'all_time', customFrom: '', customTo: '' });
   const [activeTab, setActiveTab] = useState('party');
   const [expandedParties, setExpandedParties] = useState({});
   const [expandedHSN, setExpandedHSN] = useState({});
@@ -18,13 +21,7 @@ export default function Report() {
   useEffect(() => { fetchInvoices({ limit: 1000, page: 1 }); }, []);
   useEffect(() => { setAllInvoices(invoices); }, [invoices]);
 
-  const filtered = allInvoices.filter(inv => {
-    if (!inv.invoiceDate) return false;
-    const d = new Date(inv.invoiceDate);
-    const monthMatch = selectedMonth ? (d.getMonth() + 1) === Number(selectedMonth) : true;
-    const yearMatch = selectedYear ? d.getFullYear() === Number(selectedYear) : true;
-    return monthMatch && yearMatch;
-  });
+  const filtered = filterByDateRange(allInvoices, 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo);
 
   // Party-wise with invoice-level detail
   const partyWise = Object.values(
@@ -437,25 +434,33 @@ export default function Report() {
 </div>
       </div>
 
-      <div className="card p-4 flex gap-4 items-center">
-        <div>
-          <label className="label">Month</label>
-          <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} className="input w-40">
-            <option value="">All Months</option>
-            {months.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Year</label>
-          <select value={selectedYear} onChange={e=>setSelectedYear(e.target.value)} className="input w-32">
-            <option value="">All Years</option>
-            {years.map(y=><option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
-        <div className="ml-auto text-sm text-ink-400">
-          Showing <strong className="text-ink-700 dark:text-ink-200">{filtered.length}</strong> invoices
-        </div>
-      </div>
+      <div className="card p-4 flex gap-4 items-center flex-wrap">
+  <div>
+    <label className="label">Report Date Range</label>
+    <DateRangeFilter {...dateFilter} onChange={setDateFilter} />
+  </div>
+
+  <div className="border-l border-ink-200 dark:border-ink-700 pl-4 flex gap-3 items-center">
+    <div>
+      <label className="label text-[10px]">GSTR-1 Filing Month (for JSON)</label>
+      <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} className="input w-36 text-xs">
+        <option value="">All Months</option>
+        {months.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
+      </select>
+    </div>
+    <div>
+      <label className="label text-[10px]">Year</label>
+      <select value={selectedYear} onChange={e=>setSelectedYear(e.target.value)} className="input w-28 text-xs">
+        <option value="">All Years</option>
+        {years.map(y=><option key={y} value={y}>{y}</option>)}
+      </select>
+    </div>
+  </div>
+
+  <div className="ml-auto text-sm text-ink-400">
+    Showing <strong className="text-ink-700 dark:text-ink-200">{filtered.length}</strong> invoices
+  </div>
+</div>
 
       <div className="flex gap-2 border-b border-ink-100 dark:border-ink-800">
         {tabs.map(tab=>(
