@@ -44,24 +44,23 @@ export default function DashboardPage() {
   // below. Fetched separately so it isn't tied to page/search state. ──
   const [allStats, setAllStats] = useState({ totalAmount: 0, paidCount: 0, draftCount: 0, totalCount: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
-
+  const [dateFilter, setDateFilter] = useState({ preset: 'all_time', customFrom: '', customTo: '' });
   const refreshStats = useCallback(async () => {
-    setStatsLoading(true);
-    try {
-      const res = await api.get('/invoices', { params: { limit: 10000 } });
-      const all = res.data.invoices || [];
-      setAllStats({
-        totalAmount: all.reduce((s, inv) => s + (inv.grandTotal || 0), 0),
-        paidCount: all.filter(i => i.status === 'paid').length,
-        draftCount: all.filter(i => i.status === 'draft' || !i.status).length,
-        totalCount: res.data.total ?? all.length,
-      });
-    } catch (err) {
-      // Keep previous stats on failure rather than zeroing them out
-    } finally {
-      setStatsLoading(false);
-    }
-  }, []);
+  setStatsLoading(true);
+  try {
+    const res = await api.get('/invoices', { params: { limit: 10000 } });
+    const all = filterByDateRange(res.data.invoices || [], 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo);
+    setAllStats({
+      totalAmount: all.reduce((s, inv) => s + (inv.grandTotal || 0), 0),
+      paidCount: all.filter(i => i.status === 'paid').length,
+      draftCount: all.filter(i => i.status === 'draft' || !i.status).length,
+      totalCount: all.length,
+    });
+  } catch (err) {}
+  finally { setStatsLoading(false); }
+}, [dateFilter]);
+
+useEffect(() => { refreshStats(); }, [refreshStats]);
 
   // Thermal Receipt Modal State — used for Print, View (read-only) and Edit (editable)
   const [receiptInvoice, setReceiptInvoice] = useState(null);

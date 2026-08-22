@@ -61,15 +61,17 @@ exports.createInvoice = async (req, res) => {
     // Set default payments if grandTotal and paymentMode provided
     const invoiceData = { ...req.body, invoiceNumber, user: req.user._id };
     
-    if (invoiceData.payments && Array.isArray(invoiceData.payments) && invoiceData.payments.length > 0) {
-      invoiceData.amountPaid = invoiceData.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-      invoiceData.amountDue = Math.max(0, (invoiceData.grandTotal || 0) - invoiceData.amountPaid);
-      if (invoiceData.amountDue <= 0) {
-        invoiceData.status = 'paid';
-      } else if (invoiceData.amountPaid > 0) {
-        invoiceData.status = 'partial';
-      }
-    }
+    const payments = Array.isArray(invoiceData.payments) ? invoiceData.payments : [];
+invoiceData.amountPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+invoiceData.amountDue = Math.max(0, (invoiceData.grandTotal || 0) - invoiceData.amountPaid);
+
+if (invoiceData.amountDue <= 0 && invoiceData.grandTotal > 0) {
+  invoiceData.status = 'paid';
+} else if (invoiceData.amountPaid > 0) {
+  invoiceData.status = 'partial';
+} else {
+  invoiceData.status = 'sent';   // koi payment nahi mila
+}
 
     const invoice = await Invoice.create(invoiceData);
 

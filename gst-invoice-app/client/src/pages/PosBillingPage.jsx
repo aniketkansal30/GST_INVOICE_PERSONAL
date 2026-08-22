@@ -38,6 +38,7 @@ export default function PosBillingPage() {
 
   // Payment details
   const [splitPayments, setSplitPayments] = useState([{ mode: 'cash', amount: '' }]); // 'cash', 'upi', 'card', 'credit'
+  const [paymentTouched, setPaymentTouched] = useState(false);
   const [cashTendered, setCashTendered] = useState('');
 
   // ── Edit / View mode: loaded invoice metadata (id, number, original date, status) ──
@@ -53,6 +54,7 @@ export default function PosBillingPage() {
   };
 
   const updatePaymentLine = (idx, field, val) => {
+    if (field === 'amount') setPaymentTouched(true);
     setSplitPayments(prev => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], [field]: val };
@@ -141,6 +143,14 @@ export default function PosBillingPage() {
       try { setHeldCarts(JSON.parse(saved)); } catch (e) { }
     }
   }, []);
+  // Jab tak manager manually amount na chhede, single payment line ko
+  // hamesha grandTotal se auto-fill rakho.
+  useEffect(() => {
+    setSplitPayments(prev => {
+      if (paymentTouched || prev.length !== 1) return prev;
+      return [{ ...prev[0], amount: grandTotal > 0 ? String(grandTotal) : '' }];
+    });
+  }, [grandTotal, paymentTouched]);
 
   useEffect(() => {
     localStorage.setItem('pos_held_carts', JSON.stringify(heldCarts));
@@ -470,6 +480,8 @@ export default function PosBillingPage() {
     if (window.confirm('Clear all items from current bill?')) {
       setCart([]);
       setCashTendered('');
+      setPaymentTouched(false);                          // 👈 ADD
+      setSplitPayments([{ mode: 'cash', amount: '' }]);
       focusBarcodeInput();
     }
   };
@@ -584,7 +596,7 @@ export default function PosBillingPage() {
   // subtotal + totalGst always reconstructs back to sum(qty*rate) since GST
   // was extracted from the MRP rather than added on top.
   const totalBeforeDiscount = subtotal + totalGst;
-const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
+  const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
 
   // Now that grandTotal exists, we can safely compute how much is left to pay.
   const remainingToPay = grandTotal - totalTendered;
@@ -660,6 +672,8 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
       // Reset Billing state
       setCart([]);
       setCashTendered('');
+      setPaymentTouched(false);                          // 👈 ADD
+      setSplitPayments([{ mode: 'cash', amount: '' }]);
       setCustomer({
         name: 'Walk-in Customer',
         contact: '',
@@ -1101,11 +1115,11 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
               )}
 
               {cart.some(i => i.discountPct > 0) && (
-  <div className="flex justify-between text-rose-500 dark:text-rose-400">
-    <span>Total Discount Given:</span>
-    <span>- ₹{cart.reduce((s, i) => s + (((Number(i.qty)*Number(i.rate)) * (Number(i.discountPct)||0))/100), 0).toFixed(2)}</span>
-  </div>
-)}
+                <div className="flex justify-between text-rose-500 dark:text-rose-400">
+                  <span>Total Discount Given:</span>
+                  <span>- ₹{cart.reduce((s, i) => s + (((Number(i.qty) * Number(i.rate)) * (Number(i.discountPct) || 0)) / 100), 0).toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             {/* Big Grand Total Display */}
@@ -1163,14 +1177,16 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
                 </div>
               ))}
 
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-ink-200 dark:border-ink-700">
-                <span className="font-semibold text-ink-700 dark:text-ink-200">
-                  {remainingToPay > 0 ? 'Remaining:' : remainingToPay < 0 ? 'Extra (Change):' : 'Fully Paid ✓'}
-                </span>
-                <span className={`font-mono font-black ${remainingToPay > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                  ₹{Math.abs(remainingToPay).toFixed(2)}
-                </span>
-              </div>
+              {splitPayments.length > 1 && (
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-ink-200 dark:border-ink-700">
+                  <span className="font-semibold text-ink-700 dark:text-ink-200">
+                    {remainingToPay > 0 ? 'Remaining:' : remainingToPay < 0 ? 'Extra (Change):' : 'Fully Paid ✓'}
+                  </span>
+                  <span className={`font-mono font-black ${remainingToPay > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    ₹{Math.abs(remainingToPay).toFixed(2)}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Cash Tendered & Change Return Calculator */}
@@ -1214,11 +1230,10 @@ const grandTotal = Math.max(0, Math.round(totalBeforeDiscount));
             <button
               onClick={handleSubmitBill}
               disabled={completing || cart.length === 0}
-              className={`w-full btn-primary py-4 text-base font-bold flex items-center justify-center gap-2.5 rounded-xl shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all ${
-                isEditMode
-                  ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:text-ink-950 shadow-blue-600/20'
-                  : 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-ink-950 shadow-emerald-600/20'
-              }`}
+              className={`w-full btn-primary py-4 text-base font-bold flex items-center justify-center gap-2.5 rounded-xl shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all ${isEditMode
+                ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:text-ink-950 shadow-blue-600/20'
+                : 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-ink-950 shadow-emerald-600/20'
+                }`}
             >
               {completing ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

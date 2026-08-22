@@ -5,6 +5,8 @@ import { Wallet, Plus, Trash2, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import DateRangeFilter from '../components/DateRangeFilter';
+import { filterByDateRange } from '../utils/dateRangeUtils';
 
 export default function PaymentsPage() {
   const { invoices, fetchInvoices } = useInvoices();
@@ -12,19 +14,22 @@ export default function PaymentsPage() {
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ amount: '', date: '', mode: 'bank', note: '' });
   const [filter, setFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState({ preset: 'all_time', customFrom: '', customTo: '' });
 
   useEffect(() => { fetchInvoices({ limit: 1000, page: 1 }); }, []);
   useEffect(() => { setAllInvoices(invoices); }, [invoices]);
 
-  const filtered = allInvoices.filter(inv => {
-    if (filter === 'paid') return inv.status === 'paid';
-    if (filter === 'partial') return inv.status === 'partial';
-    if (filter === 'unpaid') return ['draft', 'sent', 'overdue'].includes(inv.status);
-    return true;
-  });
+  const filtered = filterByDateRange(allInvoices, 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)
+    .filter(inv => {
+      if (filter === 'paid') return inv.status === 'paid';
+      if (filter === 'partial') return inv.status === 'partial';
+      if (filter === 'unpaid') return ['draft', 'sent', 'overdue'].includes(inv.status);
+      return true;
+    });
 
-  const totalBilled = allInvoices.reduce((s, i) => s + (i.grandTotal || 0), 0);
-  const totalPaid = allInvoices.reduce((s, i) => s + (i.amountPaid || 0), 0);
+
+  const totalBilled = filtered.reduce((s, i) => s + (i.grandTotal || 0), 0);
+  const totalPaid = filtered.reduce((s, i) => s + (i.amountPaid || 0), 0);
   const totalDue = totalBilled - totalPaid;
 
   const statusColor = (s) => ({ draft: '#888', sent: '#2563eb', paid: '#16a34a', partial: '#d97706', overdue: '#dc2626' }[s] || '#888');
@@ -61,7 +66,7 @@ export default function PaymentsPage() {
 
   const exportExcel = () => {
     const rows = [['Invoice No', 'Client', 'Invoice Date', 'Due Date', 'Grand Total', 'Paid', 'Balance', 'Status']];
-    allInvoices.forEach(inv => rows.push([
+    filtered.forEach(inv => rows.push([
       inv.invoiceNumber, inv.buyer?.clientName,
       inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '',
       inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN') : '',
@@ -103,13 +108,16 @@ export default function PaymentsPage() {
         ))}
       </div>
 
-      <div className="flex gap-2">
-        {[['all','All'],['unpaid','Unpaid'],['partial','Partial'],['paid','Paid']].map(([k,l]) => (
-          <button key={k} onClick={() => setFilter(k)}
-            style={{ padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: filter === k ? '2px solid #1c1c18' : '1px solid #e8e8e0', background: filter === k ? '#1c1c18' : 'white', color: filter === k ? 'white' : '#444' }}>
-            {l}
-          </button>
-        ))}
+      <div className="flex gap-2 items-center justify-between flex-wrap">
+        <div className="flex gap-2">
+          {[['all', 'All'], ['unpaid', 'Unpaid'], ['partial', 'Partial'], ['paid', 'Paid']].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)}
+              style={{ padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: filter === k ? '2px solid #1c1c18' : '1px solid #e8e8e0', background: filter === k ? '#1c1c18' : 'white', color: filter === k ? 'white' : '#444' }}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <DateRangeFilter {...dateFilter} onChange={setDateFilter} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 20 }}>

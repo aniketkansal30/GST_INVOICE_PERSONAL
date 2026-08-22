@@ -10,6 +10,9 @@ import * as XLSX from 'xlsx';
 import { useRef } from 'react'; // agar useRef already import nahi hai
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import DateRangeFilter from '../components/DateRangeFilter';
+import { filterByDateRange } from '../utils/dateRangeUtils';
+
 
 export default function InventoryPage() {
   const { invoices, fetchInvoices } = useInvoices();
@@ -17,6 +20,7 @@ export default function InventoryPage() {
   const [allInvoices, setAllInvoices] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [dateFilter, setDateFilter] = useState({ preset: 'this_year', customFrom: '', customTo: '' });
   const [activeTab, setActiveTab] = useState('stock'); // 'stock', 'item', 'hsn'
 
   // Product master state
@@ -24,6 +28,7 @@ export default function InventoryPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [searchFilter, setSearchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  
 
   // Add / Edit product modal
   const [showProductModal, setShowProductModal] = useState(false);
@@ -226,13 +231,7 @@ export default function InventoryPage() {
   });
 
   // Sales calculations for existing reports
-  const filteredInvoices = allInvoices.filter(inv => {
-    if (!inv.invoiceDate) return false;
-    const d = new Date(inv.invoiceDate);
-    const monthMatch = selectedMonth ? (d.getMonth() + 1) === Number(selectedMonth) : true;
-    const yearMatch = selectedYear ? d.getFullYear() === Number(selectedYear) : true;
-    return monthMatch && yearMatch;
-  });
+  const filteredInvoices = filterByDateRange(allInvoices, 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo);
 
   // NOTE: `item.rate` is the MRP (GST-inclusive) selling price per unit.
   // If the invoice item already has `baseAmount` / `gstAmount` saved (POS
@@ -294,9 +293,12 @@ export default function InventoryPage() {
     }, {})
   ).sort((a, b) => b.qtySold - a.qtySold);
 
-  const totalSalesValue = itemWise.reduce((s, r) => s + r.grandTotal, 0);
-  const totalQtySold = itemWise.reduce((s, r) => s + r.qtySold, 0);
-  const totalTaxCollected = itemWise.reduce((s, r) => s + r.totalGst, 0);
+  const totalSalesValue = filteredInvoices.reduce((s, inv) => s + (inv.grandTotal || 0), 0);
+const totalQtySold = itemWise.reduce((s, r) => s + r.qtySold, 0);
+const totalTaxCollected = filteredInvoices.reduce(
+  (s, inv) => s + (inv.totalGst ?? ((inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0))),
+  0
+);
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -393,8 +395,9 @@ export default function InventoryPage() {
             Manage clothing garments, unique barcodes, sizes, colors, and live stock
           </p>
         </div>
-
+    
         <div className="flex items-center gap-2">
+          <DateRangeFilter {...dateFilter} onChange={setDateFilter} />
           <button
             onClick={handleOpenCreate}
             className="btn-primary text-xs px-4 py-2.5 flex items-center gap-1.5 shadow-sm"
