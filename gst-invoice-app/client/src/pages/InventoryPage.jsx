@@ -63,7 +63,7 @@ export default function InventoryPage() {
   const [tagCount, setTagCount] = useState(6);
 
   const fileInputRef = useRef(null);
-const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   useEffect(() => {
     fetchInvoices({ limit: 1000, page: 1 });
     loadProducts();
@@ -244,9 +244,15 @@ const [importing, setImporting] = useState(false);
           color: item.color || '-',
           gstPct: item.gstPct || 0, qtySold: 0, taxable: 0, totalGst: 0, grandTotal: 0,
         };
-        const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-        const gst = (base * (Number(item.gstPct) || 0)) / 100;
-        acc[key].qtySold += Number(item.qty) || 0;
+        const qty = Number(item.qty) || 0;
+        const lineMrpTotal = qty * (Number(item.rate) || 0);
+        const base = item.baseAmount !== undefined
+          ? Number(item.baseAmount)
+          : (item.gstPct > 0 ? lineMrpTotal / (1 + Number(item.gstPct) / 100) : lineMrpTotal);
+        const gst = item.gstAmount !== undefined
+          ? Number(item.gstAmount)
+          : (lineMrpTotal - base);
+        acc[key].qtySold += qty;
         acc[key].taxable += base;
         acc[key].totalGst += gst;
         acc[key].grandTotal += base + gst;
@@ -268,7 +274,7 @@ const [importing, setImporting] = useState(false);
         };
         const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
         const gst = (base * (Number(item.gstPct) || 0)) / 100;
-        acc[key].qtySold += Number(item.qty) || 0;
+        acc[key].qtySold += qty;
         acc[key].taxable += base;
         acc[key].totalGst += gst;
         acc[key].grandTotal += base + gst;
@@ -299,7 +305,7 @@ const [importing, setImporting] = useState(false);
     XLSX.writeFile(wb, `Clothing_Inventory_${selectedYear || 'All'}.xlsx`);
     toast.success('Inventory exported to Excel!');
   };
-    const handleImportExcel = async (e) => {
+  const handleImportExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -377,7 +383,7 @@ const [importing, setImporting] = useState(false);
           </p>
         </div>
 
-               <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleOpenCreate}
             className="btn-primary text-xs px-4 py-2.5 flex items-center gap-1.5 shadow-sm"
@@ -471,11 +477,10 @@ const [importing, setImporting] = useState(false);
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition-all ${
-              activeTab === tab.key
-                ? 'border-ink-900 dark:border-amber-500 text-ink-900 dark:text-amber-400'
-                : 'border-transparent text-ink-400 hover:text-ink-700'
-            }`}
+            className={`px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition-all ${activeTab === tab.key
+              ? 'border-ink-900 dark:border-amber-500 text-ink-900 dark:text-amber-400'
+              : 'border-transparent text-ink-400 hover:text-ink-700'
+              }`}
           >
             {tab.label}
           </button>
@@ -568,11 +573,10 @@ const [importing, setImporting] = useState(false);
                         {p.gstPct}%
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className={`font-bold px-2 py-0.5 rounded ${
-                          p.currentStock <= 5 ? 'bg-rose-500/10 text-rose-600' :
+                        <span className={`font-bold px-2 py-0.5 rounded ${p.currentStock <= 5 ? 'bg-rose-500/10 text-rose-600' :
                           p.currentStock <= 15 ? 'bg-amber-500/10 text-amber-600' :
-                          'bg-emerald-500/10 text-emerald-600'
-                        }`}>
+                            'bg-emerald-500/10 text-emerald-600'
+                          }`}>
                           {p.currentStock} {p.unit || 'pcs'}
                         </span>
                       </td>
@@ -989,9 +993,8 @@ const [importing, setImporting] = useState(false);
                       <tr key={i}>
                         <td className="py-2.5 px-3 text-ink-400">{new Date(h.date).toLocaleDateString('en-IN')}</td>
                         <td className="py-2.5 px-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            h.type === 'SALE' ? 'bg-rose-500/10 text-rose-600' : 'bg-emerald-500/10 text-emerald-600'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${h.type === 'SALE' ? 'bg-rose-500/10 text-rose-600' : 'bg-emerald-500/10 text-emerald-600'
+                            }`}>
                             {h.type}
                           </span>
                         </td>
@@ -1032,9 +1035,8 @@ const [importing, setImporting] = useState(false);
                   <button
                     key={n}
                     onClick={() => setTagCount(n)}
-                    className={`px-3 py-1 rounded text-xs font-bold font-mono ${
-                      tagCount === n ? 'bg-amber-500 text-white' : 'bg-white dark:bg-ink-800 text-ink-700 dark:text-ink-300'
-                    }`}
+                    className={`px-3 py-1 rounded text-xs font-bold font-mono ${tagCount === n ? 'bg-amber-500 text-white' : 'bg-white dark:bg-ink-800 text-ink-700 dark:text-ink-300'
+                      }`}
                   >
                     {n} Tags
                   </button>
@@ -1059,7 +1061,7 @@ const [importing, setImporting] = useState(false);
                     <span className="bg-neutral-200 px-1.5 py-0.2 rounded font-mono">Size: {tagProduct.size}</span>
                     {tagProduct.color && <span>{tagProduct.color}</span>}
                   </div>
-                  
+
                   {/* Barcode Representation */}
                   <div className="py-1">
                     <div className="font-mono text-base tracking-widest font-black border-y border-black px-2 py-0.5">
