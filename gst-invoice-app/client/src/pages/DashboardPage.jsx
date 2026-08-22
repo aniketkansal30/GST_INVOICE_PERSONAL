@@ -9,6 +9,7 @@ import {
   Scan, Printer, ShoppingBag, ArrowRight, Lock, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '../utils/api';
 import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
 
 const StatusBadge = ({ status }) => {
@@ -38,6 +39,30 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1);
   const [deleting, setDeleting] = useState(null);
 
+  // ── Stats cards (Total Revenue / Paid Bills / Pending-Drafts) must reflect
+  // ALL invoices, not just the current paginated page shown in the table
+  // below. Fetched separately so it isn't tied to page/search state. ──
+  const [allStats, setAllStats] = useState({ totalAmount: 0, paidCount: 0, draftCount: 0, totalCount: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const refreshStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await api.get('/invoices', { params: { limit: 10000 } });
+      const all = res.data.invoices || [];
+      setAllStats({
+        totalAmount: all.reduce((s, inv) => s + (inv.grandTotal || 0), 0),
+        paidCount: all.filter(i => i.status === 'paid').length,
+        draftCount: all.filter(i => i.status === 'draft' || !i.status).length,
+        totalCount: res.data.total ?? all.length,
+      });
+    } catch (err) {
+      // Keep previous stats on failure rather than zeroing them out
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
   // Thermal Receipt Modal State — used for Print, View (read-only) and Edit (editable)
   const [receiptInvoice, setReceiptInvoice] = useState(null);
   const [receiptMode, setReceiptMode] = useState('view'); // 'view' | 'edit'
@@ -52,10 +77,15 @@ export default function DashboardPage() {
     fetchInvoices({ search, page, limit: 10 });
   }, [search, page]);
 
+  useEffect(() => {
+    refreshStats();
+  }, [refreshStats]);
+
   const handleDelete = async (id) => {
     setDeleting(id);
     try {
       await deleteInvoice(id);
+      refreshStats();
     } finally {
       setDeleting(null);
     }
@@ -66,6 +96,7 @@ export default function DashboardPage() {
       const dup = await duplicateInvoice(id);
       toast.success('Invoice duplicated');
       fetchInvoices({ search, page, limit: 10 });
+      refreshStats();
     } catch {
       toast.error('Failed to duplicate');
     }
@@ -110,6 +141,7 @@ export default function DashboardPage() {
       setReceiptInvoice(null);
       setReceiptMode('view');
       fetchInvoices({ search, page, limit: 10 });
+      refreshStats();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update bill');
     }
@@ -120,16 +152,11 @@ export default function DashboardPage() {
     setReceiptMode('view');
   };
 
-  // Summary stats
-  const totalAmount = invoices.reduce((s, inv) => s + (inv.grandTotal || 0), 0);
-  const paidCount = invoices.filter(i => i.status === 'paid').length;
-  const draftCount = invoices.filter(i => i.status === 'draft' || !i.status).length;
-
   const stats = [
-    { label: 'Total Invoices & Bills', value: pagination.total, icon: FileText, color: 'bg-ink-800 dark:bg-amber-500' },
-    { label: 'Total Revenue', value: formatCurrency(totalAmount), icon: IndianRupee, color: 'bg-emerald-600' },
-    { label: 'Paid Bills', value: paidCount, icon: CheckCircle, color: 'bg-blue-600' },
-    { label: 'Pending / Drafts', value: draftCount, icon: Clock, color: 'bg-amber-500' },
+    { label: 'Total Invoices & Bills', value: allStats.totalCount, icon: FileText, color: 'bg-ink-800 dark:bg-amber-500' },
+    { label: 'Total Revenue', value: formatCurrency(allStats.totalAmount), icon: IndianRupee, color: 'bg-emerald-600' },
+    { label: 'Paid Bills', value: allStats.paidCount, icon: CheckCircle, color: 'bg-blue-600' },
+    { label: 'Pending / Drafts', value: allStats.draftCount, icon: Clock, color: 'bg-amber-500' },
   ];
 
   return (
@@ -177,7 +204,9 @@ export default function DashboardPage() {
                 <Icon size={15} className="text-white" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-ink-800 dark:text-ink-100 font-mono">{value}</p>
+            <p className="text-2xl font-bold text-ink-800 dark:text-ink-100 font-mono">
+              {statsLoading ? '—' : value}
+            </p>
             <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">{label}</p>
           </div>
         ))}
