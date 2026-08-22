@@ -14,6 +14,7 @@ import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
 import DateRangeFilter from '../components/DateRangeFilter';
 import { filterByDateRange } from '../utils/dateRangeUtils';
 
+
 const StatusBadge = ({ status }) => {
   const styles = {
     draft: 'bg-ink-100 dark:bg-ink-800 text-ink-500 dark:text-ink-400',
