@@ -26,21 +26,21 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// Same manager PIN used on the Invoice Preview page's Edit gate — keeps
-// the gate consistent everywhere Edit/Delete can be triggered from.
+// Same manager PIN used everywhere Edit/Delete can be triggered from.
 const DEFAULT_MANAGER_PIN = '1234';
 const getManagerPin = () => localStorage.getItem('pos_manager_pin') || DEFAULT_MANAGER_PIN;
 
 export default function DashboardPage() {
-  const { invoices, loading, pagination, fetchInvoices, deleteInvoice, duplicateInvoice } = useInvoices();
+  const { invoices, loading, pagination, fetchInvoices, deleteInvoice, duplicateInvoice, updateInvoice } = useInvoices();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [deleting, setDeleting] = useState(null);
 
-  // Thermal Receipt Modal State
+  // Thermal Receipt Modal State — used for Print, View (read-only) and Edit (editable)
   const [receiptInvoice, setReceiptInvoice] = useState(null);
+  const [receiptMode, setReceiptMode] = useState('view'); // 'view' | 'edit'
 
   // ── Password gate for Edit / Delete actions ──
   const [showPinModal, setShowPinModal] = useState(false);
@@ -94,10 +94,30 @@ export default function DashboardPage() {
     closePinModal();
     if (!action) return;
     if (action.type === 'edit') {
-      navigate(`/invoices/${action.id}/edit`);
+      const inv = invoices.find((i) => i._id === action.id);
+      if (!inv) return toast.error('Invoice not found');
+      setReceiptInvoice(inv);
+      setReceiptMode('edit');
     } else if (action.type === 'delete') {
       handleDelete(action.id);
     }
+  };
+
+  // Called by ThermalReceiptModal's "Save Changes" button in edit mode.
+  const handleSaveEditedInvoice = async (id, payload) => {
+    try {
+      await updateInvoice(id, payload);
+      setReceiptInvoice(null);
+      setReceiptMode('view');
+      fetchInvoices({ search, page, limit: 10 });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update bill');
+    }
+  };
+
+  const openView = (inv) => {
+    setReceiptInvoice(inv);
+    setReceiptMode('view');
   };
 
   // Summary stats
@@ -237,17 +257,17 @@ export default function DashboardPage() {
                       <td className="px-6 py-4"><StatusBadge status={inv.status} /></td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
-                          {/* Thermal Print Receipt button */}
+                          {/* Thermal Print / View Receipt button */}
                           <button
-                            onClick={() => setReceiptInvoice(inv)}
+                            onClick={() => openView(inv)}
                             className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-all font-semibold text-xs flex items-center gap-1"
                             title="Thermal Print Receipt"
                           >
                             <Printer size={14} />
                           </button>
                           
-                          <button onClick={() => navigate(`/invoices/${inv._id}`)}
-                            className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 transition-all" title="Full GST Invoice View">
+                          <button onClick={() => openView(inv)}
+                            className="p-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 transition-all" title="View Bill">
                             <Eye size={15} />
                           </button>
                           <button onClick={() => requestAction('edit', inv._id)}
@@ -301,12 +321,14 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Thermal Receipt Modal from Dashboard */}
+      {/* Thermal Receipt Modal — Print / View (read-only) / Edit (editable + Save) */}
       {receiptInvoice && (
         <ThermalReceiptModal
           invoice={receiptInvoice}
           user={user}
-          onClose={() => setReceiptInvoice(null)}
+          editable={receiptMode === 'edit'}
+          onSave={handleSaveEditedInvoice}
+          onClose={() => { setReceiptInvoice(null); setReceiptMode('view'); }}
         />
       )}
 
