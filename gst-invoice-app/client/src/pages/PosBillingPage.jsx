@@ -20,7 +20,7 @@ export default function PosBillingPage() {
   const navigate = useNavigate();
   const isEditMode = !!id;
     // ── Salesman list & selection — persisted in localStorage so add/remove survives reload ──
-  const DEFAULT_SALESMEN = ['Ankit', 'Anushka', 'Arun FM.', 'Brijesh', 'Govind-Arrow', 'Himanshu', 'Nil', 'Sandeep', 'Shadab'];
+  const DEFAULT_SALESMEN = ['Ankit', 'Anushka', 'Arun FM.', 'Brijesh', 'Govind-Arrow', 'Himanshu', 'Sandeep', 'Shadab'];
   const getSavedSalesmen = () => {
     try {
       const saved = localStorage.getItem('pos_salesmen');
