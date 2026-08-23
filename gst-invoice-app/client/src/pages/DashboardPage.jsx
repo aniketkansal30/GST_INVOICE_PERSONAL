@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback , useMemo} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices } from '../context/InvoiceContext';
 import { useAuth } from '../context/AuthContext';
@@ -35,8 +35,8 @@ const DEFAULT_MANAGER_PIN = '1234';
 const getManagerPin = () => localStorage.getItem('pos_manager_pin') || DEFAULT_MANAGER_PIN;
 
 export default function DashboardPage() {
-  const { invoices, loading, pagination, fetchInvoices, deleteInvoice, duplicateInvoice, updateInvoice } = useInvoices();
-  const { user } = useAuth();
+  const { deleteInvoice, duplicateInvoice, updateInvoice } = useInvoices();
+    const { user } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -45,25 +45,47 @@ export default function DashboardPage() {
   // ── Stats cards (Total Revenue / Paid Bills / Pending-Drafts) must reflect
   // ALL invoices, not just the current paginated page shown in the table
   // below. Fetched separately so it isn't tied to page/search state. ──
-  const [allStats, setAllStats] = useState({ totalAmount: 0, paidCount: 0, draftCount: 0, totalCount: 0 });
-  const [statsLoading, setStatsLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState({ preset: 'all_time', customFrom: '', customTo: '' });
-  const refreshStats = useCallback(async () => {
-  setStatsLoading(true);
-  try {
-    const res = await api.get('/invoices', { params: { limit: 10000 } });
-    const all = filterByDateRange(res.data.invoices || [], 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo);
-    setAllStats({
-      totalAmount: all.reduce((s, inv) => s + (inv.grandTotal || 0), 0),
-      paidCount: all.filter(i => i.status === 'paid').length,
-      draftCount: all.filter(i => i.status === 'draft' || !i.status).length,
-      totalCount: all.length,
-    });
-  } catch (err) {}
-  finally { setStatsLoading(false); }
-}, [dateFilter]);
 
-useEffect(() => { refreshStats(); }, [refreshStats]);
+// Ek hi source of truth — search se filtered saare invoices (backend se), phir
+// date range aur pagination dono isi list pe client-side lagenge, taaki
+// stats aur table hamesha ek doosre se match karein.
+const [allInvoices, setAllInvoices] = useState([]);
+const [loadingAll, setLoadingAll] = useState(true);
+
+const loadAllInvoices = useCallback(async () => {
+  setLoadingAll(true);
+  try {
+    const res = await api.get('/invoices', { params: { search, limit: 10000 } });
+    setAllInvoices(res.data.invoices || []);
+  } catch (err) {
+    toast.error('Failed to load invoices');
+  } finally {
+    setLoadingAll(false);
+  }
+}, [search]);
+
+useEffect(() => { loadAllInvoices(); }, [loadAllInvoices]);
+
+// Search ya date filter badalne par page 1 pe reset karo
+useEffect(() => { setPage(1); }, [search, dateFilter]);
+
+const dateFilteredInvoices = useMemo(
+  () => filterByDateRange(allInvoices, 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo),
+  [allInvoices, dateFilter]
+);
+
+const pageSize = 10;
+const totalFiltered = dateFilteredInvoices.length;
+const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+const pagedInvoices = dateFilteredInvoices.slice((page - 1) * pageSize, page * pageSize);
+
+const allStats = useMemo(() => ({
+  totalAmount: dateFilteredInvoices.reduce((s, inv) => s + (inv.grandTotal || 0), 0),
+  paidCount: dateFilteredInvoices.filter(i => i.status === 'paid').length,
+  draftCount: dateFilteredInvoices.filter(i => i.status === 'draft' || !i.status).length,
+  totalCount: totalFiltered,
+}), [dateFilteredInvoices, totalFiltered]);
 
   // Thermal Receipt Modal State — used for Print, View (read-only) and Edit (editable)
   const [receiptInvoice, setReceiptInvoice] = useState(null);
@@ -87,7 +109,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
     setDeleting(id);
     try {
       await deleteInvoice(id);
-      refreshStats();
+      loadAllInvoices();
     } finally {
       setDeleting(null);
     }
@@ -97,8 +119,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
     try {
       const dup = await duplicateInvoice(id);
       toast.success('Invoice duplicated');
-      fetchInvoices({ search, page, limit: 10 });
-      refreshStats();
+      loadAllInvoices();  
     } catch {
       toast.error('Failed to duplicate');
     }
@@ -127,7 +148,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
     closePinModal();
     if (!action) return;
     if (action.type === 'edit') {
-      const inv = invoices.find((i) => i._id === action.id);
+      const inv =allInvoices.find((i) => i._id === action.id);
       if (!inv) return toast.error('Invoice not found');
       setReceiptInvoice(inv);
       setReceiptMode('edit');
@@ -142,8 +163,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
       await updateInvoice(id, payload);
       setReceiptInvoice(null);
       setReceiptMode('view');
-      fetchInvoices({ search, page, limit: 10 });
-      refreshStats();
+      loadAllInvoices(); 
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update bill');
     }
@@ -207,7 +227,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
               </div>
             </div>
             <p className="text-2xl font-bold text-ink-800 dark:text-ink-100 font-mono">
-              {statsLoading ? '—' : value}
+              {loadingAll ? '—' : value}
             </p>
             <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">{label}</p>
           </div>
@@ -230,7 +250,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
           
           <div className="flex items-center gap-3">
           <DateRangeFilter {...dateFilter} onChange={setDateFilter} />
-            <p className="text-xs text-ink-400 dark:text-ink-500 font-mono">{pagination.total} total bills</p>
+            <p className="text-xs text-ink-400 dark:text-ink-500 font-mono">{totalFiltered} total bills</p>
             <button onClick={() => navigate('/pos')} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
               <Plus size={14} /> New POS Bill
             </button>
@@ -238,11 +258,11 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
         </div>
 
         {/* Table */}
-        {loading ? (
+        {loadingAll? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-ink-800 dark:border-amber-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : invoices.length === 0 ? (
+        ) : pagedInvoices.length=== 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-16 h-16 rounded-2xl bg-ink-100 dark:bg-ink-800 flex items-center justify-center">
               <FileText size={28} className="text-ink-300 dark:text-ink-600" />
@@ -268,7 +288,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-50 dark:divide-ink-800">
-                {invoices.map((inv) => {
+                {pagedInvoices.map((inv) => {
                   const itemsCount = (inv.items || []).reduce((s, i) => s + (Number(i.qty) || 1), 0);
                   return (
                     <tr key={inv._id} className="hover:bg-ink-50 dark:hover:bg-ink-800/50 transition-colors group">
@@ -328,10 +348,10 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
         )}
 
         {/* Pagination */}
-        {pagination.pages > 1 && (
+        {totalPages > 1 && (
           <div className="px-6 py-4 border-t border-ink-100 dark:border-ink-800 flex items-center justify-between">
             <p className="text-xs text-ink-400 font-mono">
-              Page {pagination.page} of {pagination.pages}
+              Page {page} of {totalPages}
             </p>
             <div className="flex gap-2">
               <button
@@ -342,7 +362,7 @@ useEffect(() => { refreshStats(); }, [refreshStats]);
                 <ChevronLeft size={15} />
               </button>
               <button
-                disabled={page >= pagination.pages}
+                disabled={page >= totalPages}
                 onClick={() => setPage(p => p + 1)}
                 className="p-1.5 rounded-lg border border-ink-200 dark:border-ink-700 hover:bg-ink-50 dark:hover:bg-ink-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
