@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, X, Download, Check, Sparkles, Save, Trash2, Plus, Minus } from 'lucide-react';
 import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../../utils/invoiceUtils';
 
@@ -52,6 +53,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const [paperWidth, setPaperWidth] = useState('80mm'); // '80mm' or '58mm'
   const [saving, setSaving] = useState(false);
   const receiptRef = useRef(null);
+  const isNarrow = paperWidth === '58mm';
 
   const isSameState = invoice ? (invoice.isSameState !== undefined ? invoice.isSameState : true) : true;
 
@@ -184,23 +186,45 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in no-print-bg">
+  // ── PRINT FIX ──
+  // Previously the print stylesheet used `visibility: hidden` on `body *`
+  // combined with `position: fixed` on the printable receipt. That trick
+  // hides the rest of the app visually, but the hidden elements still keep
+  // their full layout height (visibility:hidden ≠ display:none). If the
+  // underlying app page (dashboard, sidebar, etc.) is taller than one
+  // printed page, the browser creates a second, blank page — exactly the
+  // "2 pages" / "text jumping on another PC" bug being reported.
+  //
+  // Fix: render this modal through a React Portal directly under
+  // `document.body`, as a sibling of the rest of the app. During print we
+  // then simply hide every other direct child of body and show only this
+  // portal — there is no leftover invisible-but-tall background content to
+  // cause pagination issues, and behavior becomes consistent across
+  // machines since it no longer depends on the rest of the page's layout.
+  const modalContent = (
+    <div id="thermal-print-portal">
       <style>{`
         @media print {
-          body * {
-            visibility: hidden !important;
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
           }
-          #thermal-receipt-printable,
-          #thermal-receipt-printable * {
-            visibility: visible !important;
+          body > *:not(#thermal-print-portal) {
+            display: none !important;
+          }
+          #thermal-print-portal {
+            display: block !important;
+          }
+          #thermal-print-portal .no-print,
+          #thermal-print-portal .no-print-bg {
+            display: none !important;
           }
           #thermal-receipt-printable {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
+            position: static !important;
             width: ${paperWidth} !important;
-            margin: 0 !important;
+            max-width: ${paperWidth} !important;
+            margin: 0 auto !important;
             padding: 4px !important;
             box-shadow: none !important;
             border: none !important;
@@ -211,318 +235,321 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
           }
         }
       `}</style>
-      <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100 dark:border-ink-800 no-print">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${editable ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
-              <Printer size={18} />
+
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in no-print-bg">
+        <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100 dark:border-ink-800 no-print">
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${editable ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                <Printer size={18} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-ink-900 dark:text-ink-100 text-sm">
+                  {editable ? 'Edit Thermal Bill' : 'Thermal POS Bill'}
+                </h3>
+                <p className="text-xs text-ink-400 font-mono">Invoice #{invoice.invoiceNumber || 'BILL'}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-ink-900 dark:text-ink-100 text-sm">
-                {editable ? 'Edit Thermal Bill' : 'Thermal POS Bill'}
-              </h3>
-              <p className="text-xs text-ink-400 font-mono">Invoice #{invoice.invoiceNumber || 'BILL'}</p>
+
+            <div className="flex items-center gap-2">
+              {/* Paper Size selector */}
+              <div className="flex bg-ink-100 dark:bg-ink-800 p-0.5 rounded-lg text-xs font-mono">
+                <button
+                  onClick={() => setPaperWidth('58mm')}
+                  className={`px-2 py-1 rounded transition-all ${paperWidth === '58mm' ? 'bg-white dark:bg-ink-700 shadow-xs font-bold text-ink-900 dark:text-white' : 'text-ink-500'}`}
+                >
+                  58mm
+                </button>
+                <button
+                  onClick={() => setPaperWidth('80mm')}
+                  className={`px-2 py-1 rounded transition-all ${paperWidth === '80mm' ? 'bg-white dark:bg-ink-700 shadow-xs font-bold text-ink-900 dark:text-white' : 'text-ink-500'}`}
+                >
+                  80mm
+                </button>
+              </div>
+
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Paper Size selector */}
-            <div className="flex bg-ink-100 dark:bg-ink-800 p-0.5 rounded-lg text-xs font-mono">
-              <button
-                onClick={() => setPaperWidth('58mm')}
-                className={`px-2 py-1 rounded transition-all ${paperWidth === '58mm' ? 'bg-white dark:bg-ink-700 shadow-xs font-bold text-ink-900 dark:text-white' : 'text-ink-500'}`}
-              >
-                58mm
-              </button>
-              <button
-                onClick={() => setPaperWidth('80mm')}
-                className={`px-2 py-1 rounded transition-all ${paperWidth === '80mm' ? 'bg-white dark:bg-ink-700 shadow-xs font-bold text-ink-900 dark:text-white' : 'text-ink-500'}`}
-              >
-                80mm
-              </button>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+          {/* Receipt Scroll Area */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 flex justify-center bg-ink-50 dark:bg-ink-950/40">
+            <div
+              ref={receiptRef}
+              id="thermal-receipt-printable"
+              style={{ width: paperWidth === '58mm' ? '58mm' : '80mm', minWidth: paperWidth === '58mm' ? '58mm' : '80mm' }}
+              className={`bg-white text-black font-mono ${isNarrow ? 'text-[9px]' : 'text-[11px]'} leading-tight ${isNarrow ? 'p-2' : 'p-3'} shadow-md rounded-sm border border-dashed border-ink-300 print:shadow-none print:border-none print:m-0 print:p-1`}
             >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Receipt Scroll Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 flex justify-center bg-ink-50 dark:bg-ink-950/40">
-          <div
-            ref={receiptRef}
-            id="thermal-receipt-printable"
-            style={{ width: paperWidth === '58mm' ? '58mm' : '80mm', minWidth: paperWidth === '58mm' ? '58mm' : '80mm' }}
-            className="bg-white text-black font-mono text-[11px] leading-tight p-3 shadow-md rounded-sm border border-dashed border-ink-300 print:shadow-none print:border-none print:m-0 print:p-1"
-          >
-            {/* Store Header */}
-            <div className="text-center pb-2 border-b border-dashed border-black space-y-0.5">
-              <p className="font-bold text-sm tracking-tight uppercase">{seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName}</p>
-              {seller.address && <p className="text-[10px] leading-3 text-black">{seller.address}</p>}
-              {seller.contact && <p className="text-[10px]">Mobile: {seller.contact}</p>}
-              {seller.gstNumber && <p className="text-[10px] font-semibold">GSTIN: {seller.gstNumber}</p>}
-              {sellerPan && <p className="text-[10px] font-semibold">PAN No: {sellerPan}</p>}
-              {seller.state && <p className="text-[10px]">State: {seller.state}</p>}
-            </div>
-
-                       {/* Bill Details */}
-            <div className="py-1.5 border-b border-dashed border-black text-[10px] space-y-0.5">
-              <div className="flex justify-between">
-                <span>Bill No: <strong className="font-bold">{invoice.invoiceNumber}</strong></span>
-                <span>{invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}</span>
+              {/* Store Header */}
+              <div className="text-center pb-2 border-b border-dashed border-black space-y-0.5">
+                <p className={`font-bold ${isNarrow ? 'text-xs' : 'text-sm'} tracking-tight uppercase`}>{seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName}</p>
+                {seller.address && <p className={`${isNarrow ? 'text-[9px]' : 'text-[10px]'} leading-3 text-black`}>{seller.address}</p>}
+                {seller.contact && <p className={isNarrow ? 'text-[9px]' : 'text-[10px]'}>Mobile: {seller.contact}</p>}
+                {seller.gstNumber && <p className={`${isNarrow ? 'text-[9px]' : 'text-[10px]'} font-semibold`}>GSTIN: {seller.gstNumber}</p>}
+                {sellerPan && <p className={`${isNarrow ? 'text-[9px]' : 'text-[10px]'} font-semibold`}>PAN No: {sellerPan}</p>}
+                {seller.state && <p className={isNarrow ? 'text-[9px]' : 'text-[10px]'}>State: {seller.state}</p>}
               </div>
-              <div className="flex justify-between text-black">
-                <span>Time: {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-                <span>Mode: <strong>{paymentMode}</strong></span>
-              </div>
-              {invoice.salesman && (
+
+              {/* Bill Details */}
+              <div className={`py-1.5 border-b border-dashed border-black ${isNarrow ? 'text-[9px]' : 'text-[10px]'} space-y-0.5`}>
+                <div className="flex justify-between">
+                  <span>Bill No: <strong className="font-bold">{invoice.invoiceNumber}</strong></span>
+                  <span>{invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}</span>
+                </div>
                 <div className="flex justify-between text-black">
-                  <span>Salesman: <strong>{invoice.salesman}</strong></span>
+                  <span>Time: {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>Mode: <strong>{paymentMode}</strong></span>
                 </div>
-              )}
-              {buyer.clientName && buyer.clientName !== 'Walk-in Customer' && (
-                <div className="pt-0.5 text-neutral-800">
-                  <span>Customer: {buyer.clientName} {buyer.contact ? `(${buyer.contact})` : ''}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Item Table Header */}
-            <div className="py-1 border-b border-black text-[10px] font-bold">
-              <div className="flex justify-between">
-                <span className="flex-1">ITEM (SIZE/CLR)</span>
-                <span className="w-8 text-center">QTY</span>
-                <span className="w-12 text-right">RATE</span>
-                <span className="w-14 text-right">AMT</span>
-                {editable && <span className="w-5" />}
+                {invoice.salesman && (
+                  <div className="flex justify-between text-black">
+                    <span>Salesman: <strong>{invoice.salesman}</strong></span>
+                  </div>
+                )}
+                {buyer.clientName && buyer.clientName !== 'Walk-in Customer' && (
+                  <div className="pt-0.5 text-neutral-800">
+                    <span>Customer: {buyer.clientName} {buyer.contact ? `(${buyer.contact})` : ''}</span>
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Items List */}
-            <div className="py-1 border-b border-dashed border-black space-y-1">
-              {items.map((item, idx) => {
-                const itemTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-                const tagInfo = [item.size ? `Sz:${item.size}` : '', item.color ? item.color : ''].filter(Boolean).join('/');
-                return (
-                  <div key={idx} className="text-[10px]">
-                    <div className="flex justify-between items-center font-semibold">
-                      <span className="flex-1 truncate pr-1">
-                        {item.name}
-                      </span>
-                      {editable ? (
-                        <>
-                          <span className="w-12 flex items-center justify-center gap-0.5 font-normal">
-                            <button
-                              type="button"
-                              onClick={() => bumpQty(idx, -1)}
-                              className="w-3.5 h-3.5 flex items-center justify-center bg-neutral-200 rounded-xs no-print"
-                            >
-                              <Minus size={8} />
-                            </button>
+              {/* Item Table Header */}
+              <div className={`py-1 border-b border-black ${isNarrow ? 'text-[9px]' : 'text-[10px]'} font-bold`}>
+                <div className="flex justify-between">
+                  <span className="flex-1">ITEM {isNarrow ? '' : '(SIZE/CLR)'}</span>
+                  <span className={`${isNarrow ? 'w-6' : 'w-8'} text-center`}>QTY</span>
+                  <span className={`${isNarrow ? 'w-10' : 'w-12'} text-right`}>RATE</span>
+                  <span className={`${isNarrow ? 'w-11' : 'w-14'} text-right`}>AMT</span>
+                  {editable && <span className="w-5" />}
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div className="py-1 border-b border-dashed border-black space-y-1">
+                {items.map((item, idx) => {
+                  const itemTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+                  const tagInfo = [item.size ? `Sz:${item.size}` : '', item.color ? item.color : ''].filter(Boolean).join('/');
+                  return (
+                    <div key={idx} className={isNarrow ? 'text-[9px]' : 'text-[10px]'}>
+                      <div className="flex justify-between items-center font-semibold">
+                        <span className="flex-1 truncate pr-1">
+                          {item.name}
+                        </span>
+                        {editable ? (
+                          <>
+                            <span className={`${isNarrow ? 'w-9' : 'w-12'} flex items-center justify-center gap-0.5 font-normal`}>
+                              <button
+                                type="button"
+                                onClick={() => bumpQty(idx, -1)}
+                                className="w-3.5 h-3.5 flex items-center justify-center bg-neutral-200 rounded-xs no-print"
+                              >
+                                <Minus size={8} />
+                              </button>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.qty}
+                                onChange={(e) => updateEditableField(idx, 'qty', e.target.value)}
+                                className="w-5 text-center bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => bumpQty(idx, 1)}
+                                className="w-3.5 h-3.5 flex items-center justify-center bg-neutral-200 rounded-xs no-print"
+                              >
+                                <Plus size={8} />
+                              </button>
+                            </span>
                             <input
                               type="number"
-                              min="1"
-                              value={item.qty}
-                              onChange={(e) => updateEditableField(idx, 'qty', e.target.value)}
-                              className="w-6 text-center bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
+                              min="0"
+                              step="0.5"
+                              value={item.rate}
+                              onChange={(e) => updateEditableField(idx, 'rate', e.target.value)}
+                              className={`${isNarrow ? 'w-10' : 'w-12'} text-right font-normal bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print`}
                             />
-                            <button
-                              type="button"
-                              onClick={() => bumpQty(idx, 1)}
-                              className="w-3.5 h-3.5 flex items-center justify-center bg-neutral-200 rounded-xs no-print"
-                            >
-                              <Plus size={8} />
-                            </button>
-                          </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className={`${isNarrow ? 'w-6' : 'w-8'} text-center font-normal`}>{item.qty}</span>
+                            <span className={`${isNarrow ? 'w-10' : 'w-12'} text-right font-normal`}>{Number(item.rate).toFixed(2)}</span>
+                          </>
+                        )}
+                        <span className={`${isNarrow ? 'w-11' : 'w-14'} text-right`}>{itemTotal.toFixed(2)}</span>
+                        {editable && (
+                          <button
+                            type="button"
+                            onClick={() => removeEditableItem(idx)}
+                            className="w-5 flex items-center justify-center text-red-600 no-print"
+                            title="Remove item"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
+                      {tagInfo && (
+                        <div className="text-[9px] text-black flex justify-between">
+                          <span>[{tagInfo}] {item.hsn ? `HSN:${item.hsn}` : ''}</span>
+                          <span>GST {item.gstPct || 5}%</span>
+                        </div>
+                      )}
+                      {editable ? (
+                        <div className="text-[9px] text-black flex justify-between items-center">
+                          <span>Discount %:</span>
                           <input
                             type="number"
                             min="0"
-                            step="0.5"
-                            value={item.rate}
-                            onChange={(e) => updateEditableField(idx, 'rate', e.target.value)}
-                            className="w-12 text-right font-normal bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
+                            max="100"
+                            value={item.discountPct || ''}
+                            placeholder="0"
+                            onChange={(e) => updateEditableField(idx, 'discountPct', e.target.value)}
+                            className="w-12 text-right bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
                           />
-                        </>
+                        </div>
                       ) : (
-                        <>
-                          <span className="w-8 text-center font-normal">{item.qty}</span>
-                          <span className="w-12 text-right font-normal">{Number(item.rate).toFixed(2)}</span>
-                        </>
-                      )}
-                      <span className="w-14 text-right">{itemTotal.toFixed(2)}</span>
-                      {editable && (
-                        <button
-                          type="button"
-                          onClick={() => removeEditableItem(idx)}
-                          className="w-5 flex items-center justify-center text-red-600 no-print"
-                          title="Remove item"
-                        >
-                          <Trash2 size={11} />
-                        </button>
+                        Number(item.discountPct) > 0 && (
+                          <div className="text-[9px] text-black flex justify-between">
+                            <span>Discount:</span>
+                            <span>-{item.discountPct}% (₹{Number(item.discountAmount || 0).toFixed(2)})</span>
+                          </div>
+                        )
                       )}
                     </div>
-                    {tagInfo && (
-                      <div className="text-[9px] text-black flex justify-between">
-                        <span>[{tagInfo}] {item.hsn ? `HSN:${item.hsn}` : ''}</span>
-                        <span>GST {item.gstPct || 5}%</span>
-                      </div>
-                    )}
-                    {editable ? (
-                      <div className="text-[9px] text-black flex justify-between items-center">
-                        <span>Discount %:</span>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.discountPct || ''}
-                          placeholder="0"
-                          onChange={(e) => updateEditableField(idx, 'discountPct', e.target.value)}
-                          className="w-12 text-right bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
-                        />
-                      </div>
-                    ) : (
-                      Number(item.discountPct) > 0 && (
-                        <div className="text-[9px] text-black flex justify-between">
-                          <span>Discount:</span>
-                          <span>-{item.discountPct}% (₹{Number(item.discountAmount || 0).toFixed(2)})</span>
-                        </div>
-                      )
-                    )}
+                  );
+                })}
+                {editable && items.length === 0 && (
+                  <p className="text-[10px] text-red-600 text-center py-2 no-print">Sab items hata diye — kam se kam 1 item rakhein.</p>
+                )}
+              </div>
+
+              {/* Totals Section */}
+              <div className={`py-1.5 border-b border-dashed border-black ${isNarrow ? 'text-[10px]' : 'text-[11px]'} space-y-1`}>
+                <div className="flex justify-between">
+                  <span>Items Count ({items.reduce((s, i) => s + (Number(i.qty) || 0), 0)} pcs):</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+
+                {cgst > 0 && (
+                  <div className="flex justify-between text-[10px] text-black">
+                    <span>CGST:</span>
+                    <span>₹{cgst.toFixed(2)}</span>
                   </div>
-                );
-              })}
-              {editable && items.length === 0 && (
-                <p className="text-[10px] text-red-600 text-center py-2 no-print">Sab items hata diye — kam se kam 1 item rakhein.</p>
-              )}
-            </div>
-
-            {/* Totals Section */}
-            <div className="py-1.5 border-b border-dashed border-black text-[11px] space-y-1">
-              <div className="flex justify-between">
-                <span>Items Count ({items.reduce((s, i) => s + (Number(i.qty) || 0), 0)} pcs):</span>
-                <span>₹{subtotal.toFixed(2)}</span>
+                )}
+                {sgst > 0 && (
+                  <div className="flex justify-between text-[10px] text-black">
+                    <span>SGST:</span>
+                    <span>₹{sgst.toFixed(2)}</span>
+                  </div>
+                )}
+                {igst > 0 && (
+                  <div className="flex justify-between text-[10px] text-black">
+                    <span>IGST:</span>
+                    <span>₹{igst.toFixed(2)}</span>
+                  </div>
+                )}
+                {hasDiscount && (
+                  <div className="text-[9px] text-black flex justify-between">
+                    <span>Discount Applied:</span>
+                    <span>-₹{totalDiscountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className={`flex justify-between pt-1 border-t border-black font-bold ${isNarrow ? 'text-xs' : 'text-sm'}`}>
+                  <span>NET TOTAL:</span>
+                  <span>₹{grandTotal.toFixed(2)}</span>
+                </div>
               </div>
 
-              {cgst > 0 && (
-                <div className="flex justify-between text-[10px] text-black">
-                  <span>CGST:</span>
-                  <span>₹{cgst.toFixed(2)}</span>
+              {/* GST Tax Summary Table */}
+              <div className="py-1 border-b border-dashed border-black text-[9px] text-black">
+                <p className="font-bold text-[9px] uppercase mb-0.5">GST Tax Summary:</p>
+                <div className="flex justify-between font-semibold border-b border-dotted border-neutral-400 pb-0.5">
+                  <span>HSN/Rate</span>
+                  <span>Taxable</span>
+                  {!isNarrow && <span>CGST</span>}
+                  {!isNarrow && <span>SGST</span>}
+                  <span>Total Tax</span>
                 </div>
-              )}
-              {sgst > 0 && (
-                <div className="flex justify-between text-[10px] text-black">
-                  <span>SGST:</span>
-                  <span>₹{sgst.toFixed(2)}</span>
-                </div>
-              )}
-              {igst > 0 && (
-                <div className="flex justify-between text-[10px] text-black">
-                  <span>IGST:</span>
-                  <span>₹{igst.toFixed(2)}</span>
-                </div>
-              )}
-              {hasDiscount && (
-                <div className="text-[9px] text-black flex justify-between">
-                  <span>Discount Applied:</span>
-                  <span>-₹{totalDiscountAmount.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between pt-1 border-t border-black font-bold text-sm">
-                <span>NET TOTAL:</span>
-                <span>₹{grandTotal.toFixed(2)}</span>
+                {taxSummary.map((t, i) => (
+                  <div key={i} className="flex justify-between pt-0.5">
+                    <span>{t.hsn} ({t.gstPct}%)</span>
+                    <span>{t.taxable.toFixed(1)}</span>
+                    {!isNarrow && <span>{t.cgst.toFixed(1)}</span>}
+                    {!isNarrow && <span>{t.sgst.toFixed(1)}</span>}
+                    <span className="font-semibold">{t.totalTax.toFixed(1)}</span>
+                  </div>
+                ))}
               </div>
-            </div>
 
-            {/* GST Tax Summary Table */}
-            <div className="py-1 border-b border-dashed border-black text-[9px] text-black">
-              <p className="font-bold text-[9px] uppercase mb-0.5">GST Tax Summary:</p>
-              <div className="flex justify-between font-semibold border-b border-dotted border-neutral-400 pb-0.5">
-                <span>HSN/Rate</span>
-                <span>Taxable</span>
-                <span>CGST</span>
-                <span>SGST</span>
-                <span>Total Tax</span>
+              {/* Terms & Conditions */}
+              <div className="py-1.5 border-b border-dashed border-black text-[9px] text-black text-left space-y-0.5">
+                <p className="font-bold text-[9px] uppercase mb-0.5">Sale Terms &amp; Conditions:</p>
+                <p>1. All disputes are subject to exclusive jurisdiction of the courts of Meerut , {seller.state || 'the applicable jurisdiction'}.</p>
+                <p>2. It is the responsibility of the customer to check the condition and quantity of purchased items before leaving the store. No claim will be entertained once the customer has left the store premises.</p>
+                <p>3. Customer is responsible to check balance cash received before leaving the store.</p>
+                <p>4. No cash/credit card refunds shall be made for returns once goods are sold.</p>
+                <p className="font-bold text-[9px] uppercase mt-1.5 mb-0.5">Exchange Terms &amp; Conditions:</p>
+                <p>1. Exchange can only be done within 7 days of purchase, against production of original invoice.</p>
+                <p>2. No exchange will be entertained after 7 days.</p>
               </div>
-              {taxSummary.map((t, i) => (
-                <div key={i} className="flex justify-between pt-0.5">
-                  <span>{t.hsn} ({t.gstPct}%)</span>
-                  <span>{t.taxable.toFixed(1)}</span>
-                  <span>{t.cgst.toFixed(1)}</span>
-                  <span>{t.sgst.toFixed(1)}</span>
-                  <span className="font-semibold">{t.totalTax.toFixed(1)}</span>
-                </div>
-              ))}
-            </div>
 
-                       {/* Terms & Conditions */}
-            <div className="py-1.5 border-b border-dashed border-black text-[9px] text-black text-left space-y-0.5">
-              <p className="font-bold text-[9px] uppercase mb-0.5">Sale Terms &amp; Conditions:</p>
-              <p>1. All disputes are subject to exclusive jurisdiction of the courts of Meerut , {seller.state || 'the applicable jurisdiction'}.</p>
-              <p>2. It is the responsibility of the customer to check the condition and quantity of purchased items before leaving the store. No claim will be entertained once the customer has left the store premises.</p>
-              <p>3. Customer is responsible to check balance cash received before leaving the store.</p>
-              <p>4. No cash/credit card refunds shall be made for returns once goods are sold.</p>
-              <p className="font-bold text-[9px] uppercase mt-1.5 mb-0.5">Exchange Terms &amp; Conditions:</p>
-              <p>1. Exchange can only be done within 7 days of purchase, against production of original invoice.</p>
-              <p>2. No exchange will be entertained after 7 days.</p>
-            </div>
-
-            {/* Footer */}
-            <div className="pt-2 text-center text-[10px] space-y-1"></div>
-            {/* Footer */}
-            <div className="pt-2 text-center text-[10px] space-y-1">
-              <p className="font-bold tracking-wider">*** THANK YOU! VISIT AGAIN ***</p>
-              <p className="text-[8px] text-black">
-                Goods once sold can be exchanged within 7 days with bill &amp; intact barcode tags.
-              </p>
-              <div className="pt-1 flex justify-center">
-                <div className="font-mono text-[9px] tracking-widest bg-neutral-100 px-3 py-1 border border-neutral-300 rounded-xs">
-                  *{invoice.invoiceNumber}*
+              {/* Footer */}
+              <div className="pt-2 text-center text-[10px] space-y-1">
+                <p className="font-bold tracking-wider">*** THANK YOU! VISIT AGAIN ***</p>
+                <p className="text-[8px] text-black">
+                  Goods once sold can be exchanged within 7 days with bill &amp; intact barcode tags.
+                </p>
+                <div className="pt-1 flex justify-center">
+                  <div className="font-mono text-[9px] tracking-widest bg-neutral-100 px-3 py-1 border border-neutral-300 rounded-xs">
+                    *{invoice.invoiceNumber}*
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Modal Actions */}
-        <div className="p-4 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 flex items-center justify-between gap-3 no-print">
-          <button
-            onClick={onClose}
-            className="btn-secondary text-xs"
-          >
-            Close (Esc)
-          </button>
+          {/* Modal Actions */}
+          <div className="p-4 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 flex items-center justify-between gap-3 no-print">
+            <button
+              onClick={onClose}
+              className="btn-secondary text-xs"
+            >
+              Close (Esc)
+            </button>
 
-          <div className="flex items-center gap-2">
-            {editable ? (
-              <button
-                onClick={handleSaveClick}
-                disabled={saving || editableItems.length === 0}
-                className="btn-primary px-6 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:text-ink-950 font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {saving ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Save size={16} />
-                )}
-                Save Changes
-              </button>
-            ) : (
-              <button
-                onClick={handlePrint}
-                className="btn-primary px-6 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-ink-950 font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-              >
-                <Printer size={16} />
-                Print Thermal Bill (Enter)
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {editable ? (
+                <button
+                  onClick={handleSaveClick}
+                  disabled={saving || editableItems.length === 0}
+                  className="btn-primary px-6 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:text-ink-950 font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {saving ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Save size={16} />
+                  )}
+                  Save Changes
+                </button>
+              ) : (
+                <button
+                  onClick={handlePrint}
+                  className="btn-primary px-6 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-ink-950 font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                >
+                  <Printer size={16} />
+                  Print Thermal Bill (Enter)
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
