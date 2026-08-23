@@ -268,9 +268,9 @@ export default function PosBillingPage() {
     const fullPhone = phone.length === 10 ? `91${phone}` : phone;
 
     const seller = invoice.seller || {};
-    const companyName = seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName;
-    const address = seller.address || user?.address || DEFAULT_STORE_DETAILS.address;
-    const gstNumber = seller.gstNumber || user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber;
+    const companyName = seller.companyName || DEFAULT_STORE_DETAILS.companyName || user?.companyName;
+    const address = seller.address || DEFAULT_STORE_DETAILS.address || user?.address;
+    const gstNumber = seller.gstNumber || DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber;
 
     const billDate = invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date();
     const dateStr = billDate.toLocaleDateString('en-IN');
@@ -659,12 +659,12 @@ export default function PosBillingPage() {
         status: 'paid',
         salesman: salesman || '',
         seller: {
-          companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
-          gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
-          panNumber: user?.panNumber || DEFAULT_STORE_DETAILS.panNumber,
-          address: user?.address || DEFAULT_STORE_DETAILS.address,
-          state: user?.state || DEFAULT_STORE_DETAILS.state,
-          contact: user?.contact || DEFAULT_STORE_DETAILS.contact,
+          companyName: DEFAULT_STORE_DETAILS.companyName || user?.companyName,
+          gstNumber: DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber,
+          panNumber: DEFAULT_STORE_DETAILS.panNumber || user?.panNumber,
+          address: DEFAULT_STORE_DETAILS.address || user?.address,
+          state: DEFAULT_STORE_DETAILS.state || user?.state,
+          contact: DEFAULT_STORE_DETAILS.contact || user?.contact,
           email: user?.email || '',
         },
         buyer: {
@@ -771,7 +771,7 @@ export default function PosBillingPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display text-xl font-bold text-ink-900 dark:text-ink-50 tracking-tight">
-                {user?.companyName || DEFAULT_STORE_DETAILS.companyName}
+                {DEFAULT_STORE_DETAILS.companyName || user?.companyName}
               </h1>
               {isEditMode ? (
                 <span className="bg-blue-500/10 text-blue-700 dark:text-blue-400 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -784,13 +784,13 @@ export default function PosBillingPage() {
               )}
             </div>
             <p className="text-xs text-ink-500 dark:text-ink-400 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
-              <span>GSTIN: {user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber}</span>
+              <span>GSTIN: {DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber}</span>
               <span>•</span>
-              <span>PAN: {user?.panNumber || DEFAULT_STORE_DETAILS.panNumber}</span>
+              <span>PAN: {DEFAULT_STORE_DETAILS.panNumber || user?.panNumber}</span>
               <span>•</span>
-              <span>Ph: {user?.contact || DEFAULT_STORE_DETAILS.contact}</span>
+              <span>Ph: {DEFAULT_STORE_DETAILS.contact || user?.contact}</span>
               <span>•</span>
-              <span>{user?.state || DEFAULT_STORE_DETAILS.state}</span>
+              <span>{DEFAULT_STORE_DETAILS.state || user?.state}</span>
             </p>
           </div>
         </div>

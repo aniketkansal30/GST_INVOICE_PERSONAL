@@ -70,15 +70,15 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   if (!invoice) return null;
 
   const seller = invoice.seller || {
-    companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
-    address: user?.address || DEFAULT_STORE_DETAILS.address,
-    gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
-    panNumber: user?.panNumber || DEFAULT_STORE_DETAILS.panNumber,
-    contact: user?.contact || DEFAULT_STORE_DETAILS.contact,
-    state: user?.state || DEFAULT_STORE_DETAILS.state,
+    companyName: DEFAULT_STORE_DETAILS.companyName || user?.companyName,
+    address: DEFAULT_STORE_DETAILS.address || user?.address,
+    gstNumber: DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber,
+    panNumber: DEFAULT_STORE_DETAILS.panNumber || user?.panNumber,
+    contact: DEFAULT_STORE_DETAILS.contact || user?.contact,
+    state: DEFAULT_STORE_DETAILS.state || user?.state,
   };
 
-  const sellerPan = seller.panNumber || user?.panNumber || (seller.gstNumber && seller.gstNumber.length >= 12 ? seller.gstNumber.substring(2, 12) : '') || DEFAULT_STORE_DETAILS.panNumber;
+  const sellerPan = seller.panNumber || DEFAULT_STORE_DETAILS.panNumber || user?.panNumber || (seller.gstNumber && seller.gstNumber.length >= 12 ? seller.gstNumber.substring(2, 12) : '');
 
   const buyer = invoice.buyer || {
     clientName: 'Walk-in Customer',
@@ -304,7 +304,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             >
               {/* Store Header */}
               <div className="text-center pb-2 border-b border-dashed border-black space-y-0.5">
-                <p className="font-bold text-sm tracking-tight uppercase">{seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName}</p>
+                <p className="font-bold text-sm tracking-tight uppercase">{seller.companyName || DEFAULT_STORE_DETAILS.companyName || user?.companyName}</p>
                 {seller.address && <p className="text-[10px] leading-3 text-black">{seller.address}</p>}
                 {seller.contact && <p className="text-[10px]">Mobile: {seller.contact}</p>}
                 {seller.gstNumber && <p className="text-[10px] font-semibold">GSTIN: {seller.gstNumber}</p>}
