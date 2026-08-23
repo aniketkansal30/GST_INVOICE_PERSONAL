@@ -1,5 +1,4 @@
 ﻿const mongoose = require('mongoose');
-
 const itemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
   name: { type: String, required: true },
@@ -16,21 +15,19 @@ const itemSchema = new mongoose.Schema({
   baseAmount: Number,
   gstAmount: Number,
 }, { _id: false });
-
-
 const paymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   date: { type: Date, default: Date.now },
   mode: { type: String, enum: ['cash', 'upi', 'bank', 'cheque', 'other'], default: 'bank' },
   note: { type: String, default: '' },
 }, { _id: true, timestamps: true });
-
 const invoiceSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   invoiceNumber: { type: String, required: true },
   invoiceDate: { type: Date, required: true },
   dueDate: { type: Date },
   status: { type: String, enum: ['draft', 'sent', 'paid', 'partial', 'overdue'], default: 'draft' },
+  salesman: { type: String, default: '' },        // 👈 NAYA
   seller: {
     companyName: String, gstNumber: String, address: String,
     state: String, contact: String, email: String,
@@ -65,6 +62,5 @@ const invoiceSchema = new mongoose.Schema({
   amountPaid: { type: Number, default: 0 },
   amountDue: { type: Number, default: 0 },
 }, { timestamps: true });
-
 invoiceSchema.index({ user: 1, invoiceNumber: 1 }, { unique: true });
 module.exports = mongoose.model('Invoice', invoiceSchema);
