@@ -11,15 +11,24 @@ export default function SettingsPage() {
   const { theme, changeTheme } = useTheme();
   const isLocked = user?.role !== 'admin';   // 🔒 owner ke liye true, admin ke liye false
 
+  // NOTE on store details (company name, GSTIN, PAN, contact, address, state):
+  // These fields are locked in the UI for non-admins — the form below stays
+  // disabled and Save stays greyed out exactly as before. But their VALUES
+  // now come from DEFAULT_STORE_DETAILS (in utils/invoiceUtils.js) FIRST,
+  // falling back to the DB-saved `user` profile only if the code constant
+  // is empty. So to change the shop's mobile number, GSTIN, address etc.
+  // everywhere in the app (Settings display, POS header, printed bills),
+  // just edit DEFAULT_STORE_DETAILS in invoiceUtils.js once — no unlocking,
+  // no DB save needed, and the site itself stays locked to manual editing.
   const [profile, setProfile] = useState({
     name: user?.name || DEFAULT_STORE_DETAILS.companyName,
     email: user?.email || '',
-    companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
-    gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
-    panNumber: user?.panNumber || DEFAULT_STORE_DETAILS.panNumber,
-    address: user?.address || DEFAULT_STORE_DETAILS.address,
-    contact: user?.contact || DEFAULT_STORE_DETAILS.contact,
-    state: user?.state || DEFAULT_STORE_DETAILS.state,
+    companyName: DEFAULT_STORE_DETAILS.companyName || user?.companyName,
+    gstNumber: DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber,
+    panNumber: DEFAULT_STORE_DETAILS.panNumber || user?.panNumber,
+    address: DEFAULT_STORE_DETAILS.address || user?.address,
+    contact: DEFAULT_STORE_DETAILS.contact || user?.contact,
+    state: DEFAULT_STORE_DETAILS.state || user?.state,
   });
   const [passwords, setPasswords] = useState({ current: '', newPw: '', confirm: '' });
   const [saving, setSaving] = useState(false);

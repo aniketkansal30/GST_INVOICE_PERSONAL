@@ -188,7 +188,7 @@ export default function Report() {
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
 
-    const partyRows = [['#','Party','GSTIN','State','HSN/SAC','Invoice No','Date','Due Date','Place of Supply','Taxable','CGST','SGST','IGST','Total','Status']];
+    const partyRows = [['S.No.','Party','GSTIN','State','HSN/SAC','Invoice No','Date','Due Date','Place of Supply','Taxable','CGST','SGST','IGST','Total','Status']];
     let sr = 1;
     partyWise.forEach(p => {
       p.invoiceList.forEach(inv => {
@@ -197,7 +197,7 @@ export default function Report() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(partyRows), 'Party-wise B2B');
 
-    const hsnRows = [['#','HSN/SAC','Description','UOM','Invoice No','Date','Party','GST%','Qty','Taxable','CGST','SGST','IGST']];
+    const hsnRows = [['S.No.','HSN/SAC','Description','UOM','Invoice No','Date','Party','GST%','Qty','Taxable','CGST','SGST','IGST']];
     hsnWise.forEach((r, i) => {
       r.invoiceList.forEach(inv => {
         hsnRows.push([i+1, r.hsn, r.description, r.uom, inv.invoiceNumber, inv.invoiceDate, inv.party, inv.gstPct+'%', inv.qty, inv.taxable, inv.cgst, inv.sgst, inv.igst]);
@@ -205,7 +205,7 @@ export default function Report() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hsnRows), 'HSN-wise');
 
-    const gstRows = [['#','GST Rate','Invoice No','Date','Party','Taxable','CGST','SGST','IGST','Total']];
+    const gstRows = [['S.No.','GST Rate','Invoice No','Date','Party','Taxable','CGST','SGST','IGST','Total']];
     gstWise.forEach((r,i) => {
       r.invoiceList.forEach(inv => {
         gstRows.push([i+1, r.rate, inv.invoiceNumber, inv.invoiceDate, inv.party, inv.taxable, inv.cgst, inv.sgst, inv.igst, inv.total]);
@@ -213,7 +213,7 @@ export default function Report() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(gstRows), 'GST%-wise');
 
-    const itemRows = [['#','Item','HSN','UOM','GST%','Invoice No','Date','Party','Qty','Rate','Taxable','Total GST','Grand Total']];
+    const itemRows = [['S.No.','Item','HSN','UOM','GST%','Invoice No','Date','Party','Qty','Rate','Taxable','Total GST','Grand Total']];
     itemWise.forEach((r,i) => {
       r.invoiceList.forEach(inv => {
         itemRows.push([i+1, r.name, r.hsn, r.uom, r.gstPct+'%', inv.invoiceNumber, inv.invoiceDate, inv.party, inv.qty, inv.rate, inv.taxable, inv.gst, inv.total]);
@@ -223,7 +223,7 @@ export default function Report() {
 
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise');
 
-    const salesmanRows = [['#','Salesman','Invoice No','Date','Party','Taxable','CGST','SGST','IGST','Total','Status']];
+    const salesmanRows = [['S.No.','Salesman','Invoice No','Date','Party','Taxable','CGST','SGST','IGST','Total','Status']];
     salesmanWise.forEach((r, i) => {
       r.invoiceList.forEach(inv => {
         salesmanRows.push([i+1, r.salesman, inv.invoiceNumber, inv.invoiceDate, inv.party, inv.taxable, inv.cgst, inv.sgst, inv.igst, inv.total, inv.status]);

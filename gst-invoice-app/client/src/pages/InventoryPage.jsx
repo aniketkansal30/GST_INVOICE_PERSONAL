@@ -318,7 +318,7 @@ const totalTaxCollected = filteredInvoices.reduce(
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
     // Stock sheet
-    const stockRows = [['#', 'Product Name', 'Barcode', 'Category', 'Size', 'Color', 'Selling Price (₹)', 'Purchase Price (₹)', 'GST%', 'Current Stock']];
+    const stockRows = [['S.No.', 'Product Name', 'Barcode', 'Category', 'Size', 'Color', 'Selling Price (₹)', 'Purchase Price (₹)', 'GST%', 'Current Stock']];
     products.forEach((p, i) => stockRows.push([
       i + 1, p.name, p.barcode || '-', p.category || '-', p.size || '-', p.color || '-',
       p.sellingPrice || 0, p.purchasePrice || 0, p.gstPct + '%', p.currentStock
@@ -326,13 +326,13 @@ const totalTaxCollected = filteredInvoices.reduce(
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(stockRows), 'Clothing Stock');
 
     // Item-wise sales
-    const itemRows = [['#', 'Item Name', 'Size', 'HSN', 'UOM', 'GST%', 'Qty Sold', 'Taxable Amt', 'Total GST', 'Grand Total']];
+    const itemRows = [['S.No.', 'Item Name', 'Size', 'HSN', 'UOM', 'GST%', 'Qty Sold', 'Taxable Amt', 'Total GST', 'Grand Total']];
     itemWise.forEach((r, i) => itemRows.push([i + 1, r.name, r.size, r.hsn, r.uom, r.gstPct + '%', r.qtySold, r.taxable, r.totalGst, r.grandTotal]));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
 
     // Salesman-wise sales
-    const salesmanRows = [['#', 'Salesman', 'Bills', 'Qty Sold', 'Taxable Amt', 'Total GST', 'Grand Total']];
+    const salesmanRows = [['S.No.', 'Salesman', 'Bills', 'Qty Sold', 'Taxable Amt', 'Total GST', 'Grand Total']];
     salesmanWise.forEach((r, i) => salesmanRows.push([
       i + 1, r.salesman, r.billsCount, r.qtySold, r.taxable.toFixed(2), r.totalGst.toFixed(2), r.grandTotal.toFixed(2)
     ]));
