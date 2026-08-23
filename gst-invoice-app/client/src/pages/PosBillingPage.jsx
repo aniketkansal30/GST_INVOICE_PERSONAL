@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useInvoices } from '../context/InvoiceContext';
 import {
   Scan, Search, Plus, Minus, Trash2, Printer, CheckCircle2,
-  AlertCircle, Sparkles, User, CreditCard, Banknote, QrCode,
+  AlertCircle, Sparkles, User, UserCheck, CreditCard, Banknote, QrCode,
   RotateCcw, PauseCircle, PlayCircle, ShoppingBag, ArrowRight,
   Receipt, ArrowUpRight, Zap, Edit2, ArrowLeft
 } from 'lucide-react';
@@ -19,6 +19,43 @@ export default function PosBillingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
+    // ── Salesman list & selection — persisted in localStorage so add/remove survives reload ──
+  const DEFAULT_SALESMEN = ['Ankit', 'Anushka', 'Arun FM.', 'Brijesh', 'Govind-Arrow', 'Himanshu', 'Nil', 'Sandeep', 'Shadab'];
+  const getSavedSalesmen = () => {
+    try {
+      const saved = localStorage.getItem('pos_salesmen');
+      return saved ? JSON.parse(saved) : DEFAULT_SALESMEN;
+    } catch {
+      return DEFAULT_SALESMEN;
+    }
+  };
+  const [salesmenList, setSalesmenList] = useState(getSavedSalesmen);
+  const [salesman, setSalesman] = useState('');
+  const [showSalesmanManager, setShowSalesmanManager] = useState(false);
+  const [newSalesmanName, setNewSalesmanName] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('pos_salesmen', JSON.stringify(salesmenList));
+  }, [salesmenList]);
+
+  const handleAddSalesman = () => {
+    const name = newSalesmanName.trim();
+    if (!name) return;
+    if (salesmenList.some(s => s.toLowerCase() === name.toLowerCase())) {
+      toast.error('Yeh naam pehle se list mein hai');
+      return;
+    }
+    setSalesmenList(prev => [...prev, name]);
+    setNewSalesmanName('');
+    toast.success(`${name} add ho gaya`);
+  };
+
+  const handleRemoveSalesman = (name) => {
+    if (!window.confirm(`"${name}" ko list se hataana hai? (Job chhod di / shop chhod di)`)) return;
+    setSalesmenList(prev => prev.filter(s => s !== name));
+    if (salesman === name) setSalesman(''); // agar wahi selected tha toh clear karo
+    toast.success(`${name} hata diya`);
+  };
 
   // Barcode input & state
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -174,7 +211,7 @@ export default function PosBillingPage() {
           state: buyer.state || user?.state || 'Uttar Pradesh',
         });
         setShowCustomerFields(!!(buyer.clientName && buyer.clientName !== 'Walk-in Customer') || !!buyer.contact);
-
+ setSalesman(inv.salesman || ''); 
         setCart((inv.items || []).map((item) => ({
           productId: item.productId,
           name: item.name,
@@ -620,6 +657,7 @@ export default function PosBillingPage() {
       const invoicePayload = {
         invoiceDate: (isEditMode && invoiceMeta?.invoiceDate) ? invoiceMeta.invoiceDate : new Date(),
         status: 'paid',
+        salesman: salesman || '',
         seller: {
           companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
           gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
@@ -1034,6 +1072,78 @@ export default function PosBillingPage() {
 
         {/* Right Column: Totals, Customer, Payment & Print Button (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
+           {/* Salesman Selector */}
+          <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 p-4 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserCheck size={16} className="text-ink-500" />
+                <span className="text-xs font-bold text-ink-800 dark:text-ink-200 uppercase tracking-wider">
+                  Salesman
+                </span>
+              </div>
+              <button
+                onClick={() => setShowSalesmanManager(prev => !prev)}
+                className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+              >
+                {showSalesmanManager ? 'Done' : 'Manage'}
+              </button>
+            </div>
+
+            <select
+              value={salesman}
+              onChange={(e) => setSalesman(e.target.value)}
+              className="input text-xs py-1.5"
+            >
+              <option value="">-- Select Salesman --</option>
+              {salesmenList.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+
+            {showSalesmanManager && (
+              <div className="pt-2 border-t border-ink-100 dark:border-ink-800 space-y-2 animate-slide-up">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newSalesmanName}
+                    onChange={(e) => setNewSalesmanName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSalesman(); } }}
+                    placeholder="Naya salesman naam"
+                    className="input text-xs py-1.5 flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSalesman}
+                    className="btn-secondary text-xs px-3 py-1.5"
+                  >
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {salesmenList.map((name) => (
+                    <span
+                      key={name}
+                      className="inline-flex items-center gap-1 bg-ink-100 dark:bg-ink-800 text-ink-700 dark:text-ink-200 text-[11px] font-medium px-2 py-1 rounded-lg"
+                    >
+                      {name}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSalesman(name)}
+                        className="text-ink-400 hover:text-rose-600 ml-0.5"
+                        title="Remove (job/shop chhod di)"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </span>
+                  ))}
+                  {salesmenList.length === 0 && (
+                    <p className="text-[11px] text-ink-400">Koi salesman nahi hai — upar se add karein.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           {/* Customer / Walk-in Toggle Bar */}
           <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 p-4 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
