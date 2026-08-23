@@ -293,6 +293,21 @@ export default function InventoryPage() {
     }, {})
   ).sort((a, b) => b.qtySold - a.qtySold);
 
+    const salesmanWise = Object.values(
+    filteredInvoices.reduce((acc, inv) => {
+      const key = inv.salesman && inv.salesman.trim() ? inv.salesman.trim() : 'Unassigned';
+      if (!acc[key]) acc[key] = {
+        salesman: key, billsCount: 0, qtySold: 0, taxable: 0, totalGst: 0, grandTotal: 0,
+      };
+      acc[key].billsCount += 1;
+      acc[key].qtySold += (inv.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
+      acc[key].taxable += Number(inv.subtotal) || 0;
+      acc[key].totalGst += Number(inv.totalGst) || ((inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0));
+      acc[key].grandTotal += Number(inv.grandTotal) || 0;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.grandTotal - a.grandTotal);
+
   const totalSalesValue = filteredInvoices.reduce((s, inv) => s + (inv.grandTotal || 0), 0);
 const totalQtySold = itemWise.reduce((s, r) => s + r.qtySold, 0);
 const totalTaxCollected = filteredInvoices.reduce(
@@ -487,6 +502,7 @@ const totalTaxCollected = filteredInvoices.reduce(
           { key: 'stock', label: '📦 Garment Stock & Barcodes' },
           { key: 'item', label: '📊 Item-wise Sales' },
           { key: 'hsn', label: '📑 HSN Summary' },
+          { key: 'salesman', label: '🧑‍💼 Salesman-wise Sales' }, 
         ].map(tab => (
           <button
             key={tab.key}
@@ -730,6 +746,48 @@ const totalTaxCollected = filteredInvoices.reduce(
                       <td className="py-2.5 px-3 font-bold text-ink-900 dark:text-ink-100">{row.hsn}</td>
                       <td className="py-2.5 px-3 font-sans">{row.description}</td>
                       <td className="py-2.5 px-3 text-center">{row.gstPct}%</td>
+                      <td className="py-2.5 px-3 text-right font-bold text-emerald-600">{row.qtySold}</td>
+                      <td className="py-2.5 px-3 text-right">₹{row.taxable.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right text-amber-600">₹{row.totalGst.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right font-bold text-ink-900 dark:text-ink-100">₹{row.grandTotal.toFixed(2)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: Salesman-wise Sales Report */}
+      {activeTab === 'salesman' && (
+        <div className="card p-5 space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse font-mono">
+              <thead className="bg-ink-50 dark:bg-ink-800 text-ink-500 uppercase text-[10px]">
+                <tr>
+                  <th className="py-2.5 px-3">#</th>
+                  <th className="py-2.5 px-3 font-sans">Salesman</th>
+                  <th className="py-2.5 px-3 text-right">Bills</th>
+                  <th className="py-2.5 px-3 text-right">Qty Sold</th>
+                  <th className="py-2.5 px-3 text-right">Taxable Value</th>
+                  <th className="py-2.5 px-3 text-right">Total GST</th>
+                  <th className="py-2.5 px-3 text-right">Grand Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
+                {salesmanWise.length === 0 ? (
+                  <tr><td colSpan={7} className="py-8 text-center text-ink-400">No sales recorded</td></tr>
+                ) : (
+                  salesmanWise.map((row, i) => (
+                    <tr key={i} className="hover:bg-ink-50/60 dark:hover:bg-ink-800/40">
+                      <td className="py-2.5 px-3 text-ink-400">{i + 1}</td>
+                      <td className="py-2.5 px-3 font-sans font-semibold text-ink-900 dark:text-ink-100">
+                        {row.salesman === 'Unassigned' ? (
+                          <span className="text-ink-400 italic">Unassigned</span>
+                        ) : row.salesman}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-sky-600">{row.billsCount}</td>
                       <td className="py-2.5 px-3 text-right font-bold text-emerald-600">{row.qtySold}</td>
                       <td className="py-2.5 px-3 text-right">₹{row.taxable.toFixed(2)}</td>
                       <td className="py-2.5 px-3 text-right text-amber-600">₹{row.totalGst.toFixed(2)}</td>
