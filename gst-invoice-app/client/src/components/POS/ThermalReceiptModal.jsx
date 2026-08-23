@@ -459,6 +459,24 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
               ))}
             </div>
 
+            {/* Terms & Conditions */}
+            <div className="py-1.5 border-b border-dashed border-black text-[9px] text-black text-left">
+              <p className="font-bold text-[9px] uppercase mb-0.5">Sale Terms &amp; Conditions:</p>
+              <ol className="list-decimal list-inside space-y-0.5">
+                <li>All disputes are subject to exclusive jurisdiction of the courts of {seller.state || 'the applicable jurisdiction'}.</li>
+                <li>It is the responsibility of the customer to check the condition and quantity of purchased items before leaving the store. No claim will be entertained once the customer has left the store premises.</li>
+                <li>Customer is responsible to check balance cash received before leaving the store.</li>
+                <li>No cash/credit card refunds shall be made for returns once goods are sold.</li>
+              </ol>
+              <p className="font-bold text-[9px] uppercase mt-1.5 mb-0.5">Exchange Terms &amp; Conditions:</p>
+              <ol className="list-decimal list-inside space-y-0.5">
+                <li>Exchange can only be done within 7 days of purchase, against production of original invoice.</li>
+                <li>No exchange will be entertained after 7 days.</li>
+              </ol>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-2 text-center text-[10px] space-y-1"></div>
             {/* Footer */}
             <div className="pt-2 text-center text-[10px] space-y-1">
               <p className="font-bold tracking-wider">*** THANK YOU! VISIT AGAIN ***</p>

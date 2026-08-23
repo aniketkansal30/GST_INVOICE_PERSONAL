@@ -3,7 +3,7 @@
   gstNumber: '09AJTPK3679H1ZG',
   panNumber: 'AADFI0426M',
   address: 'Shop No 188 T, Abulane, Near Nishant Cinema, Meerut Cantt, Uttar Pradesh',
-  contact: '9719201802',
+  contact: '9411446600',
   state: 'Uttar Pradesh',
 };
 

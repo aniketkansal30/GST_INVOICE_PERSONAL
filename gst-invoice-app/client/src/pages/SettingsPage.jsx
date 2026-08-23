@@ -177,7 +177,7 @@ export default function SettingsPage() {
                 <input
                   value={profile.contact}
                   onChange={e => setProfile(p => ({ ...p, contact: e.target.value }))}
-                  placeholder="9719201802"
+                  placeholder="9411446600"
                   className="input font-mono"
                 />
               </div>
