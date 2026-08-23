@@ -216,9 +216,34 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
           #thermal-print-portal {
             display: block !important;
           }
-          #thermal-print-portal .no-print,
-          #thermal-print-portal .no-print-bg {
+          #thermal-print-portal .no-print {
             display: none !important;
+          }
+          /* Neutralize the modal's dark backdrop / centering box for print —
+             do NOT display:none this, since the receipt itself lives inside it. */
+          #thermal-print-portal .print-overlay {
+            position: static !important;
+            inset: auto !important;
+            background: none !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+          #thermal-print-portal .print-card {
+            max-height: none !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            width: auto !important;
+            max-width: none !important;
+            background: none !important;
+          }
+          #thermal-print-portal .print-scroll-area {
+            overflow: visible !important;
+            padding: 0 !important;
+            background: none !important;
+            display: block !important;
           }
           #thermal-receipt-printable {
             position: static !important;
@@ -236,8 +261,8 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
         }
       `}</style>
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in no-print-bg">
-        <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="print-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in no-print-bg">
+        <div className="print-card bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
           {/* Modal Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100 dark:border-ink-800 no-print">
             <div className="flex items-center gap-2.5">
@@ -279,7 +304,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
           </div>
 
           {/* Receipt Scroll Area */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 flex justify-center bg-ink-50 dark:bg-ink-950/40">
+          <div className="print-scroll-area flex-1 min-h-0 overflow-y-auto p-4 flex justify-center bg-ink-50 dark:bg-ink-950/40">
             <div
               ref={receiptRef}
               id="thermal-receipt-printable"
