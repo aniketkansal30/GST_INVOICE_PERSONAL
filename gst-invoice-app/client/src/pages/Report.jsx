@@ -794,7 +794,7 @@ export default function Report() {
               </tbody>
               {salesmanWise.length>0 && (
                 <tfoot><tr style={{background:'#1c1c18',color:'white'}}>
-                  <td colSpan={3} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
+                  <td colSpan={4} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
                   {['taxable','cgst','sgst','igst','total'].map(k=>(
                     <td key={k} style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(salesmanWise.reduce((s,r)=>s+r[k],0))}</td>
                   ))}
