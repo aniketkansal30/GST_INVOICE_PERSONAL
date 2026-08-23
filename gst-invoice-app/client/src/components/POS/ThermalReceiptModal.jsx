@@ -270,7 +270,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
               {seller.state && <p className="text-[10px]">State: {seller.state}</p>}
             </div>
 
-            {/* Bill Details */}
+                       {/* Bill Details */}
             <div className="py-1.5 border-b border-dashed border-black text-[10px] space-y-0.5">
               <div className="flex justify-between">
                 <span>Bill No: <strong className="font-bold">{invoice.invoiceNumber}</strong></span>
@@ -280,6 +280,11 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                 <span>Time: {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                 <span>Mode: <strong>{paymentMode}</strong></span>
               </div>
+              {invoice.salesman && (
+                <div className="flex justify-between text-black">
+                  <span>Salesman: <strong>{invoice.salesman}</strong></span>
+                </div>
+              )}
               {buyer.clientName && buyer.clientName !== 'Walk-in Customer' && (
                 <div className="pt-0.5 text-neutral-800">
                   <span>Customer: {buyer.clientName} {buyer.contact ? `(${buyer.contact})` : ''}</span>
