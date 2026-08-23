@@ -462,7 +462,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                        {/* Terms & Conditions */}
             <div className="py-1.5 border-b border-dashed border-black text-[9px] text-black text-left space-y-0.5">
               <p className="font-bold text-[9px] uppercase mb-0.5">Sale Terms &amp; Conditions:</p>
-              <p>1. All disputes are subject to exclusive jurisdiction of the courts of {seller.state || 'the applicable jurisdiction'}.</p>
+              <p>1. All disputes are subject to exclusive jurisdiction of the courts of ,meerut {seller.state || 'the applicable jurisdiction'}.</p>
               <p>2. It is the responsibility of the customer to check the condition and quantity of purchased items before leaving the store. No claim will be entertained once the customer has left the store premises.</p>
               <p>3. Customer is responsible to check balance cash received before leaving the store.</p>
               <p>4. No cash/credit card refunds shall be made for returns once goods are sold.</p>
