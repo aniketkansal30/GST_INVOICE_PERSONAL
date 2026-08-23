@@ -17,6 +17,7 @@ export default function Report() {
   const [expandedHSN, setExpandedHSN] = useState({});
   const [expandedGST, setExpandedGST] = useState({});
   const [expandedItem, setExpandedItem] = useState({});
+   const [expandedSalesman, setExpandedSalesman] = useState({});
 
   useEffect(() => { fetchInvoices({ limit: 1000, page: 1 }); }, []);
   useEffect(() => { setAllInvoices(invoices); }, [invoices]);
@@ -48,6 +49,29 @@ export default function Report() {
       return acc;
     }, {})
   );
+  // Salesman-wise with invoice-level detail
+  const salesmanWise = Object.values(
+    filtered.reduce((acc, inv) => {
+      const key = inv.salesman && inv.salesman.trim() ? inv.salesman.trim() : 'Unassigned';
+      if (!acc[key]) acc[key] = {
+        salesman: key, invoiceList: [], taxable: 0, cgst: 0, sgst: 0, igst: 0, total: 0,
+      };
+      acc[key].invoiceList.push({
+        invoiceNumber: inv.invoiceNumber,
+        invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
+        party: inv.buyer?.clientName || '-',
+        hsn: (inv.items || []).map(i => i.hsn || '-').filter((v, i, a) => a.indexOf(v) === i).join(', '),
+        taxable: inv.subtotal || 0, cgst: inv.cgst || 0, sgst: inv.sgst || 0,
+        igst: inv.igst || 0, total: inv.grandTotal || 0, status: inv.status || 'draft',
+      });
+      acc[key].taxable += inv.subtotal || 0;
+      acc[key].cgst += inv.cgst || 0;
+      acc[key].sgst += inv.sgst || 0;
+      acc[key].igst += inv.igst || 0;
+      acc[key].total += inv.grandTotal || 0;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.total - a.total);
 
   // HSN-wise with invoice-level drill-down
   const hsnWise = Object.values(
@@ -159,6 +183,7 @@ export default function Report() {
   const toggleHSN = (k) => setExpandedHSN(p => ({ ...p, [k]: !p[k] }));
   const toggleGST = (k) => setExpandedGST(p => ({ ...p, [k]: !p[k] }));
   const toggleItem = (k) => setExpandedItem(p => ({ ...p, [k]: !p[k] }));
+  const toggleSalesman = (k) => setExpandedSalesman(p => ({ ...p, [k]: !p[k] }));
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -195,6 +220,18 @@ export default function Report() {
       });
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise');
+
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise');
+
+    const salesmanRows = [['#','Salesman','Invoice No','Date','Party','Taxable','CGST','SGST','IGST','Total','Status']];
+    salesmanWise.forEach((r, i) => {
+      r.invoiceList.forEach(inv => {
+        salesmanRows.push([i+1, r.salesman, inv.invoiceNumber, inv.invoiceDate, inv.party, inv.taxable, inv.cgst, inv.sgst, inv.igst, inv.total, inv.status]);
+      });
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(salesmanRows), 'Salesman-wise');
+
+    
 
     const month = selectedMonth ? months.find(m => m.value === selectedMonth)?.label : 'All';
     XLSX.writeFile(wb, `GSTR1_${month}_${selectedYear || 'All'}.xlsx`);
@@ -404,11 +441,12 @@ export default function Report() {
     {value:'10',label:'October'},{value:'11',label:'November'},{value:'12',label:'December'},
   ];
   const years = ['2023','2024','2025','2026'];
-  const tabs = [
+   const tabs = [
     {key:'party',label:'Party-wise (B2B)'},
     {key:'hsn',label:'HSN-wise'},
     {key:'gst',label:'GST % wise'},
     {key:'item',label:'Item-wise'},
+    {key:'salesman',label:'Salesman-wise'},
   ];
 
   const thS = (right=false) => ({ padding:'10px 12px', textAlign:right?'right':'left', fontSize:'11px', fontWeight:'700', textTransform:'uppercase', letterSpacing:'0.5px', color:'white', whiteSpace:'nowrap', background:'#1c1c18' });
@@ -706,6 +744,62 @@ export default function Report() {
                 <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(itemWise.reduce((s,r)=>s+r.gst,0))}</td>
                 <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(itemWise.reduce((s,r)=>s+r.total,0))}</td>
               </tr></tfoot>}
+            </table>
+          </div>
+        )}
+                {/* Salesman-wise with drill-down */}
+        {activeTab==='salesman' && (
+          <div className="overflow-x-auto">
+            <table style={{width:'100%',borderCollapse:'collapse'}}>
+              <thead><tr>
+                {['','#','Salesman','Invoices','Taxable Amt','CGST','SGST','IGST','Total'].map((h,i)=>(
+                  <th key={i} style={thS(i>=3)}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {salesmanWise.length===0
+                  ? <tr><td colSpan={9} style={{textAlign:'center',padding:40,color:'#888'}}>No data</td></tr>
+                  : salesmanWise.map((row,i)=>(
+                    <React.Fragment key={i}>
+                      <tr style={{background:i%2===0?'white':'#f4f4f0',cursor:'pointer'}} onClick={()=>toggleSalesman(row.salesman)}>
+                        <td style={{...tdS(),width:32}}>{expandedSalesman[row.salesman]?<ChevronDown size={14}/>:<ChevronRight size={14}/>}</td>
+                        <td style={tdS()}>{i+1}</td>
+                        <td style={tdS()}><strong>{row.salesman}</strong></td>
+                        <td style={tdS(true)}>{row.invoiceList.length}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.cgst)}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.sgst)}</td>
+                        <td style={tdS(true)}>{formatCurrency(row.igst)}</td>
+                        <td style={{...tdS(true),fontWeight:'700'}}>{formatCurrency(row.total)}</td>
+                      </tr>
+                      {expandedSalesman[row.salesman] && row.invoiceList.map((inv,j)=>(
+                        <tr key={j} style={{background:'#eef2ff'}}>
+                          <td colSpan={2} style={{...tdS(),paddingLeft:32}}></td>
+                          <td style={{...tdS(),paddingLeft:16,fontSize:12,color:'#3730a3'}}>
+                            <span style={{fontFamily:'monospace',fontWeight:600}}>{inv.invoiceNumber}</span>
+                            <span style={{marginLeft:8,fontSize:11,color:'#6e6e60'}}>{inv.invoiceDate}</span>
+                            <span style={{marginLeft:8,fontSize:11,color:'#888'}}>· {inv.party}</span>
+                            <span style={{marginLeft:8,fontSize:10,padding:'2px 6px',borderRadius:4,background:statusColor(inv.status)+'20',color:statusColor(inv.status),fontWeight:600}}>{inv.status?.toUpperCase()}</span>
+                          </td>
+                          <td style={{...tdS(true),fontSize:12}}>1</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.taxable)}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.cgst)}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.sgst)}</td>
+                          <td style={{...tdS(true),fontSize:12}}>{formatCurrency(inv.igst)}</td>
+                          <td style={{...tdS(true),fontSize:12,fontWeight:700}}>{formatCurrency(inv.total)}</td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+              </tbody>
+              {salesmanWise.length>0 && (
+                <tfoot><tr style={{background:'#1c1c18',color:'white'}}>
+                  <td colSpan={3} style={{padding:'10px 12px',fontWeight:'700',fontSize:'12px'}}>TOTAL</td>
+                  {['taxable','cgst','sgst','igst','total'].map(k=>(
+                    <td key={k} style={{padding:'10px 12px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}}>{formatCurrency(salesmanWise.reduce((s,r)=>s+r[k],0))}</td>
+                  ))}
+                </tr></tfoot>
+              )}
             </table>
           </div>
         )}
