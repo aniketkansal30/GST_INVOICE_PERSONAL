@@ -97,13 +97,6 @@ const allStats = useMemo(() => ({
   const [pinError, setPinError] = useState('');
   const [pendingAction, setPendingAction] = useState(null); // { type: 'edit' | 'delete', id }
 
-  useEffect(() => {
-    fetchInvoices({ search, page, limit: 10 });
-  }, [search, page]);
-
-  useEffect(() => {
-    refreshStats();
-  }, [refreshStats]);
 
   const handleDelete = async (id) => {
     setDeleting(id);
