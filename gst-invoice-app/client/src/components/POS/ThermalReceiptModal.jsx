@@ -3,6 +3,12 @@ import { createPortal } from 'react-dom';
 import { Printer, X, Download, Check, Sparkles, Save, Trash2, Plus, Minus } from 'lucide-react';
 import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../../utils/invoiceUtils';
 
+// Standard receipt width — a single, fixed size instead of a 58mm/80mm
+// toggle. 80mm is the common thermal-roll width and gives item/rate/amount
+// columns enough room that numbers never collide, regardless of screen or
+// printer.
+const RECEIPT_WIDTH = '80mm';
+
 // Recomputes subtotal / GST / grand total from a list of cart-style items.
 // `item.rate` is treated as the MRP (GST-inclusive) per-unit price, so GST
 // is reverse-extracted out of it — same logic used on the POS billing screen.
@@ -50,10 +56,8 @@ function computeTotals(items, isSameState) {
 // `editable`  — show qty/rate/discount as inputs + a Save button instead of Print.
 // `onSave(id, payload)` — called with the recomputed invoice payload when Save is clicked.
 export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint = false, editable = false, onSave }) {
-  const [paperWidth, setPaperWidth] = useState('80mm'); // '80mm' or '58mm'
   const [saving, setSaving] = useState(false);
   const receiptRef = useRef(null);
-  const isNarrow = paperWidth === '58mm';
 
   const isSameState = invoice ? (invoice.isSameState !== undefined ? invoice.isSameState : true) : true;
 
@@ -247,15 +251,20 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
           }
           #thermal-receipt-printable {
             position: static !important;
-            width: ${paperWidth} !important;
-            max-width: ${paperWidth} !important;
+            width: ${RECEIPT_WIDTH} !important;
+            max-width: ${RECEIPT_WIDTH} !important;
             margin: 0 auto !important;
             padding: 4px !important;
             box-shadow: none !important;
             border: none !important;
+            color: #000 !important;
+            background: #fff !important;
+          }
+          #thermal-receipt-printable * {
+            color: #000 !important;
           }
           @page {
-            size: ${paperWidth} auto;
+            size: ${RECEIPT_WIDTH} auto;
             margin: 0;
           }
         }
@@ -277,30 +286,12 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Paper Size selector */}
-              <div className="flex bg-ink-100 dark:bg-ink-800 p-0.5 rounded-lg text-xs font-mono">
-                <button
-                  onClick={() => setPaperWidth('58mm')}
-                  className={`px-2 py-1 rounded transition-all ${paperWidth === '58mm' ? 'bg-white dark:bg-ink-700 shadow-xs font-bold text-ink-900 dark:text-white' : 'text-ink-500'}`}
-                >
-                  58mm
-                </button>
-                <button
-                  onClick={() => setPaperWidth('80mm')}
-                  className={`px-2 py-1 rounded transition-all ${paperWidth === '80mm' ? 'bg-white dark:bg-ink-700 shadow-xs font-bold text-ink-900 dark:text-white' : 'text-ink-500'}`}
-                >
-                  80mm
-                </button>
-              </div>
-
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+            >
+              <X size={18} />
+            </button>
           </div>
 
           {/* Receipt Scroll Area */}
@@ -308,21 +299,21 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             <div
               ref={receiptRef}
               id="thermal-receipt-printable"
-              style={{ width: paperWidth === '58mm' ? '58mm' : '80mm', minWidth: paperWidth === '58mm' ? '58mm' : '80mm' }}
-              className={`bg-white text-black font-mono ${isNarrow ? 'text-[9px]' : 'text-[11px]'} leading-tight ${isNarrow ? 'p-2' : 'p-3'} shadow-md rounded-sm border border-dashed border-ink-300 print:shadow-none print:border-none print:m-0 print:p-1`}
+              style={{ width: RECEIPT_WIDTH, minWidth: RECEIPT_WIDTH }}
+              className="bg-white text-black font-mono text-[11px] leading-tight p-3 shadow-md rounded-sm border border-dashed border-ink-300 print:shadow-none print:border-none print:m-0 print:p-1"
             >
               {/* Store Header */}
               <div className="text-center pb-2 border-b border-dashed border-black space-y-0.5">
-                <p className={`font-bold ${isNarrow ? 'text-xs' : 'text-sm'} tracking-tight uppercase`}>{seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName}</p>
-                {seller.address && <p className={`${isNarrow ? 'text-[9px]' : 'text-[10px]'} leading-3 text-black`}>{seller.address}</p>}
-                {seller.contact && <p className={isNarrow ? 'text-[9px]' : 'text-[10px]'}>Mobile: {seller.contact}</p>}
-                {seller.gstNumber && <p className={`${isNarrow ? 'text-[9px]' : 'text-[10px]'} font-semibold`}>GSTIN: {seller.gstNumber}</p>}
-                {sellerPan && <p className={`${isNarrow ? 'text-[9px]' : 'text-[10px]'} font-semibold`}>PAN No: {sellerPan}</p>}
-                {seller.state && <p className={isNarrow ? 'text-[9px]' : 'text-[10px]'}>State: {seller.state}</p>}
+                <p className="font-bold text-sm tracking-tight uppercase">{seller.companyName || user?.companyName || DEFAULT_STORE_DETAILS.companyName}</p>
+                {seller.address && <p className="text-[10px] leading-3 text-black">{seller.address}</p>}
+                {seller.contact && <p className="text-[10px]">Mobile: {seller.contact}</p>}
+                {seller.gstNumber && <p className="text-[10px] font-semibold">GSTIN: {seller.gstNumber}</p>}
+                {sellerPan && <p className="text-[10px] font-semibold">PAN No: {sellerPan}</p>}
+                {seller.state && <p className="text-[10px]">State: {seller.state}</p>}
               </div>
 
               {/* Bill Details */}
-              <div className={`py-1.5 border-b border-dashed border-black ${isNarrow ? 'text-[9px]' : 'text-[10px]'} space-y-0.5`}>
+              <div className="py-1.5 border-b border-dashed border-black text-[10px] space-y-0.5">
                 <div className="flex justify-between">
                   <span>Bill No: <strong className="font-bold">{invoice.invoiceNumber}</strong></span>
                   <span>{invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}</span>
@@ -343,31 +334,32 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                 )}
               </div>
 
-              {/* Item Table Header */}
-              <div className={`py-1 border-b border-black ${isNarrow ? 'text-[9px]' : 'text-[10px]'} font-bold`}>
-                <div className="flex justify-between">
-                  <span className="flex-1">ITEM {isNarrow ? '' : '(SIZE/CLR)'}</span>
-                  <span className={`${isNarrow ? 'w-6' : 'w-8'} text-center`}>QTY</span>
-                  <span className={`${isNarrow ? 'w-10' : 'w-12'} text-right`}>RATE</span>
-                  <span className={`${isNarrow ? 'w-11' : 'w-14'} text-right`}>AMT</span>
-                  {editable && <span className="w-5" />}
+              {/* Item Table Header — fixed, non-shrinking column widths with
+                  gaps so RATE and AMT never collide, whatever the numbers. */}
+              <div className="py-1 border-b border-black text-[10px] font-bold">
+                <div className="flex items-center gap-1.5">
+                  <span className="flex-1">ITEM (SIZE/CLR)</span>
+                  <span className="w-7 shrink-0 text-center">QTY</span>
+                  <span className="w-16 shrink-0 text-right">RATE</span>
+                  <span className="w-16 shrink-0 text-right">AMT</span>
+                  {editable && <span className="w-5 shrink-0" />}
                 </div>
               </div>
 
               {/* Items List */}
-              <div className="py-1 border-b border-dashed border-black space-y-1">
+              <div className="py-1 border-b border-dashed border-black space-y-1.5">
                 {items.map((item, idx) => {
                   const itemTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
                   const tagInfo = [item.size ? `Sz:${item.size}` : '', item.color ? item.color : ''].filter(Boolean).join('/');
                   return (
-                    <div key={idx} className={isNarrow ? 'text-[9px]' : 'text-[10px]'}>
-                      <div className="flex justify-between items-center font-semibold">
+                    <div key={idx} className="text-[10px]">
+                      <div className="flex items-center gap-1.5 font-semibold">
                         <span className="flex-1 truncate pr-1">
                           {item.name}
                         </span>
                         {editable ? (
                           <>
-                            <span className={`${isNarrow ? 'w-9' : 'w-12'} flex items-center justify-center gap-0.5 font-normal`}>
+                            <span className="w-14 shrink-0 flex items-center justify-center gap-0.5 font-normal">
                               <button
                                 type="button"
                                 onClick={() => bumpQty(idx, -1)}
@@ -380,7 +372,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                                 min="1"
                                 value={item.qty}
                                 onChange={(e) => updateEditableField(idx, 'qty', e.target.value)}
-                                className="w-5 text-center bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
+                                className="w-6 text-center bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
                               />
                               <button
                                 type="button"
@@ -396,21 +388,21 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                               step="0.5"
                               value={item.rate}
                               onChange={(e) => updateEditableField(idx, 'rate', e.target.value)}
-                              className={`${isNarrow ? 'w-10' : 'w-12'} text-right font-normal bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print`}
+                              className="w-16 shrink-0 text-right font-normal bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
                             />
                           </>
                         ) : (
                           <>
-                            <span className={`${isNarrow ? 'w-6' : 'w-8'} text-center font-normal`}>{item.qty}</span>
-                            <span className={`${isNarrow ? 'w-10' : 'w-12'} text-right font-normal`}>{Number(item.rate).toFixed(2)}</span>
+                            <span className="w-7 shrink-0 text-center font-normal">{item.qty}</span>
+                            <span className="w-16 shrink-0 text-right font-normal tabular-nums">{Number(item.rate).toFixed(2)}</span>
                           </>
                         )}
-                        <span className={`${isNarrow ? 'w-11' : 'w-14'} text-right`}>{itemTotal.toFixed(2)}</span>
+                        <span className="w-16 shrink-0 text-right tabular-nums">{itemTotal.toFixed(2)}</span>
                         {editable && (
                           <button
                             type="button"
                             onClick={() => removeEditableItem(idx)}
-                            className="w-5 flex items-center justify-center text-red-600 no-print"
+                            className="w-5 shrink-0 flex items-center justify-center text-red-600 no-print"
                             title="Remove item"
                           >
                             <Trash2 size={11} />
@@ -453,59 +445,59 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
               </div>
 
               {/* Totals Section */}
-              <div className={`py-1.5 border-b border-dashed border-black ${isNarrow ? 'text-[10px]' : 'text-[11px]'} space-y-1`}>
+              <div className="py-1.5 border-b border-dashed border-black text-[11px] space-y-1">
                 <div className="flex justify-between">
                   <span>Items Count ({items.reduce((s, i) => s + (Number(i.qty) || 0), 0)} pcs):</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
+                  <span className="tabular-nums">₹{subtotal.toFixed(2)}</span>
                 </div>
 
                 {cgst > 0 && (
                   <div className="flex justify-between text-[10px] text-black">
                     <span>CGST:</span>
-                    <span>₹{cgst.toFixed(2)}</span>
+                    <span className="tabular-nums">₹{cgst.toFixed(2)}</span>
                   </div>
                 )}
                 {sgst > 0 && (
                   <div className="flex justify-between text-[10px] text-black">
                     <span>SGST:</span>
-                    <span>₹{sgst.toFixed(2)}</span>
+                    <span className="tabular-nums">₹{sgst.toFixed(2)}</span>
                   </div>
                 )}
                 {igst > 0 && (
                   <div className="flex justify-between text-[10px] text-black">
                     <span>IGST:</span>
-                    <span>₹{igst.toFixed(2)}</span>
+                    <span className="tabular-nums">₹{igst.toFixed(2)}</span>
                   </div>
                 )}
                 {hasDiscount && (
                   <div className="text-[9px] text-black flex justify-between">
                     <span>Discount Applied:</span>
-                    <span>-₹{totalDiscountAmount.toFixed(2)}</span>
+                    <span className="tabular-nums">-₹{totalDiscountAmount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className={`flex justify-between pt-1 border-t border-black font-bold ${isNarrow ? 'text-xs' : 'text-sm'}`}>
+                <div className="flex justify-between pt-1 border-t border-black font-bold text-sm">
                   <span>NET TOTAL:</span>
-                  <span>₹{grandTotal.toFixed(2)}</span>
+                  <span className="tabular-nums">₹{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
 
               {/* GST Tax Summary Table */}
               <div className="py-1 border-b border-dashed border-black text-[9px] text-black">
                 <p className="font-bold text-[9px] uppercase mb-0.5">GST Tax Summary:</p>
-                <div className="flex justify-between font-semibold border-b border-dotted border-neutral-400 pb-0.5">
-                  <span>HSN/Rate</span>
-                  <span>Taxable</span>
-                  {!isNarrow && <span>CGST</span>}
-                  {!isNarrow && <span>SGST</span>}
-                  <span>Total Tax</span>
+                <div className="flex justify-between font-semibold border-b border-dotted border-neutral-400 pb-0.5 gap-1">
+                  <span className="flex-1">HSN/Rate</span>
+                  <span className="w-12 text-right">Taxable</span>
+                  <span className="w-10 text-right">CGST</span>
+                  <span className="w-10 text-right">SGST</span>
+                  <span className="w-14 text-right">Total Tax</span>
                 </div>
                 {taxSummary.map((t, i) => (
-                  <div key={i} className="flex justify-between pt-0.5">
-                    <span>{t.hsn} ({t.gstPct}%)</span>
-                    <span>{t.taxable.toFixed(1)}</span>
-                    {!isNarrow && <span>{t.cgst.toFixed(1)}</span>}
-                    {!isNarrow && <span>{t.sgst.toFixed(1)}</span>}
-                    <span className="font-semibold">{t.totalTax.toFixed(1)}</span>
+                  <div key={i} className="flex justify-between pt-0.5 gap-1">
+                    <span className="flex-1">{t.hsn} ({t.gstPct}%)</span>
+                    <span className="w-12 text-right tabular-nums">{t.taxable.toFixed(1)}</span>
+                    <span className="w-10 text-right tabular-nums">{t.cgst.toFixed(1)}</span>
+                    <span className="w-10 text-right tabular-nums">{t.sgst.toFixed(1)}</span>
+                    <span className="w-14 text-right font-semibold tabular-nums">{t.totalTax.toFixed(1)}</span>
                   </div>
                 ))}
               </div>
