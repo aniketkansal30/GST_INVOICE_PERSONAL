@@ -383,6 +383,57 @@ export default function InventoryPage() {
     );
     toast.success('Inventory exported to Excel!');
   };
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const row of rows) {
+        const payload = {
+          name: row['Product Name'] || row['name'] || '',
+          barcode: String(row['Barcode'] || row['barcode'] || ''),
+          category: row['Category'] || row['category'] || 'Shirts',
+          size: row['Size'] || row['size'] || 'M',
+          color: row['Color'] || row['color'] || '',
+          hsn: String(row['HSN'] || row['hsn'] || '6205'),
+          unit: row['Unit'] || row['unit'] || 'Pcs',
+          sellingPrice: Number(row['Selling Price'] || row['sellingPrice'] || 0),
+          purchasePrice: Number(row['Purchase Price'] || row['purchasePrice'] || 0),
+          gstPct: Number(row['GST%'] || row['gstPct'] || 5),
+          openingStock: Number(row['Current Stock'] || row['Stock'] || row['openingStock'] || 0),
+        };
+
+        if (!payload.name || payload.sellingPrice <= 0) {
+          failCount++;
+          continue;
+        }
+
+        try {
+          await api.post('/products', payload);
+          successCount++;
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      toast.success(`Imported ${successCount} items${failCount ? `, ${failCount} failed` : ''}`);
+      loadProducts();
+    } catch (err) {
+      toast.error('Failed to read Excel file');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const lowStockProducts = products.filter(p => p.currentStock <= 5);
 
