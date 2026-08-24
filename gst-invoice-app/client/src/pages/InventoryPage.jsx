@@ -70,6 +70,11 @@ export default function InventoryPage() {
 
   const fileInputRef = useRef(null);
   const [importing, setImporting] = useState(false);
+    // Column Mapping for flexible Excel import
+  const [showMappingModal, setShowMappingModal] = useState(false);
+  const [excelHeaders, setExcelHeaders] = useState([]);
+  const [excelRows, setExcelRows] = useState([]);
+  const [columnMapping, setColumnMapping] = useState({});
   useEffect(() => {
     fetchInvoices({ limit: 1000, page: 1 });
     loadProducts();
@@ -218,7 +223,70 @@ export default function InventoryPage() {
       toast.error('Delete failed');
     }
   };
+    // System fields jo humein product create karne ke liye chahiye
+  const SYSTEM_FIELDS = [
+    { key: 'name', label: 'Product Name', required: true },
+    { key: 'barcode', label: 'Barcode', required: false },
+    { key: 'category', label: 'Category', required: false },
+    { key: 'size', label: 'Size', required: false },
+    { key: 'color', label: 'Color', required: false },
+    { key: 'hsn', label: 'HSN Code', required: false },
+    { key: 'unit', label: 'Unit', required: false },
+    { key: 'sellingPrice', label: 'Selling Price', required: true },
+    { key: 'purchasePrice', label: 'Purchase Price', required: false },
+    { key: 'gstPct', label: 'GST %', required: false },
+    { key: 'openingStock', label: 'Current / Opening Stock', required: false },
+  ];
 
+  // Common header spellings jo alag-alag dukandaar/supplier use karte hain
+  const FIELD_ALIASES = {
+    name: ['product name', 'name', 'item name', 'item', 'title', 'description', 'product', 'garment name'],
+    barcode: ['barcode', 'bar code', 'code', 'sku', 'ean', 'upc'],
+    category: ['category', 'cat', 'type', 'garment type'],
+    size: ['size'],
+    color: ['color', 'colour'],
+    hsn: ['hsn', 'hsn code', 'hsn/sac', 'hsn sac'],
+    unit: ['unit', 'uom', 'units'],
+    sellingPrice: ['selling price', 'price', 'mrp', 'rate', 'sale price', 'sellingprice'],
+    purchasePrice: ['purchase price', 'cost', 'cost price', 'buy price', 'purchaseprice'],
+    gstPct: ['gst%', 'gst %', 'gst', 'gst rate', 'tax%', 'tax', 'gstpct'],
+    openingStock: ['current stock', 'stock', 'opening stock', 'qty', 'quantity', 'openingstock'],
+  };
+
+  const normalizeHeader = (h) => String(h || '').toLowerCase().trim().replace(/[_\-]/g, ' ').replace(/\s+/g, ' ');
+
+  // Har system field ke liye best-matching column index guess karta hai
+  const guessColumnMapping = (headers) => {
+    const normalizedHeaders = headers.map(normalizeHeader);
+    const mapping = {};
+
+    SYSTEM_FIELDS.forEach(field => {
+      const aliases = FIELD_ALIASES[field.key] || [];
+      let bestIdx = -1;
+
+      // Pehle exact match dhoondo
+      for (let i = 0; i < normalizedHeaders.length; i++) {
+        if (aliases.includes(normalizedHeaders[i])) {
+          bestIdx = i;
+          break;
+        }
+      }
+
+      // Exact match nahi mila to partial/includes match try karo
+      if (bestIdx === -1) {
+        for (let i = 0; i < normalizedHeaders.length; i++) {
+          if (aliases.some(a => normalizedHeaders[i].includes(a) || a.includes(normalizedHeaders[i]))) {
+            bestIdx = i;
+            break;
+          }
+        }
+      }
+
+      mapping[field.key] = bestIdx;
+    });
+
+    return mapping;
+  };
   // Filter products
   const filteredProductList = products.filter(p => {
     const q = searchFilter.toLowerCase();
@@ -383,56 +451,110 @@ export default function InventoryPage() {
     );
     toast.success('Inventory exported to Excel!');
   };
-  const handleImportExcel = async (e) => {
+
+  // STEP 1: File select hote hi sirf headers padho aur mapping modal kholo
+  const handleFileSelected = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setImporting(true);
     try {
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data);
       const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-      let successCount = 0;
-      let failCount = 0;
+      const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
-      for (const row of rows) {
-        const payload = {
-          name: row['Product Name'] || row['name'] || '',
-          barcode: String(row['Barcode'] || row['barcode'] || ''),
-          category: row['Category'] || row['category'] || 'Shirts',
-          size: row['Size'] || row['size'] || 'M',
-          color: row['Color'] || row['color'] || '',
-          hsn: String(row['HSN'] || row['hsn'] || '6205'),
-          unit: row['Unit'] || row['unit'] || 'Pcs',
-          sellingPrice: Number(row['Selling Price'] || row['sellingPrice'] || 0),
-          purchasePrice: Number(row['Purchase Price'] || row['purchasePrice'] || 0),
-          gstPct: Number(row['GST%'] || row['gstPct'] || 5),
-          openingStock: Number(row['Current Stock'] || row['Stock'] || row['openingStock'] || 0),
-        };
-
-        if (!payload.name || payload.sellingPrice <= 0) {
-          failCount++;
-          continue;
-        }
-
-        try {
-          await api.post('/products', payload);
-          successCount++;
-        } catch (err) {
-          failCount++;
-        }
+      if (!aoa || aoa.length === 0) {
+        toast.error('Excel file khaali hai ya padh nahi paaye');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
       }
 
-      toast.success(`Imported ${successCount} items${failCount ? `, ${failCount} failed` : ''}`);
-      loadProducts();
+      const headers = aoa[0].map(h => String(h).trim());
+      const rows = aoa.slice(1).filter(row => row.some(cell => cell !== '' && cell !== undefined && cell !== null));
+
+      if (rows.length === 0) {
+        toast.error('Excel file mein koi data row nahi mila');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      setExcelHeaders(headers);
+      setExcelRows(rows);
+      setColumnMapping(guessColumnMapping(headers));
+      setShowMappingModal(true);
     } catch (err) {
       toast.error('Failed to read Excel file');
-    } finally {
-      setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  // STEP 2: User ne mapping confirm ki, ab actual import karo
+  const handleConfirmImport = async () => {
+    const nameIdx = columnMapping.name;
+    const priceIdx = columnMapping.sellingPrice;
+
+    if (nameIdx === undefined || nameIdx === -1) {
+      return toast.error('Product Name column map karna zaroori hai');
+    }
+    if (priceIdx === undefined || priceIdx === -1) {
+      return toast.error('Selling Price column map karna zaroori hai');
+    }
+
+    setImporting(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    const getVal = (row, fieldKey) => {
+      const idx = columnMapping[fieldKey];
+      if (idx === undefined || idx === -1) return '';
+      return row[idx] !== undefined && row[idx] !== null ? row[idx] : '';
+    };
+
+    for (const row of excelRows) {
+      const payload = {
+        name: String(getVal(row, 'name') || '').trim(),
+        barcode: String(getVal(row, 'barcode') || ''),
+        category: String(getVal(row, 'category') || '') || 'Shirts',
+        size: String(getVal(row, 'size') || '') || 'M',
+        color: String(getVal(row, 'color') || ''),
+        hsn: String(getVal(row, 'hsn') || '') || '6205',
+        unit: String(getVal(row, 'unit') || '') || 'Pcs',
+        sellingPrice: Number(getVal(row, 'sellingPrice')) || 0,
+        purchasePrice: Number(getVal(row, 'purchasePrice')) || 0,
+        gstPct: Number(getVal(row, 'gstPct')) || 5,
+        openingStock: Number(getVal(row, 'openingStock')) || 0,
+      };
+
+      if (!payload.name || payload.sellingPrice <= 0) {
+        failCount++;
+        continue;
+      }
+
+      try {
+        await api.post('/products', payload);
+        successCount++;
+      } catch (err) {
+        failCount++;
+      }
+    }
+
+    toast.success(`Imported ${successCount} items${failCount ? `, ${failCount} failed` : ''}`);
+    loadProducts();
+    setImporting(false);
+    setShowMappingModal(false);
+    setExcelHeaders([]);
+    setExcelRows([]);
+    setColumnMapping({});
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleCancelMapping = () => {
+    setShowMappingModal(false);
+    setExcelHeaders([]);
+    setExcelRows([]);
+    setColumnMapping({});
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const lowStockProducts = products.filter(p => p.currentStock <= 5);
@@ -471,12 +593,12 @@ export default function InventoryPage() {
           </button>
 
           <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            ref={fileInputRef}
-            onChange={handleImportExcel}
-            className="hidden"
-          />
+  type="file"
+  accept=".xlsx,.xls,.csv"
+  ref={fileInputRef}
+  onChange={handleFileSelected}
+  className="hidden"
+/>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
@@ -1198,6 +1320,97 @@ export default function InventoryPage() {
                 className="btn-primary text-xs flex items-center gap-1.5"
               >
                 <Printer size={15} /> Print Tags
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Excel Column Mapping */}
+      {showMappingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-ink-900 dark:text-ink-100 text-sm flex items-center gap-2">
+                  <Filter size={16} className="text-amber-500" />
+                  Match Your Excel Columns
+                </h3>
+                <p className="text-xs text-ink-400 mt-0.5">
+                  {excelRows.length} rows detected. Batao kaunsa column kis field se match karta hai.
+                </p>
+              </div>
+              <button onClick={handleCancelMapping} className="text-ink-400 hover:text-ink-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {SYSTEM_FIELDS.map(field => (
+                <div key={field.key} className="flex items-center gap-3">
+                  <div className="w-40 shrink-0">
+                    <span className="text-xs font-semibold text-ink-700 dark:text-ink-200">
+                      {field.label}
+                      {field.required && <span className="text-rose-500 ml-0.5">*</span>}
+                    </span>
+                  </div>
+                  <select
+                    value={columnMapping[field.key] !== undefined ? columnMapping[field.key] : -1}
+                    onChange={(e) => setColumnMapping(prev => ({ ...prev, [field.key]: Number(e.target.value) }))}
+                    className="input text-xs flex-1"
+                  >
+                    <option value={-1}>-- Not in file / Skip --</option>
+                    {excelHeaders.map((h, idx) => (
+                      <option key={idx} value={idx}>
+                        {h || `Column ${idx + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                  {columnMapping[field.key] !== undefined && columnMapping[field.key] !== -1 && (
+                    <Check size={16} className="text-emerald-500 shrink-0" />
+                  )}
+                </div>
+              ))}
+
+              {excelRows.length > 0 && (
+                <div className="pt-3 mt-3 border-t border-ink-100 dark:border-ink-800">
+                  <p className="text-xs font-semibold text-ink-500 mb-2">Preview (first 3 rows):</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-[11px] border-collapse">
+                      <thead className="bg-ink-50 dark:bg-ink-800 text-ink-500 uppercase text-[9px]">
+                        <tr>
+                          {SYSTEM_FIELDS.map(f => (
+                            <th key={f.key} className="py-1.5 px-2 whitespace-nowrap">{f.label}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
+                        {excelRows.slice(0, 3).map((row, ri) => (
+                          <tr key={ri}>
+                            {SYSTEM_FIELDS.map(f => {
+                              const idx = columnMapping[f.key];
+                              const val = (idx === undefined || idx === -1) ? '-' : (row[idx] ?? '-');
+                              return <td key={f.key} className="py-1.5 px-2 text-ink-600 dark:text-ink-300 whitespace-nowrap">{String(val)}</td>;
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-ink-100 dark:border-ink-800 flex justify-end gap-2">
+              <button onClick={handleCancelMapping} className="btn-secondary text-xs">
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                disabled={importing}
+                className="btn-primary text-xs flex items-center gap-1.5"
+              >
+                {importing ? 'Importing...' : `Import ${excelRows.length} Products`}
               </button>
             </div>
           </div>
