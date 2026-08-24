@@ -452,6 +452,7 @@ export default function Report() {
           hsn_sc: item.hsn || '',
           desc: item.name || '',
           uqc: (item.unit || 'NOS').toUpperCase(),
+          rt: Number(item.gstPct) || 0,
           cnt: 0, qty: 0, val: 0, txval: 0,
           iamt: 0, camt: 0, samt: 0, csamt: 0,
         };
