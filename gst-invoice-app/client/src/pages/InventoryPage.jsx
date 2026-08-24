@@ -12,6 +12,7 @@ import api from '../utils/api';
 import toast from 'react-hot-toast';
 import DateRangeFilter from '../components/DateRangeFilter';
 import { filterByDateRange } from '../utils/dateRangeUtils';
+import { exportStyledExcel } from '../utils/excelExport';
 
 
 export default function InventoryPage() {
@@ -28,7 +29,7 @@ export default function InventoryPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [searchFilter, setSearchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  
+
 
   // Add / Edit product modal
   const [showProductModal, setShowProductModal] = useState(false);
@@ -293,7 +294,7 @@ export default function InventoryPage() {
     }, {})
   ).sort((a, b) => b.qtySold - a.qtySold);
 
-    const salesmanWise = Object.values(
+  const salesmanWise = Object.values(
     filteredInvoices.reduce((acc, inv) => {
       const key = inv.salesman && inv.salesman.trim() ? inv.salesman.trim() : 'Unassigned';
       if (!acc[key]) acc[key] = {
@@ -309,91 +310,78 @@ export default function InventoryPage() {
   ).sort((a, b) => b.grandTotal - a.grandTotal);
 
   const totalSalesValue = filteredInvoices.reduce((s, inv) => s + (inv.grandTotal || 0), 0);
-const totalQtySold = itemWise.reduce((s, r) => s + r.qtySold, 0);
-const totalTaxCollected = filteredInvoices.reduce(
-  (s, inv) => s + (inv.totalGst ?? ((inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0))),
-  0
-);
+  const totalQtySold = itemWise.reduce((s, r) => s + r.qtySold, 0);
+  const totalTaxCollected = filteredInvoices.reduce(
+    (s, inv) => s + (inv.totalGst ?? ((inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0))),
+    0
+  );
 
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
-    // Stock sheet
-    const stockRows = [['S.No.', 'Product Name', 'Barcode', 'Category', 'Size', 'Color', 'Selling Price (₹)', 'Purchase Price (₹)', 'GST%', 'Current Stock']];
-    products.forEach((p, i) => stockRows.push([
-      i + 1, p.name, p.barcode || '-', p.category || '-', p.size || '-', p.color || '-',
-      p.sellingPrice || 0, p.purchasePrice || 0, p.gstPct + '%', p.currentStock
-    ]));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(stockRows), 'Clothing Stock');
+  const exportToExcel = async () => {
+    const stockColumns = [
+      { header: 'S.No.', key: 'sno', width: 8 },
+      { header: 'Product Name', key: 'name', width: 24 },
+      { header: 'Barcode', key: 'barcode', width: 18 },
+      { header: 'Category', key: 'category', width: 14 },
+      { header: 'Size', key: 'size', width: 10 },
+      { header: 'Color', key: 'color', width: 14 },
+      { header: 'Selling Price (₹)', key: 'sellingPrice', width: 16, format: 'currency' },
+      { header: 'Purchase Price (₹)', key: 'purchasePrice', width: 16, format: 'currency' },
+      { header: 'GST %', key: 'gstPct', width: 10, format: 'percent' },
+      { header: 'Current Stock', key: 'currentStock', width: 14, format: 'number' },
+    ];
+    const stockRows = products.map((p, i) => ({
+      sno: i + 1, name: p.name, barcode: p.barcode || '-', category: p.category || '-',
+      size: p.size || '-', color: p.color || '-', sellingPrice: p.sellingPrice || 0,
+      purchasePrice: p.purchasePrice || 0, gstPct: p.gstPct, currentStock: p.currentStock,
+    }));
 
-    // Item-wise sales
-    const itemRows = [['S.No.', 'Item Name', 'Size', 'HSN', 'UOM', 'GST%', 'Qty Sold', 'Taxable Amt', 'Total GST', 'Grand Total']];
-    itemWise.forEach((r, i) => itemRows.push([i + 1, r.name, r.size, r.hsn, r.uom, r.gstPct + '%', r.qtySold, r.taxable, r.totalGst, r.grandTotal]));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
+    const itemColumns = [
+      { header: 'S.No.', key: 'sno', width: 8 },
+      { header: 'Item Name', key: 'name', width: 24 },
+      { header: 'Size', key: 'size', width: 10 },
+      { header: 'HSN', key: 'hsn', width: 12 },
+      { header: 'UOM', key: 'uom', width: 10 },
+      { header: 'GST %', key: 'gstPct', width: 10, format: 'percent' },
+      { header: 'Qty Sold', key: 'qtySold', width: 12, format: 'number' },
+      { header: 'Taxable Amt', key: 'taxable', width: 16, format: 'currency' },
+      { header: 'Total GST', key: 'totalGst', width: 16, format: 'currency' },
+      { header: 'Grand Total', key: 'grandTotal', width: 16, format: 'currency' },
+    ];
+    const itemRows = itemWise.map((r, i) => ({
+      sno: i + 1, name: r.name, size: r.size, hsn: r.hsn, uom: r.uom, gstPct: r.gstPct,
+      qtySold: r.qtySold, taxable: r.taxable, totalGst: r.totalGst, grandTotal: r.grandTotal,
+    }));
+    itemRows.push({
+      sno: 'TOTAL', name: '', size: '', hsn: '', uom: '', gstPct: '',
+      qtySold: itemWise.reduce((s, r) => s + r.qtySold, 0),
+      taxable: itemWise.reduce((s, r) => s + r.taxable, 0),
+      totalGst: itemWise.reduce((s, r) => s + r.totalGst, 0),
+      grandTotal: itemWise.reduce((s, r) => s + r.grandTotal, 0)
+    });
 
-    // Salesman-wise sales
-    const salesmanRows = [['S.No.', 'Salesman', 'Bills', 'Qty Sold', 'Taxable Amt', 'Total GST', 'Grand Total']];
-    salesmanWise.forEach((r, i) => salesmanRows.push([
-      i + 1, r.salesman, r.billsCount, r.qtySold, r.taxable.toFixed(2), r.totalGst.toFixed(2), r.grandTotal.toFixed(2)
-    ]));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(salesmanRows), 'Salesman-wise Sales');
+    const salesmanColumns = [
+      { header: 'S.No.', key: 'sno', width: 8 },
+      { header: 'Salesman', key: 'salesman', width: 20 },
+      { header: 'Bills', key: 'billsCount', width: 10, format: 'number' },
+      { header: 'Qty Sold', key: 'qtySold', width: 12, format: 'number' },
+      { header: 'Taxable Amt', key: 'taxable', width: 16, format: 'currency' },
+      { header: 'Total GST', key: 'totalGst', width: 16, format: 'currency' },
+      { header: 'Grand Total', key: 'grandTotal', width: 16, format: 'currency' },
+    ];
+    const salesmanRows = salesmanWise.map((r, i) => ({
+      sno: i + 1, salesman: r.salesman, billsCount: r.billsCount, qtySold: r.qtySold,
+      taxable: r.taxable, totalGst: r.totalGst, grandTotal: r.grandTotal,
+    }));
 
-    XLSX.writeFile(wb, `Clothing_Inventory_${selectedYear || 'All'}.xlsx`);
-
-
-    XLSX.writeFile(wb, `Clothing_Inventory_${selectedYear || 'All'}.xlsx`);
+    await exportStyledExcel(
+      [
+        { name: 'Clothing Stock', columns: stockColumns, rows: stockRows },
+        { name: 'Item-wise Sales', columns: itemColumns, rows: itemRows },
+        { name: 'Salesman-wise Sales', columns: salesmanColumns, rows: salesmanRows },
+      ],
+      `Clothing_Inventory_${selectedYear || 'All'}.xlsx`
+    );
     toast.success('Inventory exported to Excel!');
-  };
-  const handleImportExcel = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setImporting(true);
-    try {
-      const data = await file.arrayBuffer();
-      const wb = XLSX.read(data);
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-      let successCount = 0;
-      let failCount = 0;
-
-      for (const row of rows) {
-        const payload = {
-          name: row['Product Name'] || row['name'] || '',
-          barcode: String(row['Barcode'] || row['barcode'] || ''),
-          category: row['Category'] || row['category'] || 'Shirts',
-          size: row['Size'] || row['size'] || 'M',
-          color: row['Color'] || row['color'] || '',
-          hsn: String(row['HSN'] || row['hsn'] || '6205'),
-          unit: row['Unit'] || row['unit'] || 'Pcs',
-          sellingPrice: Number(row['Selling Price'] || row['sellingPrice'] || 0),
-          purchasePrice: Number(row['Purchase Price'] || row['purchasePrice'] || 0),
-          gstPct: Number(row['GST%'] || row['gstPct'] || 5),
-          openingStock: Number(row['Current Stock'] || row['Stock'] || row['openingStock'] || 0),
-        };
-
-        if (!payload.name || payload.sellingPrice <= 0) {
-          failCount++;
-          continue;
-        }
-
-        try {
-          await api.post('/products', payload);
-          successCount++;
-        } catch (err) {
-          failCount++;
-        }
-      }
-
-      toast.success(`Imported ${successCount} items${failCount ? `, ${failCount} failed` : ''}`);
-      loadProducts();
-    } catch (err) {
-      toast.error('Failed to read Excel file');
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
   };
 
   const lowStockProducts = products.filter(p => p.currentStock <= 5);
@@ -421,7 +409,7 @@ const totalTaxCollected = filteredInvoices.reduce(
             Manage clothing garments, unique barcodes, sizes, colors, and live stock
           </p>
         </div>
-    
+
         <div className="flex items-center gap-2">
           <DateRangeFilter {...dateFilter} onChange={setDateFilter} />
           <button
@@ -513,7 +501,7 @@ const totalTaxCollected = filteredInvoices.reduce(
           { key: 'stock', label: '📦 Garment Stock & Barcodes' },
           { key: 'item', label: '📊 Item-wise Sales' },
           { key: 'hsn', label: '📑 HSN Summary' },
-          { key: 'salesman', label: '🧑‍💼 Salesman-wise Sales' }, 
+          { key: 'salesman', label: '🧑‍💼 Salesman-wise Sales' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -680,17 +668,6 @@ const totalTaxCollected = filteredInvoices.reduce(
       {/* TAB 2: Item-wise Sales Report */}
       {activeTab === 'item' && (
         <div className="card p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="input w-36 text-xs">
-              <option value="">All Months</option>
-              {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
-            <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="input w-32 text-xs">
-              <option value="">All Years</option>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse font-mono">
               <thead className="bg-ink-50 dark:bg-ink-800 text-ink-500 uppercase text-[10px]">

@@ -273,7 +273,7 @@ const allStats = useMemo(() => ({
             <table className="w-full text-left text-xs">
               <thead className="bg-ink-50 dark:bg-ink-800/50">
                 <tr className="border-b border-ink-100 dark:border-ink-800 text-left">
-                  {['Bill S.No.', 'Customer / Party', 'Date', 'Items Count', 'Amount (₹)', 'Status', 'Actions'].map((h, i) => (
+                  {['Invoice No.', 'Customer / Party', 'Date', 'Items Count', 'Amount (₹)', 'Status', 'Actions'].map((h, i) => (
                     <th key={h} className={`px-6 py-3 text-xs font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 ${i === 4 ? 'text-right' : ''}`}>
                       {h}
                     </th>
