@@ -571,7 +571,7 @@ const totalTaxCollected = filteredInvoices.reduce(
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-ink-50 dark:bg-ink-800 text-ink-500 uppercase font-mono text-[10px]">
                   <tr>
-                    <th className="py-2.5 px-3">#</th>
+                    <th className="py-2.5 px-3">S.No.</th>
                     <th className="py-2.5 px-3">Item / Garment Name</th>
                     <th className="py-2.5 px-3">Barcode</th>
                     <th className="py-2.5 px-3">Category</th>

@@ -516,7 +516,7 @@ export default function Report() {
           <div className="overflow-x-auto">
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead><tr>
-                {['','#','Party Name','GSTIN','State','HSN/SAC','Invoices','Taxable Amt','CGST','SGST','IGST','Total'].map((h,i)=>(
+                {['','S.No.','Party Name','GSTIN','State','HSN/SAC','Invoices','Taxable Amt','CGST','SGST','IGST','Total'].map((h,i)=>(
                   <th key={i} style={thS(i>=6)}>{h}</th>
                 ))}
               </tr></thead>
@@ -578,7 +578,7 @@ export default function Report() {
           <div className="overflow-x-auto">
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead><tr>
-                {['','#','HSN/SAC','Description','UOM','Invoices','Total Qty','Taxable Amt','CGST','SGST','IGST'].map((h,i)=>(
+                {['','S.No.','HSN/SAC','Description','UOM','Invoices','Total Qty','Taxable Amt','CGST','SGST','IGST'].map((h,i)=>(
                   <th key={i} style={thS(i>=5)}>{h}</th>
                 ))}
               </tr></thead>
@@ -639,7 +639,7 @@ export default function Report() {
           <div className="overflow-x-auto">
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead><tr>
-                {['','#','GST Rate','Invoices','Taxable Amount','CGST','SGST','IGST','Total Tax','Grand Total'].map((h,i)=>(
+                {['','S.No.','GST Rate','Invoices','Taxable Amount','CGST','SGST','IGST','Total Tax','Grand Total'].map((h,i)=>(
                   <th key={i} style={thS(i>=3)}>{h}</th>
                 ))}
               </tr></thead>
@@ -696,7 +696,7 @@ export default function Report() {
           <div className="overflow-x-auto">
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead><tr>
-                {['','#','Item Name','HSN/SAC','UOM','GST %','Total Qty','Taxable Amt','Total GST','Grand Total'].map((h,i)=>(
+                {['','S.No.','Item Name','HSN/SAC','UOM','GST %','Total Qty','Taxable Amt','Total GST','Grand Total'].map((h,i)=>(
                   <th key={i} style={thS(i>=5)}>{h}</th>
                 ))}
               </tr></thead>
@@ -752,7 +752,7 @@ export default function Report() {
           <div className="overflow-x-auto">
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead><tr>
-                {['','#','Salesman','Invoices','Taxable Amt','CGST','SGST','IGST','Total'].map((h,i)=>(
+                {['','S.No.','Salesman','Invoices','Taxable Amt','CGST','SGST','IGST','Total'].map((h,i)=>(
                   <th key={i} style={thS(i>=3)}>{h}</th>
                 ))}
               </tr></thead>
