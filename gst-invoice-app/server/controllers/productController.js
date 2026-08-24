@@ -18,6 +18,7 @@ exports.getProducts = async (req, res) => {
     const products = await Product.find(query).sort({ updatedAt: -1, name: 1 });
     res.json(products);
   } catch (err) {
+    console.error('CREATE PRODUCT ERROR:', err.message);
     res.status(500).json({ message: err.message });
   }
 };
