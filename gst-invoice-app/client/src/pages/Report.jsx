@@ -92,13 +92,16 @@ export default function Report() {
         acc[key].cgst += isIntra ? gst / 2 : 0;
         acc[key].sgst += isIntra ? gst / 2 : 0;
         acc[key].igst += isIntra ? 0 : gst;
+        const cgstAmt = isIntra ? gst / 2 : 0;
+        const sgstAmt = isIntra ? gst / 2 : 0;
+        const igstAmt = isIntra ? 0 : gst;
         const existing = acc[key].invoiceList.find(i => i.invoiceNumber === inv.invoiceNumber);
         if (existing) {
           existing.qty += Number(item.qty) || 0;
           existing.taxable += base;
-          existing.cgst += gst / 2;
-          existing.sgst += gst / 2;
-          existing.igst += gst;
+          existing.cgst += cgstAmt;
+          existing.sgst += sgstAmt;
+          existing.igst += igstAmt;
         } else {
           acc[key].invoiceList.push({
             invoiceNumber: inv.invoiceNumber,
@@ -106,7 +109,7 @@ export default function Report() {
             party: inv.buyer?.clientName || '-',
             gstPct: item.gstPct || 0,
             qty: Number(item.qty) || 0,
-            taxable: base, cgst: gst / 2, sgst: gst / 2, igst: gst,
+            taxable: base, cgst: cgstAmt, sgst: sgstAmt, igst: igstAmt,
           });
         }
       });
