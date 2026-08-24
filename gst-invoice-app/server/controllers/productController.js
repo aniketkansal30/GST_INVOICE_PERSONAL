@@ -82,24 +82,40 @@ exports.createProduct = async (req, res) => {
         barcode: cleanBarcode,
       });
       if (existingBarcode) {
-        if (upsert) {
-          existingBarcode.name = name.trim();
-          existingBarcode.hsn = hsn ? hsn.trim() : existingBarcode.hsn;
-          existingBarcode.unit = unit ? unit.trim() : existingBarcode.unit;
-          existingBarcode.gstPct = taxPct;
-          existingBarcode.sellingPrice = sellPrice;
-          existingBarcode.purchasePrice = buyPrice;
-          existingBarcode.size = size ? size.trim() : existingBarcode.size;
-          existingBarcode.color = color ? color.trim() : existingBarcode.color;
-          existingBarcode.category = category ? category.trim() : existingBarcode.category;
-          existingBarcode.discountPct = discPct;
-          await existingBarcode.save();
-          return res.status(200).json({ ...existingBarcode.toObject(), _updated: true });
-        }
-        return res.status(400).json({
-          message: `Barcode "${cleanBarcode}" is already assigned to "${existingBarcode.name}"`,
-        });
-      }
+  if (upsert) {
+    const addQty = Number(openingStock) || 0;
+
+    existingBarcode.name = name.trim();
+    existingBarcode.hsn = hsn ? hsn.trim() : existingBarcode.hsn;
+    existingBarcode.unit = unit ? unit.trim() : existingBarcode.unit;
+    existingBarcode.gstPct = taxPct;
+    existingBarcode.sellingPrice = sellPrice;
+    existingBarcode.purchasePrice = buyPrice;
+    existingBarcode.size = size ? size.trim() : existingBarcode.size;
+    existingBarcode.color = color ? color.trim() : existingBarcode.color;
+    existingBarcode.category = category ? category.trim() : existingBarcode.category;
+    existingBarcode.discountPct = discPct;
+
+    if (addQty > 0) {
+      existingBarcode.currentStock += addQty;
+      await existingBarcode.save();
+      await StockTransaction.create({
+        user: req.user._id,
+        product: existingBarcode._id,
+        type: 'PURCHASE',
+        qty: addQty,
+        note: 'Stock added via Excel import',
+      });
+    } else {
+      await existingBarcode.save();
+    }
+
+    return res.status(200).json({ ...existingBarcode.toObject(), _updated: true });
+  }
+  return res.status(400).json({
+    message: `Barcode "${cleanBarcode}" is already assigned to "${existingBarcode.name}"`,
+  });
+}
     }
 
     const opening = Number(openingStock) || 0;
