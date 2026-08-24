@@ -86,11 +86,12 @@ export default function Report() {
         };
         const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
         const gst = (base * (Number(item.gstPct) || 0)) / 100;
+        const isIntra = (inv.buyer?.state || '').toLowerCase() === (inv.seller?.state || '').toLowerCase();
         acc[key].qty += Number(item.qty) || 0;
         acc[key].taxable += base;
-        acc[key].cgst += gst / 2;
-        acc[key].sgst += gst / 2;
-        acc[key].igst += gst;
+        acc[key].cgst += isIntra ? gst / 2 : 0;
+        acc[key].sgst += isIntra ? gst / 2 : 0;
+        acc[key].igst += isIntra ? 0 : gst;
         const existing = acc[key].invoiceList.find(i => i.invoiceNumber === inv.invoiceNumber);
         if (existing) {
           existing.qty += Number(item.qty) || 0;
@@ -116,6 +117,7 @@ export default function Report() {
   // GST%-wise with invoice-level drill-down
   const gstWise = Object.values(
     filtered.reduce((acc, inv) => {
+      const isIntra = (inv.buyer?.state || '').toLowerCase() === (inv.seller?.state || '').toLowerCase();
       (inv.items || []).forEach(item => {
         const key = `${item.gstPct || 0}%`;
         if (!acc[key]) acc[key] = {
@@ -124,17 +126,20 @@ export default function Report() {
         };
         const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
         const gst = (base * (Number(item.gstPct) || 0)) / 100;
+        const cgstAmt = isIntra ? gst / 2 : 0;
+        const sgstAmt = isIntra ? gst / 2 : 0;
+        const igstAmt = isIntra ? 0 : gst;
         acc[key].taxable += base;
-        acc[key].cgst += gst / 2;
-        acc[key].sgst += gst / 2;
-        acc[key].igst += gst;
+        acc[key].cgst += cgstAmt;
+        acc[key].sgst += sgstAmt;
+        acc[key].igst += igstAmt;
         acc[key].total += base + gst;
         const existing = acc[key].invoiceList.find(i => i.invoiceNumber === inv.invoiceNumber);
         if (existing) {
           existing.taxable += base;
-          existing.cgst += gst / 2;
-          existing.sgst += gst / 2;
-          existing.igst += gst;
+          existing.cgst += cgstAmt;
+          existing.sgst += sgstAmt;
+          existing.igst += igstAmt;
           existing.total += base + gst;
         } else {
           acc[key].invoiceList.push({
@@ -142,14 +147,13 @@ export default function Report() {
             invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
             party: inv.buyer?.clientName || '-',
             status: inv.status || 'draft',
-            taxable: base, cgst: gst / 2, sgst: gst / 2, igst: gst, total: base + gst,
+            taxable: base, cgst: cgstAmt, sgst: sgstAmt, igst: igstAmt, total: base + gst,
           });
         }
       });
       return acc;
     }, {})
   ).sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate));
-
   // Item-wise with invoice-level drill-down
   const itemWise = Object.values(
     filtered.reduce((acc, inv) => {
