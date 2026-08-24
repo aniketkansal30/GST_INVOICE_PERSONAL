@@ -503,6 +503,7 @@ export default function InventoryPage() {
 
     setImporting(true);
     let successCount = 0;
+    let updatedCount = 0;
     let failCount = 0;
 
     const getVal = (row, fieldKey) => {
@@ -525,6 +526,7 @@ export default function InventoryPage() {
         purchasePrice: Number(getVal(row, 'purchasePrice')) || 0,
         gstPct: Number(getVal(row, 'gstPct')) || 5,
         openingStock: Number(getVal(row, 'openingStock')) || 0,
+        upsert: true,
       };
 
       if (!payload.name || payload.sellingPrice <= 0) {
@@ -533,14 +535,15 @@ export default function InventoryPage() {
       }
 
       try {
-        await api.post('/products', payload);
-        successCount++;
+        const res = await api.post('/products', payload);
+        if (res.data?._updated) updatedCount++;
+        else successCount++;
       } catch (err) {
         failCount++;
       }
     }
 
-    toast.success(`Imported ${successCount} items${failCount ? `, ${failCount} failed` : ''}`);
+    toast.success(`${successCount} added, ${updatedCount} updated${failCount ? `, ${failCount} failed` : ''}`);
     loadProducts();
     setImporting(false);
     setShowMappingModal(false);

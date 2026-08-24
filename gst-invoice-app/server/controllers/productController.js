@@ -45,7 +45,9 @@ exports.getProductByBarcode = async (req, res) => {
   }
 };
 
-// Naya product + opening stock
+// Naya product + opening stock — ya, agar barcode pehle se maujood hai aur
+// req.body.upsert === true bheja gaya hai (jaise Excel re-import ke waqt),
+// toh naya create karne ki jagah existing product ko UPDATE kar deta hai.
 exports.createProduct = async (req, res) => {
   try {
     const {
@@ -59,7 +61,9 @@ exports.createProduct = async (req, res) => {
       size,
       color,
       category,
+      discountPct,
       openingStock,
+      upsert,
     } = req.body;
 
     if (!name || !name.trim()) {
@@ -67,14 +71,31 @@ exports.createProduct = async (req, res) => {
     }
 
     const cleanBarcode = barcode ? barcode.trim() : '';
+    const sellPrice = Number(sellingPrice) || 0;
+    const buyPrice = Number(purchasePrice) || 0;
+    const taxPct = gstPct !== undefined && gstPct !== null && gstPct !== '' ? Number(gstPct) : 5;
+    const discPct = discountPct !== undefined && discountPct !== null && discountPct !== '' ? Number(discountPct) : 0;
 
-    // Check duplicate barcode for this user
     if (cleanBarcode) {
       const existingBarcode = await Product.findOne({
         user: req.user._id,
         barcode: cleanBarcode,
       });
       if (existingBarcode) {
+        if (upsert) {
+          existingBarcode.name = name.trim();
+          existingBarcode.hsn = hsn ? hsn.trim() : existingBarcode.hsn;
+          existingBarcode.unit = unit ? unit.trim() : existingBarcode.unit;
+          existingBarcode.gstPct = taxPct;
+          existingBarcode.sellingPrice = sellPrice;
+          existingBarcode.purchasePrice = buyPrice;
+          existingBarcode.size = size ? size.trim() : existingBarcode.size;
+          existingBarcode.color = color ? color.trim() : existingBarcode.color;
+          existingBarcode.category = category ? category.trim() : existingBarcode.category;
+          existingBarcode.discountPct = discPct;
+          await existingBarcode.save();
+          return res.status(200).json({ ...existingBarcode.toObject(), _updated: true });
+        }
         return res.status(400).json({
           message: `Barcode "${cleanBarcode}" is already assigned to "${existingBarcode.name}"`,
         });
@@ -82,9 +103,6 @@ exports.createProduct = async (req, res) => {
     }
 
     const opening = Number(openingStock) || 0;
-    const sellPrice = Number(sellingPrice) || 0;
-    const buyPrice = Number(purchasePrice) || 0;
-    const taxPct = gstPct !== undefined && gstPct !== null && gstPct !== '' ? Number(gstPct) : 5;
 
     const product = await Product.create({
       user: req.user._id,
@@ -98,6 +116,7 @@ exports.createProduct = async (req, res) => {
       size: size ? size.trim() : '',
       color: color ? color.trim() : '',
       category: category ? category.trim() : 'Clothing',
+      discountPct: discPct,
       openingStock: opening,
       currentStock: opening,
     });

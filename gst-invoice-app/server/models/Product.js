@@ -12,6 +12,7 @@ const productSchema = new mongoose.Schema({
   size: { type: String, default: '', trim: true },
   color: { type: String, default: '', trim: true },
   category: { type: String, default: 'Clothing', trim: true },
+  discountPct: { type: Number, default: 0 },
   openingStock: { type: Number, default: 0 },
   currentStock: { type: Number, default: 0 },
   lowStockThreshold: { type: Number, default: 5 }, 
