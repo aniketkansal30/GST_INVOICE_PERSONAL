@@ -1,3 +1,13 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
+
+const authRoutes = require('./routes/auth');
+const invoiceRoutes = require('./routes/invoices');
+const productRoutes = require('./routes/productRoutes');
+
 const app = express();
 
 app.use(cors({ 
@@ -31,7 +41,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Ab routes
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/products', productRoutes);
@@ -42,7 +52,24 @@ app.get('/api/health', (req, res) => res.json({
   timestamp: new Date().toISOString() 
 }));
 
-// baaki static/SPA/error-handler code same rahega neeche
+// Serve static React build files
+const clientBuildPath = path.join(__dirname, '../client/build');
+app.use(express.static(clientBuildPath));
+
+// Handle React SPA client routing
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(clientBuildPath, 'index.html'), (err) => {
+    if (err) {
+      res.status(200).send('<h1>GST Clothing POS System is building... Please refresh in a moment.</h1>');
+    }
+  });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
+});
 
 connectDB();
 
