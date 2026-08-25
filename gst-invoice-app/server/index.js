@@ -51,14 +51,30 @@ const PORT = process.env.PORT || 3000;
 // Connect to MongoDB with graceful fallback
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/gst-invoice';
 
-mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 4000 })
-  .then(() => {
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) return;
+  try {
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 10000,
+      bufferCommands: true,
+    });
+    isConnected = true;
     console.log('✓ MongoDB connected successfully');
-  })
-  .catch(err => {
-    console.warn('⚠️ MongoDB connection warning:', err.message);
+  } catch (err) {
+    console.error('✗ MongoDB connection failed:', err.message);
     console.log('ℹ️ Running in memory / offline resilience mode until MongoDB URI is configured.');
-  });
+  }
+};
+
+// Har request se pehle ensure karo connection hai
+app.use(async (req, res, next) => {
+  if (!isConnected) await connectDB();
+  next();
+});
+
+connectDB();
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✓ GST POS Server running on port ${PORT}`);
