@@ -7,7 +7,7 @@ import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../../utils/i
 // toggle. 80mm is the common thermal-roll width and gives item/rate/amount
 // columns enough room that numbers never collide, regardless of screen or
 // printer.
-const RECEIPT_WIDTH = '80mm';
+const RECEIPT_WIDTH = '100%';
 
 // Recomputes subtotal / GST / grand total from a list of cart-style items.
 // `item.rate` is treated as the MRP (GST-inclusive) per-unit price, so GST
@@ -251,20 +251,22 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
           }
           #thermal-receipt-printable {
             position: static !important;
-            width: ${RECEIPT_WIDTH} !important;
-            max-width: ${RECEIPT_WIDTH} !important;
-            margin: 0 auto !important;
-            padding: 4px !important;
-            box-shadow: none !important;
-            border: none !important;
-            color: #000 !important;
-            background: #fff !important;
+    width: 100% !important;      /* jitni bhi actual paper width printer driver se aayegi, usi mein fit hoga */
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 2mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    color: #000 !important;
+    background: #fff !important;
+    box-sizing: border-box !important;
           }
           #thermal-receipt-printable * {
             color: #000 !important;
+            box-sizing: border-box !important;
           }
           @page {
-            size: ${RECEIPT_WIDTH} auto;
+            size:  auto;
             margin: 0;
           }
         }
@@ -337,13 +339,12 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
               {/* Item Table Header — fixed, non-shrinking column widths with
                   gaps so RATE and AMT never collide, whatever the numbers. */}
               <div className="py-1 border-b border-black text-[10px] font-bold">
-                <div className="flex items-center gap-1.5">
-                  <span className="flex-1">ITEM (SIZE/CLR)</span>
-                  <span className="w-7 shrink-0 text-center">QTY</span>
-                  <span className="w-16 shrink-0 text-right">RATE</span>
-                  <span className="w-16 shrink-0 text-right">AMT</span>
-                  {editable && <span className="w-5 shrink-0" />}
-                </div>
+                <div className="flex items-center gap-1">
+  <span className="flex-1">ITEM (SIZE/CLR)</span>
+  <span className="w-[12%] shrink-0 text-center">QTY</span>
+  <span className="w-[22%] shrink-0 text-right">RATE</span>
+  <span className="w-[22%] shrink-0 text-right">AMT</span>
+</div>
               </div>
 
               {/* Items List */}
