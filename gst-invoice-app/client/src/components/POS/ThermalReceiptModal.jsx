@@ -3,10 +3,13 @@ import { createPortal } from 'react-dom';
 import { Printer, X, Download, Check, Sparkles, Save, Trash2, Plus, Minus } from 'lucide-react';
 import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../../utils/invoiceUtils';
 
-// Standard receipt width — a single, fixed size instead of a 58mm/80mm
-// toggle. 80mm is the common thermal-roll width and gives item/rate/amount
-// columns enough room that numbers never collide, regardless of screen or
-// printer.
+// ── PAPER WIDTH FIX ──
+// Pehle yahan hardcoded '80mm' tha, jisse @page size bhi 80mm force ho jaata
+// tha — chahe printer mein 58mm roll lagi ho. Ab hum koi fixed mm size force
+// nahi karte; receipt hamesha available width ka 100% leta hai, aur asli
+// paper size printer driver decide karta hai (@page { size: auto } neeche).
+// Isse 58mm, 80mm, ya koi bhi custom thermal roll — sab par bina cutting ke
+// print hoga.
 const RECEIPT_WIDTH = '100%';
 
 // Recomputes subtotal / GST / grand total from a list of cart-style items.
@@ -191,20 +194,17 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   };
 
   // ── PRINT FIX ──
-  // Previously the print stylesheet used `visibility: hidden` on `body *`
-  // combined with `position: fixed` on the printable receipt. That trick
-  // hides the rest of the app visually, but the hidden elements still keep
-  // their full layout height (visibility:hidden ≠ display:none). If the
-  // underlying app page (dashboard, sidebar, etc.) is taller than one
-  // printed page, the browser creates a second, blank page — exactly the
-  // "2 pages" / "text jumping on another PC" bug being reported.
+  // Render this modal through a React Portal directly under `document.body`.
+  // During print we hide every other direct child of body and show only
+  // this portal — no leftover invisible-but-tall background content to
+  // cause pagination issues.
   //
-  // Fix: render this modal through a React Portal directly under
-  // `document.body`, as a sibling of the rest of the app. During print we
-  // then simply hide every other direct child of body and show only this
-  // portal — there is no leftover invisible-but-tall background content to
-  // cause pagination issues, and behavior becomes consistent across
-  // machines since it no longer depends on the rest of the page's layout.
+  // ── WIDTH FIX ──
+  // @page { size: auto } lets the browser/print driver use whatever paper
+  // is actually loaded (58mm, 80mm, or anything else) instead of forcing a
+  // hardcoded mm size that gets clipped on narrower rolls. The printable
+  // area itself is width:100%, so it always fills whatever paper width the
+  // driver gives it.
   const modalContent = (
     <div id="thermal-print-portal">
       <style>{`
@@ -213,12 +213,14 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             margin: 0 !important;
             padding: 0 !important;
             height: auto !important;
+            width: 100% !important;
           }
           body > *:not(#thermal-print-portal) {
             display: none !important;
           }
           #thermal-print-portal {
             display: block !important;
+            width: 100% !important;
           }
           #thermal-print-portal .no-print {
             display: none !important;
@@ -232,6 +234,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             backdrop-filter: none !important;
             padding: 0 !important;
             display: block !important;
+            width: 100% !important;
           }
           #thermal-print-portal .print-card {
             max-height: none !important;
@@ -239,7 +242,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             box-shadow: none !important;
             border: none !important;
             border-radius: 0 !important;
-            width: auto !important;
+            width: 100% !important;
             max-width: none !important;
             background: none !important;
           }
@@ -248,25 +251,39 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             padding: 0 !important;
             background: none !important;
             display: block !important;
+            width: 100% !important;
           }
           #thermal-receipt-printable {
             position: static !important;
-    width: 100% !important;      /* jitni bhi actual paper width printer driver se aayegi, usi mein fit hoga */
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 2mm !important;
-    box-shadow: none !important;
-    border: none !important;
-    color: #000 !important;
-    background: #fff !important;
-    box-sizing: border-box !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 2mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            color: #000 !important;
+            background: #fff !important;
+            box-sizing: border-box !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            filter: contrast(1.4) !important;
           }
           #thermal-receipt-printable * {
             color: #000 !important;
             box-sizing: border-box !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-weight: 600 !important;
           }
+          #thermal-receipt-printable strong,
+          #thermal-receipt-printable .font-bold {
+            font-weight: 900 !important;
+          }
+          /* size: auto = "use whatever paper width the printer driver has
+             configured" — this is the actual fix for cutting on non-80mm
+             rolls. Do NOT hardcode a mm value here. */
           @page {
-            size:  auto;
+            size: auto;
             margin: 0;
           }
         }
@@ -301,7 +318,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             <div
               ref={receiptRef}
               id="thermal-receipt-printable"
-              style={{ width: RECEIPT_WIDTH, minWidth: RECEIPT_WIDTH }}
+              style={{ width: RECEIPT_WIDTH, maxWidth: '80mm' }}
               className="bg-white text-black font-mono text-[11px] leading-tight p-3 shadow-md rounded-sm border border-dashed border-ink-300 print:shadow-none print:border-none print:m-0 print:p-1"
             >
               {/* Store Header */}
@@ -326,25 +343,25 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                 </div>
                 {invoice.salesman && (
                   <div className="flex justify-between text-black">
-                    <span>Salesman: <strong>{invoice.salesman}</strong></span>
+                    <span>Salesman: <span className="font-normal">{invoice.salesman}</span></span>
                   </div>
                 )}
                 {buyer.clientName && buyer.clientName !== 'Walk-in Customer' && (
-                  <div className="pt-0.5 text-neutral-800">
-                    <span>Customer: {buyer.clientName} {buyer.contact ? `(${buyer.contact})` : ''}</span>
+                  <div className="pt-0.5 text-black">
+                    <span>Customer: <strong className="font-bold">{buyer.clientName}</strong> {buyer.contact ? `(${buyer.contact})` : ''}</span>
                   </div>
                 )}
               </div>
 
-              {/* Item Table Header — fixed, non-shrinking column widths with
-                  gaps so RATE and AMT never collide, whatever the numbers. */}
-              <div className="py-1 border-b border-black text-[10px] font-bold">
-                <div className="flex items-center gap-1">
-  <span className="flex-1">ITEM (SIZE/CLR)</span>
-  <span className="w-[12%] shrink-0 text-center">QTY</span>
-  <span className="w-[22%] shrink-0 text-right">RATE</span>
-  <span className="w-[22%] shrink-0 text-right">AMT</span>
-</div>
+              {/* Item Table Header — percentage-based columns instead of
+                  fixed px widths, so they scale down proportionally on
+                  narrower paper instead of overflowing and getting cut. */}
+              <div className="flex items-center gap-1 py-1 border-b border-black text-[10px] font-bold">
+                <span className="flex-1 min-w-0">ITEM (SIZE/CLR)</span>
+                <span className="w-[12%] shrink-0 text-center">QTY</span>
+                <span className="w-[22%] shrink-0 text-right">RATE</span>
+                <span className="w-[22%] shrink-0 text-right">AMT</span>
+                {editable && <span className="w-[8%] shrink-0" />}
               </div>
 
               {/* Items List */}
@@ -354,13 +371,13 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                   const tagInfo = [item.size ? `Sz:${item.size}` : '', item.color ? item.color : ''].filter(Boolean).join('/');
                   return (
                     <div key={idx} className="text-[10px]">
-                      <div className="flex items-center gap-1.5 font-semibold">
-                        <span className="flex-1 truncate pr-1">
+                      <div className="flex items-center gap-1 font-semibold">
+                        <span className="flex-1 min-w-0 truncate pr-1">
                           {item.name}
                         </span>
                         {editable ? (
                           <>
-                            <span className="w-14 shrink-0 flex items-center justify-center gap-0.5 font-normal">
+                            <span className="w-[20%] shrink-0 flex items-center justify-center gap-0.5 font-normal">
                               <button
                                 type="button"
                                 onClick={() => bumpQty(idx, -1)}
@@ -389,21 +406,21 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                               step="0.5"
                               value={item.rate}
                               onChange={(e) => updateEditableField(idx, 'rate', e.target.value)}
-                              className="w-16 shrink-0 text-right font-normal bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
+                              className="w-[22%] shrink-0 text-right font-normal bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
                             />
                           </>
                         ) : (
                           <>
-                            <span className="w-7 shrink-0 text-center font-normal">{item.qty}</span>
-                            <span className="w-16 shrink-0 text-right font-normal tabular-nums">{Number(item.rate).toFixed(2)}</span>
+                            <span className="w-[12%] shrink-0 text-center font-normal">{item.qty}</span>
+                            <span className="w-[22%] shrink-0 text-right font-normal tabular-nums">{Number(item.rate).toFixed(2)}</span>
                           </>
                         )}
-                        <span className="w-16 shrink-0 text-right tabular-nums">{itemTotal.toFixed(2)}</span>
+                        <span className="w-[22%] shrink-0 text-right tabular-nums">{itemTotal.toFixed(2)}</span>
                         {editable && (
                           <button
                             type="button"
                             onClick={() => removeEditableItem(idx)}
-                            className="w-5 shrink-0 flex items-center justify-center text-red-600 no-print"
+                            className="w-[8%] shrink-0 flex items-center justify-center text-red-600 no-print"
                             title="Remove item"
                           >
                             <Trash2 size={11} />
@@ -486,19 +503,19 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
               <div className="py-1 border-b border-dashed border-black text-[9px] text-black">
                 <p className="font-bold text-[9px] uppercase mb-0.5">GST Tax Summary:</p>
                 <div className="flex justify-between font-semibold border-b border-dotted border-neutral-400 pb-0.5 gap-1">
-                  <span className="flex-1">HSN/Rate</span>
-                  <span className="w-12 text-right">Taxable</span>
-                  <span className="w-10 text-right">CGST</span>
-                  <span className="w-10 text-right">SGST</span>
-                  <span className="w-14 text-right">Total Tax</span>
+                  <span className="flex-1 min-w-0">HSN/Rate</span>
+                  <span className="w-[18%] shrink-0 text-right">Taxable</span>
+                  <span className="w-[15%] shrink-0 text-right">CGST</span>
+                  <span className="w-[15%] shrink-0 text-right">SGST</span>
+                  <span className="w-[20%] shrink-0 text-right">Total Tax</span>
                 </div>
                 {taxSummary.map((t, i) => (
                   <div key={i} className="flex justify-between pt-0.5 gap-1">
-                    <span className="flex-1">{t.hsn} ({t.gstPct}%)</span>
-                    <span className="w-12 text-right tabular-nums">{t.taxable.toFixed(1)}</span>
-                    <span className="w-10 text-right tabular-nums">{t.cgst.toFixed(1)}</span>
-                    <span className="w-10 text-right tabular-nums">{t.sgst.toFixed(1)}</span>
-                    <span className="w-14 text-right font-semibold tabular-nums">{t.totalTax.toFixed(1)}</span>
+                    <span className="flex-1 min-w-0">{t.hsn} ({t.gstPct}%)</span>
+                    <span className="w-[18%] shrink-0 text-right tabular-nums">{t.taxable.toFixed(1)}</span>
+                    <span className="w-[15%] shrink-0 text-right tabular-nums">{t.cgst.toFixed(1)}</span>
+                    <span className="w-[15%] shrink-0 text-right tabular-nums">{t.sgst.toFixed(1)}</span>
+                    <span className="w-[20%] shrink-0 text-right font-semibold tabular-nums">{t.totalTax.toFixed(1)}</span>
                   </div>
                 ))}
               </div>
