@@ -260,7 +260,14 @@ export default function PosBillingPage() {
   // breakdown, and net total — so what the customer receives on WhatsApp
   // matches the paper receipt they were handed.
   const sendBillOnWhatsApp = (invoice) => {
-    const phone = (customer.contact || '').replace(/\D/g, ''); // sirf digits
+    // ── FIX ──
+    // Pehle yahan `customer` state se number liya jaata tha, lekin bill
+    // save hote hi customer state turant reset ho jaata hai (agle bill ke
+    // liye). Isliye jab tak user "Send on WhatsApp" click karta tha, number
+    // khaali mil raha tha — chahe bill/invoice mein number safely saved ho.
+    // Ab number seedha invoice.buyer se liya jaata hai, jo state reset se
+    // affect nahi hota.
+    const phone = (invoice?.buyer?.contact || '').replace(/\D/g, ''); // sirf digits
     if (!phone || phone.length < 10) {
       toast.error('Customer ka mobile number nahi mila');
       return;
