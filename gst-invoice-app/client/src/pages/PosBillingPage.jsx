@@ -703,9 +703,13 @@ export default function PosBillingPage() {
 
       setCompletedInvoice(savedInvoice);
       setShowReceiptModal(true);
-      if (customer.contact && customer.contact.trim()) {
-        setTimeout(() => sendBillOnWhatsApp(savedInvoice), 500);
-      }
+      // ── AUTO-WHATSAPP REMOVED ──
+      // Pehle yahan customer ka number bharte hi turant WhatsApp tab
+      // automatically khul jaata tha (setTimeout se sendBillOnWhatsApp
+      // call ho jaata tha). Ab bill save hoke sirf print preview modal
+      // khulega — WhatsApp par kuch bhi apne aap nahi jaayega. Customer
+      // ka naam/number sirf record mein save hote rahenge jaisa pehle
+      // hota tha.
 
       // Reset Billing state
       setCart([]);
@@ -1552,6 +1556,7 @@ export default function PosBillingPage() {
             setShowReceiptModal(false);
             focusBarcodeInput();
           }}
+          onSendWhatsapp={() => sendBillOnWhatsApp(completedInvoice)}
         />
       )}
     </div>

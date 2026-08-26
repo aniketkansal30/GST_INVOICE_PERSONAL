@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, X, Download, Check, Sparkles, Save, Trash2, Plus, Minus } from 'lucide-react';
+import { Printer, X, Download, Check, Sparkles, Save, Trash2, Plus, Minus, MessageCircle } from 'lucide-react';
 import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../../utils/invoiceUtils';
 
 // ── PAPER WIDTH FIX ──
@@ -58,7 +58,7 @@ function computeTotals(items, isSameState) {
 
 // `editable`  — show qty/rate/discount as inputs + a Save button instead of Print.
 // `onSave(id, payload)` — called with the recomputed invoice payload when Save is clicked.
-export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint = false, editable = false, onSave }) {
+export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint = false, editable = false, onSave, onSendWhatsapp }) {
   const [saving, setSaving] = useState(false);
   const receiptRef = useRef(null);
 
@@ -255,10 +255,19 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
           }
           #thermal-receipt-printable {
             position: static !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 2mm 2mm 2mm 4mm !important;
+            /* ── SAFE-MARGIN FIX ──
+               Pehle width:100% + sirf left padding se try kiya tha, lekin
+               cheap thermal printers/drivers ka apna hardware registration
+               offset hota hai jo CSS se predict nahi ho sakta — kabhi
+               left katt jaata tha, kabhi right. Ab content ko 92% width
+               par rakhte hain + margin:auto se center — jo bhi paper ho
+               (58mm/80mm) ya printer ka offset kisi bhi side ho, dono
+               taraf ~4% guaranteed blank buffer milega, akshar kabhi
+               nahi katega. */
+            width: 92% !important;
+            max-width: 92% !important;
+            margin: 0 auto !important;
+            padding: 2mm !important;
             box-shadow: none !important;
             border: none !important;
             color: #000 !important;
@@ -571,13 +580,30 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                   Save Changes
                 </button>
               ) : (
-                <button
-                  onClick={handlePrint}
-                  className="btn-primary px-6 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-ink-950 font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-                >
-                  <Printer size={16} />
-                  Print Thermal Bill (Enter)
-                </button>
+                <>
+                  {/* ── MANUAL WHATSAPP BUTTON ──
+                      Pehle bill save hote hi WhatsApp automatically khul
+                      jaata tha. Ab yeh button sirf tabhi dikhta hai jab
+                      customer ka mobile number diya gaya ho, aur click
+                      karne par hi WhatsApp tab khulega — koi auto-send nahi. */}
+                  {invoice?.buyer?.contact && onSendWhatsapp && (
+                    <button
+                      onClick={onSendWhatsapp}
+                      className="btn-secondary px-4 py-2.5 text-sm border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-2"
+                      title="Send bill on WhatsApp"
+                    >
+                      <MessageCircle size={16} />
+                      Send on WhatsApp
+                    </button>
+                  )}
+                  <button
+                    onClick={handlePrint}
+                    className="btn-primary px-6 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-ink-950 font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                  >
+                    <Printer size={16} />
+                    Print Thermal Bill (Enter)
+                  </button>
+                </>
               )}
             </div>
           </div>
