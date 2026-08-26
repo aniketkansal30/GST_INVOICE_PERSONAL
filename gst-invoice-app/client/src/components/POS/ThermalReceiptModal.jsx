@@ -258,7 +258,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
-            padding: 2mm !important;
+            padding: 2mm 2mm 2mm 4mm !important;
             box-shadow: none !important;
             border: none !important;
             color: #000 !important;
