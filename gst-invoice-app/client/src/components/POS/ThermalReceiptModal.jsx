@@ -436,12 +436,12 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                           </button>
                         )}
                       </div>
-                      {tagInfo && (
-                        <div className="text-[9px] text-black flex justify-between">
-                          <span>[{tagInfo}] {item.hsn ? `HSN:${item.hsn}` : ''}</span>
-                          <span>GST {item.gstPct || 5}%</span>
-                        </div>
-                      )}
+                     {tagInfo && (
+  <div className="text-[9px] text-black flex justify-between">
+    <span>[{tagInfo}] {item.barcode ? `BC:${item.barcode}` : ''}</span>
+    <span>GST {item.gstPct || 5}%</span>
+  </div>
+)}
                       {editable ? (
                         <div className="text-[9px] text-black flex justify-between items-center">
                           <span>Discount %:</span>

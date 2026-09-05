@@ -136,21 +136,21 @@ export default function Report() {
         acc[key].cgst += cgstAmt;
         acc[key].sgst += sgstAmt;
         acc[key].igst += igstAmt;
-        acc[key].total += base + gst;
+        acc[key].total += base;
         const existing = acc[key].invoiceList.find(i => i.invoiceNumber === inv.invoiceNumber);
         if (existing) {
           existing.taxable += base;
           existing.cgst += cgstAmt;
           existing.sgst += sgstAmt;
           existing.igst += igstAmt;
-          existing.total += base + gst;
+          existing.total += base;
         } else {
           acc[key].invoiceList.push({
             invoiceNumber: inv.invoiceNumber,
             invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
             party: inv.buyer?.clientName || '-',
             status: inv.status || 'draft',
-            taxable: base, cgst: cgstAmt, sgst: sgstAmt, igst: igstAmt, total: base + gst,
+             taxable: base, cgst: cgstAmt, sgst: sgstAmt, igst: igstAmt, total: base,
           });
         }
       });
@@ -172,7 +172,7 @@ export default function Report() {
         acc[key].qty += Number(item.qty) || 0;
         acc[key].taxable += base;
         acc[key].gst += gst;
-        acc[key].total += base + gst;
+        acc[key].total += base;
         acc[key].invoiceList.push({
           invoiceNumber: inv.invoiceNumber,
           invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
@@ -180,7 +180,7 @@ export default function Report() {
           status: inv.status || 'draft',
           qty: Number(item.qty) || 0,
           rate: Number(item.rate) || 0,
-          taxable: base, gst, total: base + gst,
+          taxable: base, gst, total: base,
         });
       });
       return acc;
