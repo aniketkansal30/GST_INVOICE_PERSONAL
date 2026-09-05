@@ -84,8 +84,13 @@ export default function Report() {
           qty: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0,
           invoiceList: [],
         };
-        const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-        const gst = (base * (Number(item.gstPct) || 0)) / 100;
+        const qty = Number(item.qty) || 0;
+const rate = Number(item.rate) || 0;
+const gstPct = Number(item.gstPct) || 0;
+const discountPct = Number(item.discountPct) || 0;
+const mrpTotal = qty * rate * (1 - discountPct / 100);
+const base = gstPct > 0 ? mrpTotal / (1 + gstPct / 100) : mrpTotal;
+const gst = mrpTotal - base;
         const isIntra = (inv.buyer?.state || '').toLowerCase() === (inv.seller?.state || '').toLowerCase();
         acc[key].qty += Number(item.qty) || 0;
         acc[key].taxable += base;
@@ -127,8 +132,13 @@ export default function Report() {
           rate: key, taxable: 0, cgst: 0, sgst: 0, igst: 0, total: 0,
           invoiceList: [],
         };
-        const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-        const gst = (base * (Number(item.gstPct) || 0)) / 100;
+        const qty = Number(item.qty) || 0;
+const rate = Number(item.rate) || 0;
+const gstPct = Number(item.gstPct) || 0;
+const discountPct = Number(item.discountPct) || 0;
+const mrpTotal = qty * rate * (1 - discountPct / 100);
+const base = gstPct > 0 ? mrpTotal / (1 + gstPct / 100) : mrpTotal;
+const gst = mrpTotal - base;
         const cgstAmt = isIntra ? gst / 2 : 0;
         const sgstAmt = isIntra ? gst / 2 : 0;
         const igstAmt = isIntra ? 0 : gst;
@@ -167,8 +177,13 @@ export default function Report() {
           gstPct: item.gstPct || 0, qty: 0, taxable: 0, gst: 0, total: 0,
           invoiceList: [],
         };
-        const base = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-        const gst = (base * (Number(item.gstPct) || 0)) / 100;
+       const qty = Number(item.qty) || 0;
+const rate = Number(item.rate) || 0;
+const gstPct = Number(item.gstPct) || 0;
+const discountPct = Number(item.discountPct) || 0;
+const mrpTotal = qty * rate * (1 - discountPct / 100);
+const base = gstPct > 0 ? mrpTotal / (1 + gstPct / 100) : mrpTotal;
+const gst = mrpTotal - base;
         acc[key].qty += Number(item.qty) || 0;
         acc[key].taxable += base;
         acc[key].gst += gst;
