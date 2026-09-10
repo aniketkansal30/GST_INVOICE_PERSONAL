@@ -18,6 +18,7 @@ const InvoicePreviewPage = lazy(() => import('./pages/InvoicePreviewPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const Report = lazy(() => import('./pages/Report'));
 const InventoryPage = lazy(() => import('./pages/InventoryPage'));
+const DebitNotesPage = lazy(() => import('./pages/DebitNotesPage'));
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
