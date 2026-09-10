@@ -45,6 +45,7 @@ app.use(async (req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/debit-notes', require('./routes/debitNotes'));
 
 app.get('/api/health', (req, res) => res.json({ 
   status: 'ok', 
