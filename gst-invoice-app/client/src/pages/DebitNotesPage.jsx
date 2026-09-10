@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { formatCurrency } from '../utils/invoiceUtils';
+import { formatCurrency, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 import {
   Undo2, Plus, X, Search, Printer, Trash2, ScanBarcode,
   IndianRupee, Percent, Package, AlertTriangle, Download
@@ -9,10 +9,13 @@ import toast from 'react-hot-toast';
 import DateRangeFilter from '../components/DateRangeFilter';
 import { filterByDateRange } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
+import { useAuth } from '../context/AuthContext';
+import DebitNoteReceiptModal from '../components/DebitNoteReceiptModal';
 
 const REASONS = ['Unsold stock', 'Damaged / defective', 'Wrong size / color sent', 'Other'];
 
 export default function DebitNotesPage() {
+  const { user } = useAuth();
   const [debitNotes, setDebitNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -21,7 +24,7 @@ export default function DebitNotesPage() {
   // Product lookup (reuses the same /products master used in Inventory)
   const [products, setProducts] = useState([]);
 
-  // Modal state
+  // Modal state — New Debit Note
   const [showModal, setShowModal] = useState(false);
   const [productQuery, setProductQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -31,6 +34,16 @@ export default function DebitNotesPage() {
   const [qtyError, setQtyError] = useState('');
   const [supplierError, setSupplierError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Modal state — single-DN print
+  const [printNote, setPrintNote] = useState(null);
+
+  const seller = {
+    companyName: user?.companyName || DEFAULT_STORE_DETAILS.companyName,
+    gstNumber: user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber,
+    address: user?.address || DEFAULT_STORE_DETAILS.address,
+    state: user?.state || DEFAULT_STORE_DETAILS.state,
+  };
 
   useEffect(() => {
     loadDebitNotes();
@@ -202,10 +215,10 @@ export default function DebitNotesPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-slide-up">
       {/* ── PRINT-ONLY STYLES ──
-          Same "no-print" convention used everywhere else in the app
-          (ThermalReceiptModal, InvoicePreviewPage). Anything with the
-          `no-print` class disappears when printing, and the printable
-          area gets clean A4 margins instead of the raw browser default. */}
+          NOTE: this same block is duplicated in ThermalReceiptModal /
+          DebitNoteReceiptModal / InvoicePreviewPage. Worth moving into a
+          global stylesheet (index.css) once, so every page just uses the
+          `no-print` class without repeating this block everywhere. */}
       <style>{`
         @media print {
           .no-print, .no-print * {
@@ -257,15 +270,18 @@ export default function DebitNotesPage() {
         </div>
       </div>
 
-      {/* Printable area — stats + table together, styled like an A4 report */}
+      {/* Printable area — GST-style header + stats + table together */}
       <div id="debit-notes-printable">
-        {/* Print-only header (store name shows only when printing) */}
+        {/* Print-only header — same "From" block style as the invoice preview */}
         <div className="hidden print:block mb-4 pb-3 border-b-2 border-ink-900 text-center">
-          <p className="text-sm font-bold uppercase tracking-wide">Debit Notes Report</p>
-          <p className="text-xs text-ink-500 mt-0.5">
+          <p style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '3px', color: '#6e6e60', margin: '0 0 4px' }}>DEBIT NOTES REPORT</p>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 4px' }}>{seller.companyName}</h2>
+          <p style={{ fontSize: '11px', color: '#6e6e60', margin: '0 0 2px' }}>{seller.address}</p>
+          <p style={{ fontSize: '11px', margin: '0 0 4px' }}>GSTIN: {seller.gstNumber} &nbsp;|&nbsp; {seller.state}</p>
+          <p className="text-xs text-ink-500">
             {dateFilter.preset === 'custom' && dateFilter.customFrom && dateFilter.customTo
-              ? `${dateFilter.customFrom} to ${dateFilter.customTo}`
-              : dateFilter.preset.replace(/_/g, ' ')}
+              ? `Period: ${dateFilter.customFrom} to ${dateFilter.customTo}`
+              : `Period: ${dateFilter.preset.replace(/_/g, ' ')}`}
           </p>
         </div>
 
@@ -366,6 +382,13 @@ export default function DebitNotesPage() {
                       </td>
                       <td className="py-3 px-3 text-right no-print">
                         <div className="inline-flex items-center gap-1.5 font-sans">
+                          <button
+                            onClick={() => setPrintNote(d)}
+                            className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-all"
+                            title="Print this debit note"
+                          >
+                            <Printer size={13} />
+                          </button>
                           <button
                             onClick={() => handleDelete(d)}
                             className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
@@ -532,6 +555,11 @@ export default function DebitNotesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL: Print single debit note */}
+      {printNote && (
+        <DebitNoteReceiptModal note={printNote} onClose={() => setPrintNote(null)} />
       )}
     </div>
   );
