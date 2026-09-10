@@ -5,7 +5,7 @@ const stockTransactionSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
   type: {
     type: String,
-    enum: ['OPENING', 'PURCHASE', 'SALE', 'ADJUSTMENT'],
+    enum: ['OPENING', 'PURCHASE', 'SALE', 'ADJUSTMENT', 'DEBIT_NOTE'],
     required: true
   },
   qty: { type: Number, required: true },
