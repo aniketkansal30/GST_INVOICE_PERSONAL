@@ -36,12 +36,21 @@ exports.createDebitNote = async (req, res) => {
       });
     }
 
-    // Amount calculation — uses the product's current purchase price & GST%
-    const purchasePrice = Number(product.purchasePrice) || 0;
+    // Amount calculation — SAME convention as POS billing / ThermalReceiptModal:
+    // the per-unit rate (purchasePrice if set, else sellingPrice) is treated
+    // as GST-INCLUSIVE, and GST is reverse-extracted out of it rather than
+    // added on top. This keeps debit notes consistent with how bills are
+    // calculated everywhere else in the app.
     const gstPct = Number(product.gstPct) || 0;
-    const base = numQty * purchasePrice;
-    const gst = base * gstPct / 100;
-    const total = base + gst;
+    const priceIncGst = Number(product.purchasePrice) > 0
+      ? Number(product.purchasePrice)
+      : (Number(product.sellingPrice) || 0);
+
+    const perUnitBase = gstPct > 0 ? priceIncGst / (1 + gstPct / 100) : priceIncGst;
+    const base = numQty * perUnitBase;
+    const total = numQty * priceIncGst;
+    const gst = total - base;
+    const purchasePrice = priceIncGst;
 
     // DN number: DN-001, DN-002... per user
     const existingCount = await DebitNote.countDocuments({ user: req.user._id });
