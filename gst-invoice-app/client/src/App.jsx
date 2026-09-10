@@ -75,6 +75,7 @@ export default function App() {
                   <Route path="invoice_details" element={<Report />} />
                   <Route path="gstr1" element={<Report />} />
                   <Route path="inventory" element={<InventoryPage />} />
+                  <Route path="debit-notes" element={<DebitNotesPage />} />
                 </Route>
               </Routes>
             </Suspense>

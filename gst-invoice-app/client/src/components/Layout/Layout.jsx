@@ -9,11 +9,13 @@ import {
 } from 'lucide-react';
 import AboutModal from './AboutModal';
 import { DEFAULT_STORE_DETAILS } from '../../utils/invoiceUtils';
+import { Undo2 } from 'lucide-react';
 
 const navItems = [
   { to: '/pos', icon: Scan, label: 'POS Billing', highlight: true },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/inventory', icon: Package, label: 'Clothing & Stock' },
+  { to: '/debit-notes', icon: Undo2, label: 'Debit Notes' },
   { to: '/gstr1', icon: FileText, label: 'GST Reports' },
   { to: '/settings', icon: Settings, label: 'Store Settings' },
 ];
