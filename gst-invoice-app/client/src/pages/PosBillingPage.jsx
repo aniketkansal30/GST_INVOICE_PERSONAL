@@ -67,7 +67,7 @@ export default function PosBillingPage() {
 
   // Customer details (optional)
   const [customer, setCustomer] = useState({
-    name: 'Walk-in Customer',
+    name: '',
     contact: '',
     state: user?.state || 'Uttar Pradesh',
   });
@@ -206,11 +206,11 @@ export default function PosBillingPage() {
 
         const buyer = inv.buyer || {};
         setCustomer({
-          name: buyer.clientName || 'Walk-in Customer',
+          name: buyer.clientName || '',
           contact: buyer.contact || '',
           state: buyer.state || user?.state || 'Uttar Pradesh',
         });
-        setShowCustomerFields(!!(buyer.clientName && buyer.clientName !== 'Walk-in Customer') || !!buyer.contact);
+        setShowCustomerFields(!!(buyer.clientName && buyer.clientName !== '') || !!buyer.contact);
  setSalesman(inv.salesman || ''); 
         setCart((inv.items || []).map((item) => ({
           productId: item.productId,
@@ -675,7 +675,7 @@ export default function PosBillingPage() {
           email: user?.email || '',
         },
         buyer: {
-          clientName: customer.name || 'Walk-in Customer',
+          clientName: customer.name || '',
           contact: customer.contact || '',
           state: customer.state || user?.state || 'Uttar Pradesh',
         },
@@ -724,7 +724,7 @@ export default function PosBillingPage() {
       setPaymentTouched(false);                          // 👈 ADD
       setSplitPayments([{ mode: 'cash', amount: '' }]);
       setCustomer({
-        name: 'Walk-in Customer',
+        name: '',
         contact: '',
         state: user?.state || 'Uttar Pradesh',
       });

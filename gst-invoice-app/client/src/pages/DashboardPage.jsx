@@ -289,7 +289,7 @@ const allStats = useMemo(() => ({
                         <span className="text-sm font-mono font-bold text-ink-900 dark:text-ink-100">{inv.invoiceNumber}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-ink-800 dark:text-ink-100">{inv.buyer?.clientName || 'Walk-in Customer'}</p>
+                        <p className="text-sm font-medium text-ink-800 dark:text-ink-100">{inv.buyer?.clientName || ''}</p>
                         <p className="text-[11px] text-ink-400 font-mono">{inv.buyer?.contact || inv.buyer?.state || 'POS Counter'}</p>
                       </td>
                       <td className="px-6 py-4 text-xs font-mono text-ink-500 dark:text-ink-400">{formatDate(inv.invoiceDate)}</td>

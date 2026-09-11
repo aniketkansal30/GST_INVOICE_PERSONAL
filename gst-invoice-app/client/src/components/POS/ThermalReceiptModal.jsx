@@ -84,7 +84,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const sellerPan = seller.panNumber || DEFAULT_STORE_DETAILS.panNumber || user?.panNumber || (seller.gstNumber && seller.gstNumber.length >= 12 ? seller.gstNumber.substring(2, 12) : '');
 
   const buyer = invoice.buyer || {
-    clientName: 'Walk-in Customer',
+    clientName: '',
     contact: '',
   };
 
@@ -355,7 +355,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                     <span>Salesman: <span className="font-normal">{invoice.salesman}</span></span>
                   </div>
                 )}
-                {buyer.clientName && buyer.clientName !== 'Walk-in Customer' && (
+                {buyer.clientName && buyer.clientName !== '' && (
                   <div className="pt-0.5 text-black">
                     <span>Customer: <strong className="font-bold">{buyer.clientName}</strong> {buyer.contact ? `(${buyer.contact})` : ''}</span>
                   </div>
@@ -366,12 +366,11 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                   fixed px widths, so they scale down proportionally on
                   narrower paper instead of overflowing and getting cut. */}
               <div className="flex items-center gap-1 py-1 border-b border-black text-[10px] font-bold">
-                <span className="flex-1 min-w-0">ITEM (SIZE/CLR)</span>
-                <span className="w-[12%] shrink-0 text-center">QTY</span>
-                <span className="w-[22%] shrink-0 text-right">RATE</span>
-                <span className="w-[22%] shrink-0 text-right">AMT</span>
-                {editable && <span className="w-[8%] shrink-0" />}
-              </div>
+  <span className="flex-1 min-w-0">ITEM (SIZE/CLR)</span>
+  <span className="w-[15%] shrink-0 text-center">QTY</span>
+  <span className="w-[25%] shrink-0 text-right">AMT</span>
+  {editable && <span className="w-[8%] shrink-0" />}
+</div>
 
               {/* Items List */}
               <div className="py-1 border-b border-dashed border-black space-y-1.5">
@@ -385,46 +384,19 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                           {item.name}
                         </span>
                         {editable ? (
-                          <>
-                            <span className="w-[20%] shrink-0 flex items-center justify-center gap-0.5 font-normal">
-                              <button
-                                type="button"
-                                onClick={() => bumpQty(idx, -1)}
-                                className="w-3.5 h-3.5 flex items-center justify-center bg-neutral-200 rounded-xs no-print"
-                              >
-                                <Minus size={8} />
-                              </button>
-                              <input
-                                type="number"
-                                min="1"
-                                value={item.qty}
-                                onChange={(e) => updateEditableField(idx, 'qty', e.target.value)}
-                                className="w-6 text-center bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => bumpQty(idx, 1)}
-                                className="w-3.5 h-3.5 flex items-center justify-center bg-neutral-200 rounded-xs no-print"
-                              >
-                                <Plus size={8} />
-                              </button>
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.5"
-                              value={item.rate}
-                              onChange={(e) => updateEditableField(idx, 'rate', e.target.value)}
-                              className="w-[22%] shrink-0 text-right font-normal bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print"
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <span className="w-[12%] shrink-0 text-center font-normal">{item.qty}</span>
-                            <span className="w-[22%] shrink-0 text-right font-normal tabular-nums">{Number(item.rate).toFixed(2)}</span>
-                          </>
-                        )}
-                        <span className="w-[22%] shrink-0 text-right tabular-nums">{itemTotal.toFixed(2)}</span>
+  <span className="w-[25%] shrink-0 flex items-center justify-center gap-0.5 font-normal">
+    <button type="button" onClick={() => bumpQty(idx, -1)} className="w-3.5 h-3.5 flex items-center justify-center bg-neutral-200 rounded-xs no-print">
+      <Minus size={8} />
+    </button>
+    <input type="number" min="1" value={item.qty} onChange={(e) => updateEditableField(idx, 'qty', e.target.value)} className="w-6 text-center bg-transparent border-b border-dashed border-neutral-400 focus:outline-hidden no-print" />
+    <button type="button" onClick={() => bumpQty(idx, 1)} className="w-3.5 h-3.5 flex items-center justify-center bg-neutral-200 rounded-xs no-print">
+      <Plus size={8} />
+    </button>
+  </span>
+) : (
+  <span className="w-[15%] shrink-0 text-center font-normal">{item.qty}</span>
+)}
+<span className="w-[25%] shrink-0 text-right tabular-nums">{itemTotal.toFixed(2)}</span>
                         {editable && (
                           <button
                             type="button"
