@@ -171,16 +171,7 @@ export default function SettingsPage() {
                   className="input font-mono uppercase"
                 />
               </div>
-              <div>
-                <label className="label">PAN No.</label>
-                <input
-                  value={profile.panNumber}
-                  onChange={e => setProfile(p => ({ ...p, panNumber: e.target.value.toUpperCase() }))}
-                  placeholder="AADFI0426M"
-                  maxLength={10}
-                  className="input font-mono uppercase"
-                />
-              </div>
+              
               <div>
                 <label className="label">Contact / Mobile Number</label>
                 <input

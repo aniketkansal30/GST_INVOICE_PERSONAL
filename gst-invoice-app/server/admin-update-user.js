@@ -12,7 +12,7 @@ const UPDATE_DATA = {
   name: 'Manish Enterprises',
   companyName: 'Manish Enterprises',
   gstNumber: '09AJTPK3679H1ZG',
-  panNumber: 'AADFI0426M',
+ 
   address: 'Shop No 188 T, Abulane, Near Nishant Cinema, Meerut Cantt, Uttar Pradesh',
   state: 'Uttar Pradesh',
   contact: '9411446600',
