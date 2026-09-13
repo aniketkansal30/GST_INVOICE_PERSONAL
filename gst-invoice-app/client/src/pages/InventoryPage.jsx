@@ -46,7 +46,7 @@ export default function InventoryPage() {
     sellingPrice: '',
     purchasePrice: '',
     gstPct: 5,
-    openingStock: 10,
+    openingStock: '',
   });
   const [savingProduct, setSavingProduct] = useState(false);
 
@@ -116,7 +116,7 @@ export default function InventoryPage() {
       sellingPrice: '',
       purchasePrice: '',
       gstPct: 5,
-      openingStock: 20,
+      openingStock: '',
     });
     setShowProductModal(true);
   };

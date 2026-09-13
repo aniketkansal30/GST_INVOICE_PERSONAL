@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.font-mono {
+  font-family: "Courier New", Consolas, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
 @layer base {
   * { box-sizing: border-box; }
 
