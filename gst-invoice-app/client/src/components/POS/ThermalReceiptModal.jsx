@@ -336,7 +336,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                 {seller.address && <p className="text-[10px] leading-3 text-black">{seller.address}</p>}
                 {seller.contact && <p className="text-[10px]">Mobile: {seller.contact}</p>}
                 {seller.gstNumber && <p className="text-[10px] font-semibold">GSTIN: {seller.gstNumber}</p>}
-                {sellerPan && <p className="text-[10px] font-semibold">PAN No: {sellerPan}</p>}
+                
                 {seller.state && <p className="text-[10px]">State: {seller.state}</p>}
               </div>
 
