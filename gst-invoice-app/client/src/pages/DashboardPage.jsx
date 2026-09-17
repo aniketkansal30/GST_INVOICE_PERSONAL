@@ -190,7 +190,7 @@ const allStats = useMemo(() => ({
             <span>·</span>
             <span>GSTIN: {user?.gstNumber || DEFAULT_STORE_DETAILS.gstNumber}</span>
             <span>·</span>
-            <span>PAN: {user?.panNumber || DEFAULT_STORE_DETAILS.panNumber}</span>
+            
             <span>·</span>
             <span>Ph: {user?.contact || DEFAULT_STORE_DETAILS.contact}</span>
             <span>·</span>
