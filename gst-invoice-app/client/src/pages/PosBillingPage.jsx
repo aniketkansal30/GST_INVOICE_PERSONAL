@@ -668,7 +668,8 @@ export default function PosBillingPage() {
         seller: {
           companyName: DEFAULT_STORE_DETAILS.companyName || user?.companyName,
           gstNumber: DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber,
-          panNumber: DEFAULT_STORE_DETAILS.panNumber || user?.panNumber,
+   
+
           address: DEFAULT_STORE_DETAILS.address || user?.address,
           state: DEFAULT_STORE_DETAILS.state || user?.state,
           contact: DEFAULT_STORE_DETAILS.contact || user?.contact,
@@ -797,8 +798,7 @@ export default function PosBillingPage() {
             <p className="text-xs text-ink-500 dark:text-ink-400 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
               <span>GSTIN: {DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber}</span>
               <span>•</span>
-              <span>PAN: {DEFAULT_STORE_DETAILS.panNumber || user?.panNumber}</span>
-              <span>•</span>
+              
               <span>Ph: {DEFAULT_STORE_DETAILS.contact || user?.contact}</span>
               <span>•</span>
               <span>{DEFAULT_STORE_DETAILS.state || user?.state}</span>
