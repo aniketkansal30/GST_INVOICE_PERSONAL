@@ -620,19 +620,8 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Low Stock Warning Alert */}
-      {lowStockProducts.length > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-start gap-3 text-amber-800 dark:text-amber-300">
-          <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-xs">
-            <span className="font-bold">Low Stock Warning ({lowStockProducts.length} items): </span>
-            <span>
-              {lowStockProducts.map(p => `${p.name} [${p.size || 'M'}] (${p.currentStock} left)`).join(', ')}
-            </span>
-          </div>
-        </div>
-      )}
-
+      
+      
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card p-5">
