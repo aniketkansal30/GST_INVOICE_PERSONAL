@@ -168,40 +168,63 @@ const gst = mrpTotal - base;
     }, {})
   ).sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate));
   // Item-wise with invoice-level drill-down
-  const itemWise = Object.values(
-    filtered.reduce((acc, inv) => {
+    // Flat, row-per-item-per-bill report (matches standard POS export format).
+  const itemWiseRows = [];
+  {
+    let srCounter = 0;
+    filtered.forEach(inv => {
+      const isSameState = inv.isSameState !== undefined ? inv.isSameState : true;
       (inv.items || []).forEach(item => {
-        const key = item.name || 'Unknown';
-        if (!acc[key]) acc[key] = {
-          name: key, hsn: item.hsn || '-', uom: item.unit || 'Nos',
-          gstPct: item.gstPct || 0, qty: 0, taxable: 0, gst: 0, total: 0,
-          invoiceList: [],
-        };
-       const qty = Number(item.qty) || 0;
-const rate = Number(item.rate) || 0;
-const gstPct = Number(item.gstPct) || 0;
-const discountPct = Number(item.discountPct) || 0;
-const mrpTotal = qty * rate * (1 - discountPct / 100);
-const base = gstPct > 0 ? mrpTotal / (1 + gstPct / 100) : mrpTotal;
-const gst = mrpTotal - base;
-        acc[key].qty += Number(item.qty) || 0;
-        acc[key].taxable += base;
-        acc[key].gst += gst;
-        acc[key].total += base + gst;
-        acc[key].invoiceList.push({
+        srCounter += 1;
+        const qty = Number(item.qty) || 0;
+        const rate = Number(item.rate) || 0;
+        const gstPct = Number(item.gstPct) || 0;
+        const grossValue = qty * rate;
+        const lineDiscount = Number(item.discountAmount) || 0;
+        const netSaleValue = grossValue - lineDiscount;
+        const taxableValue = item.baseAmount !== undefined
+          ? Number(item.baseAmount)
+          : (gstPct > 0 ? netSaleValue / (1 + gstPct / 100) : netSaleValue);
+        const totalGstAmt = item.gstAmount !== undefined
+          ? Number(item.gstAmount)
+          : (netSaleValue - taxableValue);
+        const cgstAmt = isSameState ? totalGstAmt / 2 : 0;
+        const cgstPct = isSameState ? gstPct / 2 : 0;
+        const sgstIgstAmt = isSameState ? totalGstAmt / 2 : totalGstAmt;
+        const sgstIgstPct = isSameState ? gstPct / 2 : gstPct;
+
+        itemWiseRows.push({
+          sno: srCounter,
+          storeName: inv.seller?.companyName || '-',
+          billDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-GB') : '-',
           invoiceNumber: inv.invoiceNumber,
-          invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
-          party: inv.buyer?.clientName || '-',
-          status: inv.status || 'draft',
-          qty: Number(item.qty) || 0,
-          rate: Number(item.rate) || 0,
-          taxable: base, gst, total: base + gst,
+          brandName: '-',
+          subCategory: item.name || '-',
+          gstTaxClass: 'APPAREL',
+          category: 'APPARELS',
+          agentName: inv.salesman && inv.salesman.trim() ? inv.salesman.trim() : '-',
+          customerName: inv.buyer?.clientName || 'Walk-in Customer',
+          custMobile: inv.buyer?.contact || '-',
+          barcode: item.barcode || '-',
+          styleName: item.name || '-',
+          shadeName: item.color || '-',
+          size: item.size || '-',
+          itemDescription: item.name || '-',
+          hsnCode: item.hsn || '-',
+          qty,
+          rate,
+          grossValue,
+          cgst: cgstAmt,
+          cgstPct,
+          sgstIgst: sgstIgstAmt,
+          sgstIgstPct,
+          totalDiscount: lineDiscount,
+          saleValueBeforeTax: taxableValue,
+          netSaleValue,
         });
       });
-      return acc;
-    }, {})
-  );
-
+    });
+  }
   const toggleParty = (k) => setExpandedParties(p => ({ ...p, [k]: !p[k] }));
   const toggleHSN = (k) => setExpandedHSN(p => ({ ...p, [k]: !p[k] }));
   const toggleGST = (k) => setExpandedGST(p => ({ ...p, [k]: !p[k] }));
@@ -291,31 +314,36 @@ const gst = mrpTotal - base;
       });
     });
 
-    const itemColumns = [
+        const itemColumns = [
       { header: 'S.No.', key: 'sno', width: 8 },
-      { header: 'Item', key: 'name', width: 22 },
-      { header: 'HSN', key: 'hsn', width: 12 },
-      { header: 'UOM', key: 'uom', width: 10 },
-      { header: 'GST %', key: 'gstPct', width: 10, format: 'percent' },
-      { header: 'Invoice No', key: 'invoiceNumber', width: 14 },
-      { header: 'Date', key: 'invoiceDate', width: 12 },
-      { header: 'Party', key: 'party', width: 20 },
-      { header: 'Qty', key: 'qty', width: 10, format: 'number' },
+      { header: 'Store Name', key: 'storeName', width: 22 },
+      { header: 'Bill Date', key: 'billDate', width: 12 },
+      { header: 'Invoice number', key: 'invoiceNumber', width: 16 },
+      { header: 'Brand Name', key: 'brandName', width: 12 },
+      { header: 'Sub Category', key: 'subCategory', width: 18 },
+      { header: 'GST Tax Class', key: 'gstTaxClass', width: 12 },
+      { header: 'Category', key: 'category', width: 12 },
+      { header: 'Agent Name', key: 'agentName', width: 14 },
+      { header: 'Customer Name', key: 'customerName', width: 18 },
+      { header: 'Cust Mobile No.', key: 'custMobile', width: 14 },
+      { header: 'Barcode', key: 'barcode', width: 16 },
+      { header: 'Style Name', key: 'styleName', width: 16 },
+      { header: 'Shade Name', key: 'shadeName', width: 14 },
+      { header: 'Size', key: 'size', width: 10 },
+      { header: 'Item Description', key: 'itemDescription', width: 20 },
+      { header: 'HSN Code', key: 'hsnCode', width: 12 },
+      { header: 'Net Sale Qty', key: 'qty', width: 12, format: 'number' },
       { header: 'Rate', key: 'rate', width: 12, format: 'currency' },
-      { header: 'Taxable', key: 'taxable', width: 14, format: 'currency' },
-      { header: 'Total GST', key: 'gst', width: 14, format: 'currency' },
-      { header: 'Grand Total', key: 'total', width: 16, format: 'currency' },
+      { header: 'Gross Value', key: 'grossValue', width: 14, format: 'currency' },
+      { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
+      { header: 'CGST%', key: 'cgstPct', width: 10, format: 'percent' },
+      { header: 'SGST/IGST', key: 'sgstIgst', width: 12, format: 'currency' },
+      { header: 'SGST/IGST%', key: 'sgstIgstPct', width: 12, format: 'percent' },
+      { header: 'Total Discount', key: 'totalDiscount', width: 14, format: 'currency' },
+      { header: 'Sale Value Before Tax', key: 'saleValueBeforeTax', width: 18, format: 'currency' },
+      { header: 'Net Sale Value', key: 'netSaleValue', width: 16, format: 'currency' },
     ];
-    const itemRows = [];
-    itemWise.forEach((r, i) => {
-      r.invoiceList.forEach(inv => {
-        itemRows.push({
-          sno: i + 1, name: r.name, hsn: r.hsn, uom: r.uom, gstPct: r.gstPct,
-          invoiceNumber: inv.invoiceNumber, invoiceDate: inv.invoiceDate, party: inv.party,
-          qty: inv.qty, rate: inv.rate, taxable: inv.taxable, gst: inv.gst, total: inv.total,
-        });
-      });
-    });
+    const itemRows = itemWiseRows;
 
     const salesmanColumns = [
       { header: 'S.No.', key: 'sno', width: 8 },
@@ -816,58 +844,56 @@ const gst = mrpTotal - base;
           </div>
         )}
 
-        {/* Item-wise with drill-down */}
+                {/* Item-wise (flat, row-per-bill-item) */}
         {activeTab === 'item' && (
           <div className="overflow-x-auto">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {['', 'S.No.', 'Item Name', 'HSN/SAC', 'UOM', 'GST %', 'Total Qty', 'Taxable Amt', 'Total GST', 'Grand Total'].map((h, i) => (
-                  <th key={i} style={thS(i >= 5)}>{h}</th>
+                {['S.No.', 'Bill Date', 'Invoice No.', 'Sub Category', 'Agent', 'Customer', 'Mobile', 'Barcode', 'Shade', 'Size', 'HSN', 'Qty', 'Rate', 'Gross', 'CGST', 'CGST%', 'SGST/IGST', 'SGST/IGST%', 'Discount', 'Before Tax', 'Net Sale Value'].map((h, i) => (
+                  <th key={i} style={thS(i >= 11)}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
-                {itemWise.length === 0
-                  ? <tr><td colSpan={10} style={{ textAlign: 'center', padding: 40, color: '#888' }}>No data</td></tr>
-                  : itemWise.map((row, i) => (
-                    <React.Fragment key={i}>
-                      <tr style={{ background: i % 2 === 0 ? 'white' : '#f4f4f0', cursor: 'pointer' }} onClick={() => toggleItem(row.name)}>
-                        <td style={{ ...tdS(), width: 32 }}>{expandedItem[row.name] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
-                        <td style={tdS()}>{i + 1}</td>
-                        <td style={{ ...tdS(), fontWeight: '500' }}>{row.name}</td>
-                        <td style={{ ...tdS(), fontFamily: 'monospace', color: '#6e6e60' }}>{row.hsn}</td>
-                        <td style={tdS()}>{row.uom}</td>
-                        <td style={{ ...tdS(true), fontWeight: '600' }}>{row.gstPct}%</td>
-                        <td style={tdS(true)}>{row.qty}</td>
-                        <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
-                        <td style={tdS(true)}>{formatCurrency(row.gst)}</td>
-                        <td style={{ ...tdS(true), fontWeight: '700' }}>{formatCurrency(row.total)}</td>
-                      </tr>
-                      {expandedItem[row.name] && row.invoiceList.map((inv, j) => (
-                        <tr key={j} style={{ background: '#fdf4ff' }}>
-                          <td colSpan={2} style={{ ...tdS(), paddingLeft: 32 }}></td>
-                          <td style={{ ...tdS(), paddingLeft: 16, fontSize: 12, color: '#6b21a8' }}>
-                            <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{inv.invoiceNumber}</span>
-                            <span style={{ marginLeft: 8, fontSize: 11, color: '#6e6e60' }}>{inv.invoiceDate}</span>
-                            <span style={{ marginLeft: 8, fontSize: 11, color: '#888' }}>· {inv.party}</span>
-                            <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', borderRadius: 4, background: statusColor(inv.status) + '20', color: statusColor(inv.status), fontWeight: 600 }}>{inv.status?.toUpperCase()}</span>
-                          </td>
-                          <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.hsn}</td>
-                          <td style={{ ...tdS(), fontSize: 12 }}>{row.uom}</td>
-                          <td style={{ ...tdS(true), fontSize: 12, fontWeight: 600 }}>{row.gstPct}%</td>
-                          <td style={{ ...tdS(true), fontSize: 12 }}>{inv.qty}</td>
-                          <td style={{ ...tdS(true), fontSize: 12 }}>{formatCurrency(inv.taxable)}</td>
-                          <td style={{ ...tdS(true), fontSize: 12 }}>{formatCurrency(inv.gst)}</td>
-                          <td style={{ ...tdS(true), fontSize: 12, fontWeight: 700 }}>{formatCurrency(inv.total)}</td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
+                {itemWiseRows.length === 0
+                  ? <tr><td colSpan={21} style={{ textAlign: 'center', padding: 40, color: '#888' }}>No data</td></tr>
+                  : itemWiseRows.map((row) => (
+                    <tr key={row.sno} style={{ background: row.sno % 2 === 0 ? 'white' : '#f4f4f0' }}>
+                      <td style={tdS()}>{row.sno}</td>
+                      <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.billDate}</td>
+                      <td style={{ ...tdS(), fontFamily: 'monospace', fontWeight: 600 }}>{row.invoiceNumber}</td>
+                      <td style={{ ...tdS(), fontWeight: '500' }}>{row.subCategory}</td>
+                      <td style={tdS()}>{row.agentName}</td>
+                      <td style={tdS()}>{row.customerName}</td>
+                      <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.custMobile}</td>
+                      <td style={{ ...tdS(), fontFamily: 'monospace', fontSize: 12, color: '#b45309' }}>{row.barcode}</td>
+                      <td style={tdS()}>{row.shadeName}</td>
+                      <td style={tdS()}>{row.size}</td>
+                      <td style={{ ...tdS(), fontFamily: 'monospace', color: '#6e6e60' }}>{row.hsnCode}</td>
+                      <td style={tdS(true)}>{row.qty}</td>
+                      <td style={tdS(true)}>{formatCurrency(row.rate)}</td>
+                      <td style={tdS(true)}>{formatCurrency(row.grossValue)}</td>
+                      <td style={tdS(true)}>{formatCurrency(row.cgst)}</td>
+                      <td style={tdS(true)}>{row.cgstPct.toFixed(1)}%</td>
+                      <td style={tdS(true)}>{formatCurrency(row.sgstIgst)}</td>
+                      <td style={tdS(true)}>{row.sgstIgstPct.toFixed(1)}%</td>
+                      <td style={{ ...tdS(true), color: row.totalDiscount > 0 ? '#dc2626' : 'inherit' }}>{row.totalDiscount > 0 ? `-${formatCurrency(row.totalDiscount)}` : '-'}</td>
+                      <td style={tdS(true)}>{formatCurrency(row.saleValueBeforeTax)}</td>
+                      <td style={{ ...tdS(true), fontWeight: '700' }}>{formatCurrency(row.netSaleValue)}</td>
+                    </tr>
                   ))}
               </tbody>
-              {itemWise.length > 0 && <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
-                <td colSpan={7} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWise.reduce((s, r) => s + r.taxable, 0))}</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWise.reduce((s, r) => s + r.gst, 0))}</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWise.reduce((s, r) => s + r.total, 0))}</td>
+              {itemWiseRows.length > 0 && <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
+                <td colSpan={11} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{itemWiseRows.reduce((s, r) => s + r.qty, 0)}</td>
+                <td></td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.grossValue, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.cgst, 0))}</td>
+                <td></td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.sgstIgst, 0))}</td>
+                <td></td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.totalDiscount, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.saleValueBeforeTax, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.netSaleValue, 0))}</td>
               </tr></tfoot>}
             </table>
           </div>
