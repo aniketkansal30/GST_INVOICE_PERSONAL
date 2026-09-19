@@ -93,7 +93,8 @@
 
 /* Cut wala zero hatane ke liye: har monospace jagah DM Mono (normal 0) */
 [style*="monospace"],
+.font-mono,
 code, pre, kbd, samp {
-  font-family: 'DM Mono', 'Courier New', monospace !important;
-  font-feature-settings: "zero" 0, "ss01" 0;
+  font-family: 'DM Sans', sans-serif !important;
+  font-variant-numeric: tabular-nums;
 }

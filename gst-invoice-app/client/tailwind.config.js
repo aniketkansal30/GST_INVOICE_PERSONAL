@@ -7,7 +7,7 @@ module.exports = {
       fontFamily: {
         sans: ['DM Sans', 'sans-serif'],
         display: ['Fraunces', 'serif'],
-        mono: ['"DM Mono"', '"Courier New"', 'monospace'],
+        mono: ['"DM Sans"', 'sans-serif'],
       },
       colors: {
         ink: {
