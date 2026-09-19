@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -90,3 +90,10 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { @apply bg-ink-200 rounded-full; }
 .dark ::-webkit-scrollbar-thumb { background: #444440; }
+
+/* Cut wala zero hatane ke liye: har monospace jagah DM Mono (normal 0) */
+[style*="monospace"],
+code, pre, kbd, samp {
+  font-family: 'DM Mono', 'Courier New', monospace !important;
+  font-feature-settings: "zero" 0, "ss01" 0;
+}

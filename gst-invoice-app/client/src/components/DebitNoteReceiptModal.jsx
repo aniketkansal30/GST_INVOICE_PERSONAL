@@ -101,14 +101,14 @@ export default function DebitNoteReceiptModal({ note, onClose }) {
               <tbody>
                 <tr>
                   <td style={{ padding: '9px 6px', fontWeight: 600 }}>{note.itemName}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'center', fontFamily: 'monospace' }}>{note.barcode || '-'}</td>
+                  <td style={{ padding: '9px 6px', textAlign: 'center', fontFamily: "'DM Mono', 'Courier New', monospace" }}>{note.barcode || '-'}</td>
                   <td style={{ padding: '9px 6px', textAlign: 'center' }}>{[note.size, note.color].filter(Boolean).join(' / ') || '-'}</td>
                   <td style={{ padding: '9px 6px', textAlign: 'center' }}>{note.qty}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: 'monospace' }}>{Number(note.purchasePrice).toFixed(2)}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: 'monospace' }}>{Number(note.base).toFixed(2)}</td>
+                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace" }}>{Number(note.purchasePrice).toFixed(2)}</td>
+                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace" }}>{Number(note.base).toFixed(2)}</td>
                   <td style={{ padding: '9px 6px', textAlign: 'center' }}>{note.gstPct}%</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: 'monospace' }}>{Number(note.gst).toFixed(2)}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{Number(note.total).toFixed(2)}</td>
+                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace" }}>{Number(note.gst).toFixed(2)}</td>
+                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 700 }}>{Number(note.total).toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>
@@ -116,14 +116,14 @@ export default function DebitNoteReceiptModal({ note, onClose }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
               <div style={{ width: '240px', border: '1px solid #e8e8e0', borderRadius: '8px', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid #e8e8e0', fontSize: '12px' }}>
-                  <span>Taxable Value</span><span style={{ fontFamily: 'monospace' }}>{formatCurrency(note.base)}</span>
+                  <span>Taxable Value</span><span style={{ fontFamily: "'DM Mono', 'Courier New', monospace" }}>{formatCurrency(note.base)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid #e8e8e0', fontSize: '12px' }}>
-                  <span>GST Reversed</span><span style={{ fontFamily: 'monospace' }}>{formatCurrency(note.gst)}</span>
+                  <span>GST Reversed</span><span style={{ fontFamily: "'DM Mono', 'Courier New', monospace" }}>{formatCurrency(note.gst)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: '#1c1c18', color: 'white' }}>
                   <span style={{ fontWeight: 700, fontSize: '13px' }}>TOTAL</span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '13px' }}>{formatCurrency(note.total)}</span>
+                  <span style={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 700, fontSize: '13px' }}>{formatCurrency(note.total)}</span>
                 </div>
               </div>
             </div>

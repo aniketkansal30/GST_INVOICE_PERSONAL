@@ -236,7 +236,7 @@ const gst = mrpTotal - base;
   const exportToExcel = async () => {
     const partyColumns = [
       { header: 'S.No.', key: 'sno', width: 8 },
-      { header: 'Party', key: 'party', width: 22 },
+      { header: 'Customer Name', key: 'party', width: 22 },
       { header: 'GSTIN', key: 'gstin', width: 18 },
       { header: 'State', key: 'state', width: 16 },
       { header: 'HSN/SAC', key: 'hsn', width: 14 },
@@ -271,7 +271,7 @@ const gst = mrpTotal - base;
       { header: 'UOM', key: 'uom', width: 10 },
       { header: 'Invoice No', key: 'invoiceNumber', width: 14 },
       { header: 'Date', key: 'invoiceDate', width: 12 },
-      { header: 'Party', key: 'party', width: 20 },
+      { header: 'Customer Name', key: 'party', width: 20 },
       { header: 'GST %', key: 'gstPct', width: 10, format: 'percent' },
       { header: 'Qty', key: 'qty', width: 10, format: 'number' },
       { header: 'Taxable', key: 'taxable', width: 14, format: 'currency' },
@@ -296,7 +296,7 @@ const gst = mrpTotal - base;
       { header: 'GST Rate', key: 'rate', width: 12 },
       { header: 'Invoice No', key: 'invoiceNumber', width: 14 },
       { header: 'Date', key: 'invoiceDate', width: 12 },
-      { header: 'Party', key: 'party', width: 20 },
+      { header: 'Customer Name', key: 'party', width: 20 },
       { header: 'Taxable', key: 'taxable', width: 14, format: 'currency' },
       { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
       { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
@@ -350,7 +350,7 @@ const gst = mrpTotal - base;
       { header: 'Salesman', key: 'salesman', width: 20 },
       { header: 'Invoice No', key: 'invoiceNumber', width: 14 },
       { header: 'Date', key: 'invoiceDate', width: 12 },
-      { header: 'Party', key: 'party', width: 20 },
+      { header: 'Customer Name', key: 'party', width: 20 },
       { header: 'Taxable', key: 'taxable', width: 14, format: 'currency' },
       { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
       { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
@@ -669,7 +669,7 @@ const gst = mrpTotal - base;
           <div className="overflow-x-auto">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {['', 'S.No.', 'Party Name', 'GSTIN', 'State', 'HSN/SAC', 'Invoices', 'Taxable Amt', 'CGST', 'SGST', 'IGST', 'Total'].map((h, i) => (
+                {['', 'S.No.', 'Customer Name', 'GSTIN', 'State', 'HSN/SAC', 'Invoices', 'Taxable Amt', 'CGST', 'SGST', 'IGST', 'Total'].map((h, i) => (
                   <th key={i} style={thS(i >= 6)}>{h}</th>
                 ))}
               </tr></thead>
@@ -682,9 +682,9 @@ const gst = mrpTotal - base;
                         <td style={{ ...tdS(), width: 32 }}>{expandedParties[row.party] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
                         <td style={tdS()}>{i + 1}</td>
                         <td style={tdS()}><strong>{row.party}</strong></td>
-                        <td style={{ ...tdS(), fontFamily: 'monospace', color: '#6e6e60' }}>{row.gstin}</td>
+                        <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", color: '#6e6e60' }}>{row.gstin}</td>
                         <td style={tdS()}>{row.state}</td>
-                        <td style={{ ...tdS(), fontFamily: 'monospace', fontSize: 12, color: '#6b21a8' }}>{[...new Set((row.invoiceList || []).flatMap(inv => (inv.hsn || '-').split(', ')))].join(', ')}</td>
+                        <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: 12, color: '#6b21a8' }}>{[...new Set((row.invoiceList || []).flatMap(inv => (inv.hsn || '-').split(', ')))].join(', ')}</td>
                         <td style={tdS(true)}>{row.invoiceList.length}</td>
                         <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
                         <td style={tdS(true)}>{formatCurrency(row.cgst)}</td>
@@ -696,13 +696,13 @@ const gst = mrpTotal - base;
                         <tr key={j} style={{ background: '#eef2ff' }}>
                           <td colSpan={2} style={{ ...tdS(), paddingLeft: 32 }}></td>
                           <td style={{ ...tdS(), paddingLeft: 16, fontSize: 12, color: '#3730a3' }}>
-                            <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{inv.invoiceNumber}</span>
+                            <span style={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 600 }}>{inv.invoiceNumber}</span>
                             <span style={{ marginLeft: 8, fontSize: 11, color: '#6e6e60' }}>{inv.invoiceDate}</span>
                             <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', borderRadius: 4, background: statusColor(inv.status) + '20', color: statusColor(inv.status), fontWeight: 600 }}>{inv.status?.toUpperCase()}</span>
                           </td>
                           <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.gstin}</td>
                           <td style={{ ...tdS(), fontSize: 12 }}>{inv.placeOfSupply}</td>
-                          <td style={{ ...tdS(), fontSize: 12, fontFamily: 'monospace', color: '#6b21a8' }}>{inv.hsn}</td>
+                          <td style={{ ...tdS(), fontSize: 12, fontFamily: "'DM Mono', 'Courier New', monospace", color: '#6b21a8' }}>{inv.hsn}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>Due: {inv.dueDate}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>{formatCurrency(inv.taxable)}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>{formatCurrency(inv.cgst)}</td>
@@ -718,7 +718,7 @@ const gst = mrpTotal - base;
                 <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
                   <td colSpan={7} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
                   {['taxable', 'cgst', 'sgst', 'igst', 'total'].map(k => (
-                    <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(partyWise.reduce((s, r) => s + r[k], 0))}</td>
+                    <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(partyWise.reduce((s, r) => s + r[k], 0))}</td>
                   ))}
                 </tr></tfoot>
               )}
@@ -743,7 +743,7 @@ const gst = mrpTotal - base;
                       <tr style={{ background: i % 2 === 0 ? 'white' : '#f4f4f0', cursor: 'pointer' }} onClick={() => toggleHSN(row.hsn)}>
                         <td style={{ ...tdS(), width: 32 }}>{expandedHSN[row.hsn] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
                         <td style={tdS()}>{i + 1}</td>
-                        <td style={{ ...tdS(), fontFamily: 'monospace', fontWeight: '700', color: '#1c1c18' }}>{row.hsn === '-' ? 'No HSN' : row.hsn}</td>
+                        <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700', color: '#1c1c18' }}>{row.hsn === '-' ? 'No HSN' : row.hsn}</td>
                         <td style={tdS()}>{row.description}</td>
                         <td style={tdS()}>{row.uom}</td>
                         <td style={tdS(true)}>{row.invoiceList.length}</td>
@@ -757,7 +757,7 @@ const gst = mrpTotal - base;
                         <tr key={j} style={{ background: '#f0fdf4' }}>
                           <td colSpan={2} style={{ ...tdS(), paddingLeft: 32 }}></td>
                           <td style={{ ...tdS(), paddingLeft: 16, fontSize: 12, color: '#166534' }}>
-                            <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{inv.invoiceNumber}</span>
+                            <span style={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 600 }}>{inv.invoiceNumber}</span>
                             <span style={{ marginLeft: 8, fontSize: 11, color: '#6e6e60' }}>{inv.invoiceDate}</span>
                             <span style={{ marginLeft: 8, fontSize: 11, color: '#888' }}>· {inv.party}</span>
                           </td>
@@ -777,9 +777,9 @@ const gst = mrpTotal - base;
               {hsnWise.length > 0 && (
                 <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
                   <td colSpan={6} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{hsnWise.reduce((s, r) => s + r.qty, 0)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{hsnWise.reduce((s, r) => s + r.qty, 0)}</td>
                   {['taxable', 'cgst', 'sgst', 'igst'].map(k => (
-                    <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(hsnWise.reduce((s, r) => s + r[k], 0))}</td>
+                    <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(hsnWise.reduce((s, r) => s + r[k], 0))}</td>
                   ))}
                 </tr></tfoot>
               )}
@@ -817,7 +817,7 @@ const gst = mrpTotal - base;
                         <tr key={j} style={{ background: '#fffbeb' }}>
                           <td colSpan={2} style={{ ...tdS(), paddingLeft: 32 }}></td>
                           <td style={{ ...tdS(), paddingLeft: 16, fontSize: 12, color: '#92400e' }}>
-                            <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{inv.invoiceNumber}</span>
+                            <span style={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 600 }}>{inv.invoiceNumber}</span>
                             <span style={{ marginLeft: 8, fontSize: 11, color: '#6e6e60' }}>{inv.invoiceDate}</span>
                             <span style={{ marginLeft: 8, fontSize: 11, color: '#888' }}>· {inv.party}</span>
                             <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', borderRadius: 4, background: statusColor(inv.status) + '20', color: statusColor(inv.status), fontWeight: 600 }}>{inv.status?.toUpperCase()}</span>
@@ -836,9 +836,9 @@ const gst = mrpTotal - base;
               </tbody>
               {gstWise.length > 0 && <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
                 <td colSpan={4} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
-                {['taxable', 'cgst', 'sgst', 'igst'].map(k => <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(gstWise.reduce((s, r) => s + r[k], 0))}</td>)}
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(gstWise.reduce((s, r) => s + r.cgst + r.sgst, 0))}</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(gstWise.reduce((s, r) => s + r.total, 0))}</td>
+                {['taxable', 'cgst', 'sgst', 'igst'].map(k => <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(gstWise.reduce((s, r) => s + r[k], 0))}</td>)}
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(gstWise.reduce((s, r) => s + r.cgst + r.sgst, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(gstWise.reduce((s, r) => s + r.total, 0))}</td>
               </tr></tfoot>}
             </table>
           </div>
@@ -860,15 +860,15 @@ const gst = mrpTotal - base;
                     <tr key={row.sno} style={{ background: row.sno % 2 === 0 ? 'white' : '#f4f4f0' }}>
                       <td style={tdS()}>{row.sno}</td>
                       <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.billDate}</td>
-                      <td style={{ ...tdS(), fontFamily: 'monospace', fontWeight: 600 }}>{row.invoiceNumber}</td>
+                      <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 600 }}>{row.invoiceNumber}</td>
                       <td style={{ ...tdS(), fontWeight: '500' }}>{row.subCategory}</td>
                       <td style={tdS()}>{row.agentName}</td>
                       <td style={tdS()}>{row.customerName}</td>
                       <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.custMobile}</td>
-                      <td style={{ ...tdS(), fontFamily: 'monospace', fontSize: 12, color: '#b45309' }}>{row.barcode}</td>
+                      <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: 12, color: '#b45309' }}>{row.barcode}</td>
                       <td style={tdS()}>{row.shadeName}</td>
                       <td style={tdS()}>{row.size}</td>
-                      <td style={{ ...tdS(), fontFamily: 'monospace', color: '#6e6e60' }}>{row.hsnCode}</td>
+                      <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", color: '#6e6e60' }}>{row.hsnCode}</td>
                       <td style={tdS(true)}>{row.qty}</td>
                       <td style={tdS(true)}>{formatCurrency(row.rate)}</td>
                       <td style={tdS(true)}>{formatCurrency(row.grossValue)}</td>
@@ -884,16 +884,16 @@ const gst = mrpTotal - base;
               </tbody>
               {itemWiseRows.length > 0 && <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
                 <td colSpan={11} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{itemWiseRows.reduce((s, r) => s + r.qty, 0)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{itemWiseRows.reduce((s, r) => s + r.qty, 0)}</td>
                 <td></td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.grossValue, 0))}</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.cgst, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.grossValue, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.cgst, 0))}</td>
                 <td></td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.sgstIgst, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.sgstIgst, 0))}</td>
                 <td></td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.totalDiscount, 0))}</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.saleValueBeforeTax, 0))}</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.netSaleValue, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.totalDiscount, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.saleValueBeforeTax, 0))}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.netSaleValue, 0))}</td>
               </tr></tfoot>}
             </table>
           </div>
@@ -927,7 +927,7 @@ const gst = mrpTotal - base;
                         <tr key={j} style={{ background: '#eef2ff' }}>
                           <td colSpan={2} style={{ ...tdS(), paddingLeft: 32 }}></td>
                           <td style={{ ...tdS(), paddingLeft: 16, fontSize: 12, color: '#3730a3' }}>
-                            <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{inv.invoiceNumber}</span>
+                            <span style={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 600 }}>{inv.invoiceNumber}</span>
                             <span style={{ marginLeft: 8, fontSize: 11, color: '#6e6e60' }}>{inv.invoiceDate}</span>
                             <span style={{ marginLeft: 8, fontSize: 11, color: '#888' }}>· {inv.party}</span>
                             <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', borderRadius: 4, background: statusColor(inv.status) + '20', color: statusColor(inv.status), fontWeight: 600 }}>{inv.status?.toUpperCase()}</span>
@@ -947,7 +947,7 @@ const gst = mrpTotal - base;
                 <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
                   <td colSpan={4} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
                   {['taxable', 'cgst', 'sgst', 'igst', 'total'].map(k => (
-                    <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>{formatCurrency(salesmanWise.reduce((s, r) => s + r[k], 0))}</td>
+                    <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(salesmanWise.reduce((s, r) => s + r[k], 0))}</td>
                   ))}
                 </tr></tfoot>
               )}

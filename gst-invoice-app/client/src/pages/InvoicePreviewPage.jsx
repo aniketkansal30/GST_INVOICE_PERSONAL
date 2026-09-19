@@ -249,21 +249,21 @@ export default function InvoicePreviewPage() {
                   <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f7f7f4', borderBottom: '1px solid #e8e8e0' }}>
                     <td style={{ padding: '9px 5px', textAlign: 'center', color: '#6e6e60', whiteSpace: 'nowrap' }}>{i + 1}</td>
                     <td style={{ padding: '9px 8px', fontWeight: '500', wordBreak: 'break-word', maxWidth: '140px' }}>{item.name}</td>
-                    <td style={{ padding: '9px 5px', fontFamily: 'monospace', color: '#6e6e60', textAlign: 'center', whiteSpace: 'nowrap' }}>{item.hsn || '-'}</td>
+                    <td style={{ padding: '9px 5px', fontFamily: "'DM Mono', 'Courier New', monospace", color: '#6e6e60', textAlign: 'center', whiteSpace: 'nowrap' }}>{item.hsn || '-'}</td>
                     <td style={{ padding: '9px 5px', textAlign: 'center', color: '#6e6e60', whiteSpace: 'nowrap' }}>{item.unit || 'Nos'}</td>
                     <td style={{ padding: '9px 5px', textAlign: 'right', whiteSpace: 'nowrap' }}>{item.qty}</td>
-                    <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{Number(item.rate).toFixed(2)}</td>
-                    <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{base.toFixed(2)}</td>
+                    <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", whiteSpace: 'nowrap' }}>{Number(item.rate).toFixed(2)}</td>
+                    <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", whiteSpace: 'nowrap' }}>{base.toFixed(2)}</td>
                     <td style={{ padding: '9px 5px', textAlign: 'center', color: '#6e6e60', whiteSpace: 'nowrap' }}>{item.gstPct}%</td>
                     {isSameState ? (
                       <>
-                        <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: 'monospace', color: '#2563eb', whiteSpace: 'nowrap' }}>{(gstAmt / 2).toFixed(2)}</td>
-                        <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: 'monospace', color: '#2563eb', whiteSpace: 'nowrap' }}>{(gstAmt / 2).toFixed(2)}</td>
+                        <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", color: '#2563eb', whiteSpace: 'nowrap' }}>{(gstAmt / 2).toFixed(2)}</td>
+                        <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", color: '#2563eb', whiteSpace: 'nowrap' }}>{(gstAmt / 2).toFixed(2)}</td>
                       </>
                     ) : (
-                      <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: 'monospace', color: '#d97706', whiteSpace: 'nowrap' }}>{gstAmt.toFixed(2)}</td>
+                      <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", color: '#d97706', whiteSpace: 'nowrap' }}>{gstAmt.toFixed(2)}</td>
                     )}
-                    <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '9px 5px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '600', whiteSpace: 'nowrap' }}>
                       {(base + gstAmt).toFixed(2)}
                     </td>
                   </tr>
@@ -286,12 +286,12 @@ export default function InvoicePreviewPage() {
             ].map(({ label, value }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid #e8e8e0', fontSize: '12.5px', color: '#6e6e60' }}>
                 <span>{label}</span>
-                <span style={{ fontFamily: 'monospace' }}>{value}</span>
+                <span style={{ fontFamily: "'DM Mono', 'Courier New', monospace" }}>{value}</span>
               </div>
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 14px', background: '#1c1c18', color: 'white' }}>
               <span style={{ fontWeight: '700', fontSize: '13px' }}>TOTAL</span>
-              <span style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '13px' }}>{formatCurrency(Math.round(grandTotal))}</span>
+              <span style={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700', fontSize: '13px' }}>{formatCurrency(Math.round(grandTotal))}</span>
             </div>
           </div>
         </div>
