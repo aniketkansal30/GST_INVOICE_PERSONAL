@@ -20,6 +20,8 @@ const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/gst-invoi
 async function run() {
   try {
     await mongoose.connect(mongoUri);
+    console.log('DB:', mongoose.connection.name, '| host:', mongoose.connection.host);
+    console.log('Total invoices in DB:', await Invoice.countDocuments());
     console.log('✓ Connected', APPLY ? '(APPLY MODE)' : '(DRY RUN)');
 
     const userIds = await Invoice.distinct('user');

@@ -376,7 +376,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
               <div className="py-1 border-b border-dashed border-black space-y-1.5">
                 {items.map((item, idx) => {
                   const itemTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
-                  const tagInfo = [item.size ? `Sz:${item.size}` : '', item.color ? item.color : ''].filter(Boolean).join('/');
+                  const tagInfo = [item.brand, item.size ? `Sz:${item.size}` : '', item.color ? item.color : ''].filter(Boolean).join('/');
                   return (
                     <div key={idx} className="text-[10px]">
                       <div className="flex items-center gap-1 font-semibold">

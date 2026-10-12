@@ -19,7 +19,7 @@ export default function PosBillingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
-    // ── Salesman list & selection — persisted in localStorage so add/remove survives reload ──
+  // ── Salesman list & selection — persisted in localStorage so add/remove survives reload ──
   const DEFAULT_SALESMEN = ['Ankit', 'Anushka', 'Arun FM.', 'Brijesh', 'Govind-Arrow', 'Himanshu', 'Sandeep', 'Shadab'];
   const getSavedSalesmen = () => {
     try {
@@ -123,6 +123,7 @@ export default function PosBillingPage() {
     barcode: '',
     size: 'M',
     color: 'Blue',
+    brand: '',
     sellingPrice: '',
     gstPct: 5,
     hsn: '6205',
@@ -211,7 +212,7 @@ export default function PosBillingPage() {
           state: buyer.state || user?.state || 'Uttar Pradesh',
         });
         setShowCustomerFields(!!(buyer.clientName && buyer.clientName !== '') || !!buyer.contact);
- setSalesman(inv.salesman || ''); 
+        setSalesman(inv.salesman || '');
         setCart((inv.items || []).map((item) => ({
           productId: item.productId,
           name: item.name,
@@ -642,11 +643,11 @@ export default function PosBillingPage() {
   // Now that grandTotal exists, we can safely compute how much is left to pay.
   const remainingToPay = grandTotal - totalTendered;
   useEffect(() => {
-  setSplitPayments(prev => {
-    if (paymentTouched || prev.length !== 1) return prev;
-    return [{ ...prev[0], amount: grandTotal > 0 ? String(grandTotal) : '' }];
-  });
-}, [grandTotal, paymentTouched]);
+    setSplitPayments(prev => {
+      if (paymentTouched || prev.length !== 1) return prev;
+      return [{ ...prev[0], amount: grandTotal > 0 ? String(grandTotal) : '' }];
+    });
+  }, [grandTotal, paymentTouched]);
 
   // Change calculator
   const tenderedNum = Number(cashTendered) || 0;
@@ -671,7 +672,7 @@ export default function PosBillingPage() {
         seller: {
           companyName: DEFAULT_STORE_DETAILS.companyName || user?.companyName,
           gstNumber: DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber,
-   
+
 
           address: DEFAULT_STORE_DETAILS.address || user?.address,
           state: DEFAULT_STORE_DETAILS.state || user?.state,
@@ -754,7 +755,8 @@ export default function PosBillingPage() {
       p.barcode?.toLowerCase().includes(q) ||
       p.size?.toLowerCase().includes(q) ||
       p.color?.toLowerCase().includes(q) ||
-      p.category?.toLowerCase().includes(q)
+      p.category?.toLowerCase().includes(q) ||
+      p.brand?.toLowerCase().includes(q)
     );
   });
 
@@ -801,7 +803,7 @@ export default function PosBillingPage() {
             <p className="text-xs text-ink-500 dark:text-ink-400 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
               <span>GSTIN: {DEFAULT_STORE_DETAILS.gstNumber || user?.gstNumber}</span>
               <span>•</span>
-              
+
               <span>Ph: {DEFAULT_STORE_DETAILS.contact || user?.contact}</span>
               <span>•</span>
               <span>{DEFAULT_STORE_DETAILS.state || user?.state}</span>
@@ -978,6 +980,11 @@ export default function PosBillingPage() {
                               {item.name}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              {item.brand && (
+                                <span className="bg-ink-100 dark:bg-ink-800 text-ink-700 dark:text-ink-300 px-1.5 text-[10px] font-bold rounded">
+                                  {item.brand}
+                                </span>
+                              )}
                               {item.size && (
                                 <span className="bg-amber-500/10 text-amber-700 dark:text-amber-400 px-1.5 py-0.2 text-[10px] font-bold rounded">
                                   Size: {item.size}
@@ -1086,7 +1093,7 @@ export default function PosBillingPage() {
 
         {/* Right Column: Totals, Customer, Payment & Print Button (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-           {/* Salesman Selector */}
+          {/* Salesman Selector */}
           <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 p-4 shadow-sm space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1536,7 +1543,18 @@ export default function PosBillingPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div>
+  <label className="label">Brand</label>
+  <input
+    type="text"
+    value={newQuickProduct.brand}
+    onChange={(e) => setNewQuickProduct(p => ({ ...p, brand: e.target.value }))}
+    placeholder="e.g. Raymond"
+    className="input"
+  />
+</div>
+
+<div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setQuickAddModal(false)}

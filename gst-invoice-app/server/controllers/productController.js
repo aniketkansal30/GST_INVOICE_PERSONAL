@@ -12,6 +12,7 @@ exports.getProducts = async (req, res) => {
         { barcode: { $regex: search, $options: 'i' } },
         { size: { $regex: search, $options: 'i' } },
         { color: { $regex: search, $options: 'i' } },
+        { brand: { $regex: search, $options: 'i' } },
         { hsn: { $regex: search, $options: 'i' } },
       ];
     }

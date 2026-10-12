@@ -299,7 +299,8 @@ export default function InventoryPage() {
       p.name?.toLowerCase().includes(q) ||
       p.barcode?.toLowerCase().includes(q) ||
       p.size?.toLowerCase().includes(q) ||
-      p.color?.toLowerCase().includes(q);
+      p.color?.toLowerCase().includes(q) ||
+      p.brand?.toLowerCase().includes(q);
     const matchesCategory = !categoryFilter || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -319,6 +320,7 @@ export default function InventoryPage() {
         if (!acc[key]) acc[key] = {
           name: key, hsn: item.hsn || '6205', uom: item.unit || 'Pcs',
           size: item.size || '-',
+          brand: item.brand || '-',
           color: item.color || '-',
           gstPct: item.gstPct || 0, qtySold: 0, taxable: 0, totalGst: 0, grandTotal: 0,
         };
@@ -892,6 +894,7 @@ export default function InventoryPage() {
                 <tr>
                   <th className="py-2.5 px-3">#</th>
                   <th className="py-2.5 px-3 font-sans">Garment Name</th>
+                  <th className="py-2.5 px-3 font-sans">Brand</th>
                   <th className="py-2.5 px-3">Size</th>
                   <th className="py-2.5 px-3">HSN</th>
                   <th className="py-2.5 px-3 text-center">GST %</th>
@@ -909,6 +912,7 @@ export default function InventoryPage() {
                     <tr key={i} className="hover:bg-ink-50/60 dark:hover:bg-ink-800/40">
                       <td className="py-2.5 px-3 text-ink-400">{i + 1}</td>
                       <td className="py-2.5 px-3 font-sans font-semibold text-ink-900 dark:text-ink-100">{row.name}</td>
+                      <td className="py-2.5 px-3 font-sans text-amber-600">{row.brand}</td>
                       <td className="py-2.5 px-3">{row.size}</td>
                       <td className="py-2.5 px-3 text-ink-500">{row.hsn}</td>
                       <td className="py-2.5 px-3 text-center">{row.gstPct}%</td>
