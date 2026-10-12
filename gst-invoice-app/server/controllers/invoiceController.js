@@ -6,7 +6,7 @@ const StockTransaction = require('../models/StockTransaction');
 // Pehla bill isi number se start hoga, uske baad +1 hota rahega.
 const START_INVOICE_NO = 302;
 // Agar prefix chahiye (jaise 'INV-') toh yahan daal do. Abhi plain number: 302, 303...
-const INVOICE_PREFIX = '';
+const INVOICE_PREFIX = 'INV-';
 
 // Saare invoices ke number dekhta hai, sabse bada number nikaalta hai, +1 return karta hai.
 // Purane 'INV-001' jaise numbers bhi parse ho jaate hain (302 se chhote hain, toh ignore).

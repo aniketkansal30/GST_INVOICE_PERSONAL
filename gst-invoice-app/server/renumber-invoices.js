@@ -12,7 +12,7 @@ const Invoice = require('./models/Invoice');
 const StockTransaction = require('./models/StockTransaction');
 
 const START_NO = 302;
-const PREFIX = ''; // controller ke INVOICE_PREFIX ke same rakho
+const PREFIX = 'INV-'; // controller ke INVOICE_PREFIX ke same rakho
 const APPLY = process.argv.includes('--apply');
 
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/gst-invoice';
