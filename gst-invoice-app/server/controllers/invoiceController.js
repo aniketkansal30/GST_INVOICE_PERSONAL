@@ -2,6 +2,27 @@
 const Product = require('../models/Product');
 const StockTransaction = require('../models/StockTransaction');
 
+// ── Invoice numbering ──
+// Pehla bill isi number se start hoga, uske baad +1 hota rahega.
+const START_INVOICE_NO = 302;
+// Agar prefix chahiye (jaise 'INV-') toh yahan daal do. Abhi plain number: 302, 303...
+const INVOICE_PREFIX = '';
+
+// Saare invoices ke number dekhta hai, sabse bada number nikaalta hai, +1 return karta hai.
+// Purane 'INV-001' jaise numbers bhi parse ho jaate hain (302 se chhote hain, toh ignore).
+const computeNextInvoiceNumber = async (userId) => {
+  const invoices = await Invoice.find({ user: userId }, { invoiceNumber: 1 }).lean();
+  let max = START_INVOICE_NO - 1;
+  invoices.forEach((inv) => {
+    const m = String(inv.invoiceNumber || '').match(/(\d+)\s*$/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+  });
+  return `${INVOICE_PREFIX}${max + 1}`;
+};
+
 exports.getInvoices = async (req, res) => {
   try {
     const { search, page = 1, limit = 10, status } = req.query;
@@ -44,34 +65,22 @@ exports.getInvoice = async (req, res) => {
 
 exports.createInvoice = async (req, res) => {
   try {
-    const lastInvoice = await Invoice.findOne({ user: req.user._id })
-      .sort({ createdAt: -1 });
-
-    let nextNumber = 'INV-001';
-    if (lastInvoice && lastInvoice.invoiceNumber) {
-      const parts = lastInvoice.invoiceNumber.split('-');
-      const lastNum = parseInt(parts[parts.length - 1]);
-      if (!isNaN(lastNum)) {
-        nextNumber = `INV-${String(lastNum + 1).padStart(3, '0')}`;
-      }
-    }
-
+    const nextNumber = await computeNextInvoiceNumber(req.user._id);
     const invoiceNumber = req.body.invoiceNumber || nextNumber;
-    
-    // Set default payments if grandTotal and paymentMode provided
-    const invoiceData = { ...req.body, invoiceNumber, user: req.user._id };
-    
-    const payments = Array.isArray(invoiceData.payments) ? invoiceData.payments : [];
-invoiceData.amountPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-invoiceData.amountDue = Math.max(0, (invoiceData.grandTotal || 0) - invoiceData.amountPaid);
 
-if (invoiceData.amountDue <= 0 && invoiceData.grandTotal > 0) {
-  invoiceData.status = 'paid';
-} else if (invoiceData.amountPaid > 0) {
-  invoiceData.status = 'partial';
-} else {
-  invoiceData.status = 'sent';   // koi payment nahi mila
-}
+    const invoiceData = { ...req.body, invoiceNumber, user: req.user._id };
+
+    const payments = Array.isArray(invoiceData.payments) ? invoiceData.payments : [];
+    invoiceData.amountPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    invoiceData.amountDue = Math.max(0, (invoiceData.grandTotal || 0) - invoiceData.amountPaid);
+
+    if (invoiceData.amountDue <= 0 && invoiceData.grandTotal > 0) {
+      invoiceData.status = 'paid';
+    } else if (invoiceData.amountPaid > 0) {
+      invoiceData.status = 'partial';
+    } else {
+      invoiceData.status = 'sent'; // koi payment nahi mila
+    }
 
     const invoice = await Invoice.create(invoiceData);
 
@@ -88,7 +97,7 @@ if (invoiceData.amountDue <= 0 && invoiceData.grandTotal > 0) {
         if (!product && item.name) {
           product = await Product.findOne({
             user: req.user._id,
-            name: { $regex: new RegExp(`^${item.name.trim()}$`, 'i') }
+            name: { $regex: new RegExp(`^${item.name.trim()}$`, 'i') },
           });
         }
 
@@ -117,7 +126,6 @@ if (invoiceData.amountDue <= 0 && invoiceData.grandTotal > 0) {
   }
 };
 
-
 exports.deleteInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findOneAndDelete({ _id: req.params.id, user: req.user._id });
@@ -135,16 +143,7 @@ exports.duplicateInvoice = async (req, res) => {
 
     const { _id, createdAt, updatedAt, invoiceNumber, payments, amountPaid, amountDue, ...data } = original.toObject();
 
-    // Next sequential number — same logic as getNextInvoiceNumber
-    const lastInvoice = await Invoice.findOne({ user: req.user._id }).sort({ createdAt: -1 });
-    let nextNumber = 'INV-001';
-    if (lastInvoice && lastInvoice.invoiceNumber) {
-      const parts = lastInvoice.invoiceNumber.split('-');
-      const lastNum = parseInt(parts[parts.length - 1]);
-      if (!isNaN(lastNum)) {
-        nextNumber = `INV-${String(lastNum + 1).padStart(3, '0')}`;
-      }
-    }
+    const nextNumber = await computeNextInvoiceNumber(req.user._id);
 
     const duplicate = await Invoice.create({
       ...data,
@@ -166,7 +165,7 @@ exports.getClients = async (req, res) => {
   try {
     const invoices = await Invoice.find({ user: req.user._id }, { buyer: 1 });
     const clientMap = {};
-    invoices.forEach(inv => {
+    invoices.forEach((inv) => {
       const b = inv.buyer;
       if (b && b.clientName) {
         const key = b.clientName.trim().toLowerCase();
@@ -183,8 +182,8 @@ exports.getProducts = async (req, res) => {
   try {
     const invoices = await Invoice.find({ user: req.user._id }, { items: 1 });
     const productMap = {};
-    invoices.forEach(inv => {
-      (inv.items || []).forEach(item => {
+    invoices.forEach((inv) => {
+      (inv.items || []).forEach((item) => {
         if (item.name) {
           const key = item.name.trim().toLowerCase();
           if (!productMap[key]) productMap[key] = {
@@ -224,7 +223,7 @@ exports.deletePayment = async (req, res) => {
   try {
     const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
-    invoice.payments = invoice.payments.filter(p => p._id.toString() !== req.params.pid);
+    invoice.payments = invoice.payments.filter((p) => p._id.toString() !== req.params.pid);
     invoice.amountPaid = invoice.payments.reduce((s, p) => s + p.amount, 0);
     invoice.amountDue = invoice.grandTotal - invoice.amountPaid;
     if (invoice.amountDue <= 0) invoice.status = 'paid';
@@ -236,26 +235,16 @@ exports.deletePayment = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 exports.getNextInvoiceNumber = async (req, res) => {
   try {
-    const lastInvoice = await Invoice.findOne({ user: req.user._id })
-      .sort({ createdAt: -1 });
-
-    let nextNumber = 'INV-001';
-    if (lastInvoice && lastInvoice.invoiceNumber) {
-      const parts = lastInvoice.invoiceNumber.split('-');
-      const lastNum = parseInt(parts[parts.length - 1]);
-      if (!isNaN(lastNum)) {
-        nextNumber = `INV-${String(lastNum + 1).padStart(3, '0')}`;
-      }
-    }
+    const nextNumber = await computeNextInvoiceNumber(req.user._id);
     res.json({ nextNumber });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// ✅ BILKUL ALAG — bahar
 exports.updateInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findOneAndUpdate(

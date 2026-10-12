@@ -62,6 +62,7 @@ exports.createProduct = async (req, res) => {
       size,
       color,
       category,
+      brand,
       discountPct,
       openingStock,
       upsert,
@@ -95,6 +96,7 @@ exports.createProduct = async (req, res) => {
     existingBarcode.size = size ? size.trim() : existingBarcode.size;
     existingBarcode.color = color ? color.trim() : existingBarcode.color;
     existingBarcode.category = category ? category.trim() : existingBarcode.category;
+    existingBarcode.brand = brand ? brand.trim() : existingBarcode.brand;
     existingBarcode.discountPct = discPct;
 
     if (addQty > 0) {
@@ -133,6 +135,7 @@ exports.createProduct = async (req, res) => {
       size: size ? size.trim() : '',
       color: color ? color.trim() : '',
       category: category ? category.trim() : 'Clothing',
+      brand: brand ? brand.trim() : '',
       discountPct: discPct,
       openingStock: opening,
       currentStock: opening,

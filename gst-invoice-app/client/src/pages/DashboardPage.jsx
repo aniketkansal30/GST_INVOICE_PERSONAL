@@ -6,13 +6,14 @@ import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../utils/invo
 import {
   Plus, Search, Eye, Edit2, Trash2, Copy, FileText,
   ChevronLeft, ChevronRight, TrendingUp, IndianRupee, Clock, CheckCircle,
-  Scan, Printer, ShoppingBag, ArrowRight, Lock, X
+  Scan, Printer, ShoppingBag, ArrowRight, Lock, X, Download
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
 import DateRangeFilter from '../components/DateRangeFilter';
 import { filterByDateRange } from '../utils/dateRangeUtils';
+import { exportStyledExcel } from '../utils/excelExport';
 
 
 const StatusBadge = ({ status }) => {
@@ -52,6 +53,12 @@ export default function DashboardPage() {
 // stats aur table hamesha ek doosre se match karein.
 const [allInvoices, setAllInvoices] = useState([]);
 const [loadingAll, setLoadingAll] = useState(true);
+
+// Export ke liye product master (stock, brand, barcode etc.)
+const [products, setProducts] = useState([]);
+useEffect(() => {
+  api.get('/products').then(r => setProducts(r.data || [])).catch(() => {});
+}, []);
 
 const loadAllInvoices = useCallback(async () => {
   setLoadingAll(true);
@@ -167,6 +174,145 @@ const allStats = useMemo(() => ({
     setReceiptMode('view');
   };
 
+  // ── Full Stock + Sales report: ek sheet, party ke sample jaisa ──
+  const exportFullReport = async () => {
+    if (products.length === 0) return toast.error('Products load nahi hue, thodi der baad try karo');
+
+    const up = (v) => String(v || '').trim().toUpperCase();
+    const storeName = DEFAULT_STORE_DETAILS.companyName || user?.companyName || '';
+
+    const pById = new Map(products.map(p => [String(p._id), p]));
+    const pByBarcode = new Map(
+      products.filter(p => p.barcode && p.barcode.trim()).map(p => [p.barcode.trim(), p])
+    );
+
+    // Dashboard ke date filter ke andar ke invoices se har item ki sale nikalo
+    const sold = {};
+    dateFilteredInvoices.forEach(inv => {
+      (inv.items || []).forEach(item => {
+        const p =
+          (item.productId && pById.get(String(item.productId))) ||
+          (item.barcode && pByBarcode.get(String(item.barcode).trim())) ||
+          null;
+        const key = p ? `p_${p._id}` : `o_${item.barcode || item.name || ''}`;
+        if (!sold[key]) sold[key] = { qty: 0, value: 0, invs: new Set(), item: p ? null : item };
+        const qty = Number(item.qty) || 0;
+        sold[key].qty += qty;
+        sold[key].value += qty * (Number(item.rate) || 0) - (Number(item.discountAmount) || 0);
+        if (inv.invoiceNumber) sold[key].invs.add(inv.invoiceNumber);
+      });
+    });
+
+    const columns = [
+      // ── Party ke sample ke 21 columns (same order) ──
+      { header: 'SNO.', key: 'sno', width: 7 },
+      { header: 'Store Name', key: 'storeName', width: 28 },
+      { header: 'Brand Name', key: 'brand', width: 18 },
+      { header: 'SUB CATEGORY.', key: 'subCategory', width: 20 },
+      { header: 'GENDER.', key: 'gender', width: 10 },
+      { header: 'CATEGORY.', key: 'category', width: 14 },
+      { header: 'GST.', key: 'gst', width: 8 },
+      { header: 'SEASON.', key: 'season', width: 10 },
+      { header: 'GODOWN NAME', key: 'godown', width: 14 },
+      { header: 'LOT CODE', key: 'lotCode', width: 12 },
+      { header: 'HSN CODE', key: 'hsn', width: 12, format: 'text' },
+      { header: 'Barcode', key: 'barcode', width: 18, format: 'text' },
+      { header: 'Item', key: 'item', width: 24 },
+      { header: 'UOM', key: 'uom', width: 8 },
+      { header: 'Size', key: 'size', width: 8 },
+      { header: 'Color', key: 'color', width: 14 },
+      { header: 'Item Desc.', key: 'itemDesc', width: 16 },
+      { header: 'BASIC RATE', key: 'basicRate', width: 12, format: 'currency' },
+      { header: 'M.R.P', key: 'mrp', width: 12, format: 'currency' },
+      { header: 'Cl. Stock Value(MRP)', key: 'stockValue', width: 20, format: 'currency' },
+      { header: 'Closing Stock Qty', key: 'closingQty', width: 16, format: 'number' },
+      // ── Invoice / sales details (extra, right side mein) ──
+      { header: 'Opening Stock Qty', key: 'openingQty', width: 16, format: 'number' },
+      { header: 'Sold Qty', key: 'soldQty', width: 10, format: 'number' },
+      { header: 'Sale Value', key: 'saleValue', width: 14, format: 'currency' },
+      { header: 'Bills', key: 'bills', width: 8, format: 'number' },
+      { header: 'Invoice Nos', key: 'invoiceNos', width: 30, format: 'text' },
+    ];
+
+    const salesCols = (s) => ({
+      soldQty: s ? s.qty : 0,
+      saleValue: s ? s.value : 0,
+      bills: s ? s.invs.size : 0,
+      invoiceNos: s ? [...s.invs].join(', ') : '',
+    });
+
+    // Brand → category → naam ke order mein, sample jaisa
+    const sorted = [...products].sort((a, b) =>
+      up(a.brand).localeCompare(up(b.brand)) ||
+      up(a.category).localeCompare(up(b.category)) ||
+      String(a.name || '').localeCompare(String(b.name || ''))
+    );
+
+    const rows = sorted.map(p => ({
+      storeName,
+      brand: up(p.brand),
+      subCategory: up(p.category),
+      gender: '',
+      category: 'APPARELS',
+      gst: `${Number(p.gstPct) || 0}%`,
+      season: '',
+      godown: '',
+      lotCode: '',
+      hsn: String(p.hsn || ''),
+      barcode: String(p.barcode || ''),
+      item: p.name || '',
+      uom: 'PCS',
+      size: p.size || '',
+      color: p.color || '',
+      itemDesc: '',
+      basicRate: Number(p.sellingPrice) || 0,
+      mrp: Number(p.sellingPrice) || 0,
+      stockValue: (Number(p.currentStock) || 0) * (Number(p.sellingPrice) || 0),
+      closingQty: Number(p.currentStock) || 0,
+      openingQty: Number(p.openingStock) || 0,
+      ...salesCols(sold[`p_${p._id}`]),
+    }));
+
+    // Jin items ka product ab delete ho chuka hai par invoice mein bik chuke hain
+    Object.entries(sold).forEach(([key, s]) => {
+      if (!key.startsWith('o_') || !s.item) return;
+      const it = s.item;
+      rows.push({
+        storeName,
+        brand: up(it.brand),
+        subCategory: '',
+        gender: '',
+        category: 'APPARELS',
+        gst: `${Number(it.gstPct) || 0}%`,
+        season: '',
+        godown: '',
+        lotCode: '',
+        hsn: String(it.hsn || ''),
+        barcode: String(it.barcode || ''),
+        item: it.name || '',
+        uom: 'PCS',
+        size: it.size || '',
+        color: it.color || '',
+        itemDesc: '',
+        basicRate: Number(it.rate) || 0,
+        mrp: Number(it.rate) || 0,
+        stockValue: 0,
+        closingQty: 0,
+        openingQty: 0,
+        ...salesCols(s),
+      });
+    });
+
+    rows.forEach((r, i) => { r.sno = String(i + 1); });
+
+    const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+    await exportStyledExcel(
+      [{ name: 'Report', columns, rows }],
+      `Stock_Sales_Report_${today}.xlsx`
+    );
+    toast.success('Report exported to Excel!');
+  };
+
   const stats = [
     { label: 'Total Invoices & Bills', value: allStats.totalCount, icon: FileText, color: 'bg-ink-800 dark:bg-amber-500' },
     { label: 'Total Revenue', value: formatCurrency(allStats.totalAmount), icon: IndianRupee, color: 'bg-emerald-600' },
@@ -244,6 +390,13 @@ const allStats = useMemo(() => ({
           <div className="flex items-center gap-3">
           <DateRangeFilter {...dateFilter} onChange={setDateFilter} />
             <p className="text-xs text-ink-400 dark:text-ink-500 font-mono">{totalFiltered} total bills</p>
+            <button
+              onClick={exportFullReport}
+              className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"
+              title="Stock + Sales report (Excel)"
+            >
+              <Download size={14} /> Export Excel
+            </button>
             <button onClick={() => navigate('/pos')} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
               <Plus size={14} /> New POS Bill
             </button>

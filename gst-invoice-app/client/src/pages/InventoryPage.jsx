@@ -38,6 +38,7 @@ export default function InventoryPage() {
   const [productForm, setProductForm] = useState({
     name: '',
     barcode: '',
+    brand: '',
     size: 'M',
     color: 'Navy Blue',
     category: 'Shirts',
@@ -108,6 +109,7 @@ export default function InventoryPage() {
     setProductForm({
       name: '',
       barcode: randomCode,
+      brand: '',
       size: 'M',
       color: 'Navy Blue',
       category: 'Shirts',
@@ -131,6 +133,7 @@ export default function InventoryPage() {
       size: p.size || 'M',
       color: p.color || '',
       category: p.category || 'Shirts',
+      brand: p.brand || '',
       hsn: p.hsn || '6205',
       unit: p.unit || 'Pcs',
       sellingPrice: p.sellingPrice || '',
@@ -228,6 +231,7 @@ export default function InventoryPage() {
     { key: 'name', label: 'Product Name', required: true },
     { key: 'barcode', label: 'Barcode', required: false },
     { key: 'category', label: 'Category', required: false },
+    { key: 'brand', label: 'Brand', required: false },
     { key: 'size', label: 'Size', required: false },
     { key: 'color', label: 'Color', required: false },
     { key: 'hsn', label: 'HSN Code', required: false },
@@ -243,6 +247,7 @@ export default function InventoryPage() {
     name: ['product name', 'name', 'item name', 'item', 'title', 'description', 'product', 'garment name'],
     barcode: ['barcode', 'bar code', 'code', 'sku', 'ean', 'upc'],
     category: ['category', 'cat', 'type', 'garment type'],
+    brand: ['brand', 'brand name', 'company', 'make'],
     size: ['size'],
     color: ['color', 'colour'],
     hsn: ['hsn', 'hsn code', 'hsn/sac', 'hsn sac'],
@@ -384,66 +389,111 @@ export default function InventoryPage() {
     0
   );
 
-  const exportToExcel = async () => {
+    const exportToExcel = async () => {
+    const sum = (arr, k) => arr.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+    const withTotal = (rows, keys) => {
+      if (rows.length === 0) return rows;
+      const t = { sno: 'TOTAL' };
+      keys.forEach(k => { t[k] = sum(rows, k); });
+      return [...rows, t];
+    };
+
+    // ── Sheet 1: Stock Report (party ke sample jaisa, same columns & order) ──
     const stockColumns = [
-      { header: 'S.No.', key: 'sno', width: 8 },
-      { header: 'Product Name', key: 'name', width: 24 },
-      { header: 'Barcode', key: 'barcode', width: 18 },
-      { header: 'Category', key: 'category', width: 14 },
-      { header: 'Size', key: 'size', width: 10 },
+      { header: 'SNO.', key: 'sno', width: 7 },
+      { header: 'Store Name', key: 'storeName', width: 28 },
+      { header: 'Brand Name', key: 'brand', width: 18 },
+      { header: 'SUB CATEGORY.', key: 'subCategory', width: 20 },
+      { header: 'GENDER.', key: 'gender', width: 10 },
+      { header: 'CATEGORY.', key: 'category', width: 14 },
+      { header: 'GST.', key: 'gst', width: 8 },
+      { header: 'SEASON.', key: 'season', width: 10 },
+      { header: 'GODOWN NAME', key: 'godown', width: 14 },
+      { header: 'LOT CODE', key: 'lotCode', width: 12 },
+      { header: 'HSN CODE', key: 'hsn', width: 12, format: 'text' },
+      { header: 'Barcode', key: 'barcode', width: 18, format: 'text' },
+      { header: 'Item', key: 'item', width: 24 },
+      { header: 'UOM', key: 'uom', width: 8 },
+      { header: 'Size', key: 'size', width: 8 },
       { header: 'Color', key: 'color', width: 14 },
-      { header: 'Selling Price (₹)', key: 'sellingPrice', width: 16, format: 'currency' },
-      { header: 'Purchase Price (₹)', key: 'purchasePrice', width: 16, format: 'currency' },
-      { header: 'GST %', key: 'gstPct', width: 10, format: 'percent' },
-      { header: 'Current Stock', key: 'currentStock', width: 14, format: 'number' },
+      { header: 'Item Desc.', key: 'itemDesc', width: 16 },
+      { header: 'BASIC RATE', key: 'basicRate', width: 12, format: 'currency' },
+      { header: 'M.R.P', key: 'mrp', width: 12, format: 'currency' },
+      { header: 'Cl. Stock Value(MRP)', key: 'stockValue', width: 20, format: 'currency' },
+      { header: 'Closing Stock Qty', key: 'closingQty', width: 16, format: 'number' },
     ];
-    const stockRows = products.map((p, i) => ({
-      sno: i + 1, name: p.name, barcode: p.barcode || '-', category: p.category || '-',
-      size: p.size || '-', color: p.color || '-', sellingPrice: p.sellingPrice || 0,
-      purchasePrice: p.purchasePrice || 0, gstPct: p.gstPct, currentStock: p.currentStock,
+    const up = (v) => String(v || '').trim().toUpperCase();
+    const sortedProducts = [...products].sort((a, b) =>
+      up(a.brand).localeCompare(up(b.brand)) ||
+      up(a.category).localeCompare(up(b.category)) ||
+      String(a.name || '').localeCompare(String(b.name || ''))
+    );
+    // Party ke sample mein TOTAL row nahi hai, isliye yahan bhi nahi lagayi
+    const stockRows = sortedProducts.map((p, i) => ({
+      sno: i + 1,
+      storeName: DEFAULT_STORE_DETAILS.companyName || user?.companyName || '',
+      brand: up(p.brand),
+      subCategory: up(p.category),
+      gender: '',
+      category: 'APPARELS',
+      gst: `${Number(p.gstPct) || 0}%`,
+      season: '',
+      godown: '',
+      lotCode: '',
+      hsn: String(p.hsn || ''),
+      barcode: String(p.barcode || ''),
+      item: p.name || '',
+      uom: 'PCS',
+      size: p.size || '',
+      color: p.color || '',
+      itemDesc: '',
+      basicRate: Number(p.sellingPrice) || 0,
+      mrp: Number(p.sellingPrice) || 0,
+      stockValue: (Number(p.currentStock) || 0) * (Number(p.sellingPrice) || 0),
+      closingQty: Number(p.currentStock) || 0,
     }));
 
+    // ── Sheet 2: Item-wise Sales ──
     const itemColumns = [
       { header: 'S.No.', key: 'sno', width: 8 },
-      { header: 'Item Name', key: 'name', width: 24 },
-      { header: 'Size', key: 'size', width: 10 },
+      { header: 'Item Name', key: 'name', width: 26 },
       { header: 'HSN', key: 'hsn', width: 12 },
-      { header: 'UOM', key: 'uom', width: 10 },
-      { header: 'GST %', key: 'gstPct', width: 10, format: 'percent' },
-      { header: 'Qty Sold', key: 'qtySold', width: 12, format: 'number' },
-      { header: 'Taxable Amt', key: 'taxable', width: 16, format: 'currency' },
-      { header: 'Total GST', key: 'totalGst', width: 16, format: 'currency' },
-      { header: 'Grand Total', key: 'grandTotal', width: 16, format: 'currency' },
+      { header: 'UOM', key: 'uom', width: 8 },
+      { header: 'GST %', key: 'gstPct', width: 9, format: 'percent' },
+      { header: 'Qty Sold', key: 'qtySold', width: 10, format: 'number' },
+      { header: 'Taxable Value', key: 'taxable', width: 15, format: 'currency' },
+      { header: 'Total GST', key: 'totalGst', width: 14, format: 'currency' },
+      { header: 'Grand Total', key: 'grandTotal', width: 15, format: 'currency' },
     ];
-    const itemRows = itemWise.map((r, i) => ({
-      sno: i + 1, name: r.name, size: r.size, hsn: r.hsn, uom: r.uom, gstPct: r.gstPct,
-      qtySold: r.qtySold, taxable: r.taxable, totalGst: r.totalGst, grandTotal: r.grandTotal,
-    }));
-    itemRows.push({
-      sno: 'TOTAL', name: '', size: '', hsn: '', uom: '', gstPct: '',
-      qtySold: itemWise.reduce((s, r) => s + r.qtySold, 0),
-      taxable: itemWise.reduce((s, r) => s + r.taxable, 0),
-      totalGst: itemWise.reduce((s, r) => s + r.totalGst, 0),
-      grandTotal: itemWise.reduce((s, r) => s + r.grandTotal, 0)
-    });
+    const itemRows = withTotal(
+      itemWise.map((r, i) => ({
+        sno: i + 1, name: r.name, hsn: r.hsn, uom: r.uom, gstPct: r.gstPct,
+        qtySold: r.qtySold, taxable: r.taxable, totalGst: r.totalGst, grandTotal: r.grandTotal,
+      })),
+      ['qtySold', 'taxable', 'totalGst', 'grandTotal']
+    );
 
+    // ── Sheet 3: Salesman-wise Sales ──
     const salesmanColumns = [
       { header: 'S.No.', key: 'sno', width: 8 },
       { header: 'Salesman', key: 'salesman', width: 20 },
-      { header: 'Bills', key: 'billsCount', width: 10, format: 'number' },
-      { header: 'Qty Sold', key: 'qtySold', width: 12, format: 'number' },
-      { header: 'Taxable Amt', key: 'taxable', width: 16, format: 'currency' },
-      { header: 'Total GST', key: 'totalGst', width: 16, format: 'currency' },
-      { header: 'Grand Total', key: 'grandTotal', width: 16, format: 'currency' },
+      { header: 'Bills', key: 'billsCount', width: 9, format: 'number' },
+      { header: 'Qty Sold', key: 'qtySold', width: 10, format: 'number' },
+      { header: 'Taxable Value', key: 'taxable', width: 15, format: 'currency' },
+      { header: 'Total GST', key: 'totalGst', width: 14, format: 'currency' },
+      { header: 'Grand Total', key: 'grandTotal', width: 15, format: 'currency' },
     ];
-    const salesmanRows = salesmanWise.map((r, i) => ({
-      sno: i + 1, salesman: r.salesman, billsCount: r.billsCount, qtySold: r.qtySold,
-      taxable: r.taxable, totalGst: r.totalGst, grandTotal: r.grandTotal,
-    }));
+    const salesmanRows = withTotal(
+      salesmanWise.map((r, i) => ({
+        sno: i + 1, salesman: r.salesman, billsCount: r.billsCount, qtySold: r.qtySold,
+        taxable: r.taxable, totalGst: r.totalGst, grandTotal: r.grandTotal,
+      })),
+      ['billsCount', 'qtySold', 'taxable', 'totalGst', 'grandTotal']
+    );
 
     await exportStyledExcel(
       [
-        { name: 'Clothing Stock', columns: stockColumns, rows: stockRows },
+        { name: 'Report', columns: stockColumns, rows: stockRows },
         { name: 'Item-wise Sales', columns: itemColumns, rows: itemRows },
         { name: 'Salesman-wise Sales', columns: salesmanColumns, rows: salesmanRows },
       ],
@@ -517,6 +567,7 @@ export default function InventoryPage() {
         name: String(getVal(row, 'name') || '').trim(),
         barcode: String(getVal(row, 'barcode') || ''),
         category: String(getVal(row, 'category') || '') || 'Shirts',
+        brand: String(getVal(row, 'brand') || '').trim(),
         size: String(getVal(row, 'size') || '') || 'M',
         color: String(getVal(row, 'color') || ''),
         hsn: String(getVal(row, 'hsn') || '') || '6205',
@@ -743,6 +794,7 @@ export default function InventoryPage() {
                       <td className="py-3 px-3 text-ink-400">{idx + 1}</td>
                       <td className="py-3 px-3 font-sans font-semibold text-ink-900 dark:text-ink-100">
                         {p.name}
+                        {p.brand && <span className="block text-[10px] text-amber-600 font-semibold">{p.brand}</span>}
                         {p.hsn && <span className="block text-[10px] text-ink-400 font-mono">HSN: {p.hsn}</span>}
                       </td>
                       <td className="py-3 px-3">
@@ -1003,6 +1055,18 @@ export default function InventoryPage() {
                   className="input"
                   required
                   autoFocus
+                />
+              </div>
+
+              {/* Brand */}
+              <div>
+                <label className="label">Brand</label>
+                <input
+                  type="text"
+                  value={productForm.brand}
+                  onChange={e => setProductForm(p => ({ ...p, brand: e.target.value }))}
+                  placeholder="e.g. Raymond, Peter England, Levi's"
+                  className="input"
                 />
               </div>
 

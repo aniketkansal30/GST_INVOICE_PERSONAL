@@ -198,7 +198,7 @@ const gst = mrpTotal - base;
           storeName: inv.seller?.companyName || '-',
           billDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-GB') : '-',
           invoiceNumber: inv.invoiceNumber,
-          brandName: '-',
+          brandName: item.brand && item.brand.trim() ? item.brand.trim() : '-',
           subCategory: item.name || '-',
           gstTaxClass: 'APPAREL',
           category: 'APPARELS',
@@ -233,141 +233,155 @@ const gst = mrpTotal - base;
 
 
 
-  const exportToExcel = async () => {
+    const exportToExcel = async () => {
+    const sum = (arr, k) => arr.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+    const withTotal = (rows, keys) => {
+      if (rows.length === 0) return rows;
+      const t = { sno: 'TOTAL' };
+      keys.forEach(k => { t[k] = sum(rows, k); });
+      return [...rows, t];
+    };
+
+    // ── 1. Party-wise (B2B) ──
     const partyColumns = [
-      { header: 'S.No.', key: 'sno', width: 8 },
-      { header: 'Customer Name', key: 'party', width: 22 },
-      { header: 'GSTIN', key: 'gstin', width: 18 },
+      { header: 'SNO.', key: 'sno', width: 8 },
+      { header: 'Customer Name', key: 'party', width: 24 },
+      { header: 'GSTIN', key: 'gstin', width: 18, format: 'text' },
       { header: 'State', key: 'state', width: 16 },
-      { header: 'HSN/SAC', key: 'hsn', width: 14 },
-      { header: 'Invoice No', key: 'invoiceNumber', width: 14 },
-      { header: 'Date', key: 'invoiceDate', width: 12 },
-      { header: 'Due Date', key: 'dueDate', width: 12 },
-      { header: 'Place of Supply', key: 'placeOfSupply', width: 16 },
-      { header: 'Taxable', key: 'taxable', width: 14, format: 'currency' },
+      { header: 'Invoice No', key: 'invoiceNumber', width: 14, format: 'text' },
+      { header: 'Date', key: 'invoiceDate', width: 12, format: 'text' },
+      { header: 'Taxable Value', key: 'taxable', width: 14, format: 'currency' },
+      { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
+      { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
+      { header: 'IGST', key: 'igst', width: 12, format: 'currency' },
+      { header: 'Invoice Total', key: 'total', width: 14, format: 'currency' },
+      { header: 'Status', key: 'status', width: 12 },
+    ];
+    let sr = 1;
+    let partyRows = [];
+    partyWise.forEach(p => {
+      p.invoiceList.forEach(inv => {
+        partyRows.push({
+          sno: sr++, party: p.party, gstin: p.gstin, state: p.state,
+          invoiceNumber: inv.invoiceNumber, invoiceDate: inv.invoiceDate,
+          taxable: inv.taxable, cgst: inv.cgst, sgst: inv.sgst, igst: inv.igst,
+          total: inv.total, status: inv.status,
+        });
+      });
+    });
+    partyRows = withTotal(partyRows, ['taxable', 'cgst', 'sgst', 'igst', 'total']);
+
+    // ── 2. HSN-wise ──
+    const hsnColumns = [
+      { header: 'SNO.', key: 'sno', width: 8 },
+      { header: 'HSN CODE', key: 'hsn', width: 12, format: 'text' },
+      { header: 'Item Desc.', key: 'description', width: 24 },
+      { header: 'UOM', key: 'uom', width: 8 },
+      { header: 'Invoice No', key: 'invoiceNumber', width: 14, format: 'text' },
+      { header: 'Date', key: 'invoiceDate', width: 12, format: 'text' },
+      { header: 'Customer Name', key: 'party', width: 22 },
+      { header: 'GST.', key: 'gstPct', width: 8, format: 'percent' },
+      { header: 'Qty', key: 'qty', width: 8, format: 'number' },
+      { header: 'Taxable Value', key: 'taxable', width: 14, format: 'currency' },
       { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
       { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
       { header: 'IGST', key: 'igst', width: 12, format: 'currency' },
       { header: 'Total', key: 'total', width: 14, format: 'currency' },
-      { header: 'Status', key: 'status', width: 12 },
     ];
-    let sr = 1;
-    const partyRows = [];
-    partyWise.forEach(p => {
-      p.invoiceList.forEach(inv => {
-        partyRows.push({
-          sno: sr++, party: p.party, gstin: p.gstin, state: p.state, hsn: inv.hsn || '-',
-          invoiceNumber: inv.invoiceNumber, invoiceDate: inv.invoiceDate, dueDate: inv.dueDate,
-          placeOfSupply: inv.placeOfSupply, taxable: inv.taxable, cgst: inv.cgst, sgst: inv.sgst,
-          igst: inv.igst, total: inv.total, status: inv.status,
-        });
-      });
-    });
-
-    const hsnColumns = [
-      { header: 'S.No.', key: 'sno', width: 8 },
-      { header: 'HSN/SAC', key: 'hsn', width: 12 },
-      { header: 'Description', key: 'description', width: 22 },
-      { header: 'UOM', key: 'uom', width: 10 },
-      { header: 'Invoice No', key: 'invoiceNumber', width: 14 },
-      { header: 'Date', key: 'invoiceDate', width: 12 },
-      { header: 'Customer Name', key: 'party', width: 20 },
-      { header: 'GST %', key: 'gstPct', width: 10, format: 'percent' },
-      { header: 'Qty', key: 'qty', width: 10, format: 'number' },
-      { header: 'Taxable', key: 'taxable', width: 14, format: 'currency' },
-      { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
-      { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
-      { header: 'IGST', key: 'igst', width: 12, format: 'currency' },
-    ];
-    const hsnRows = [];
+    let hsnRows = [];
     hsnWise.forEach((r, i) => {
       r.invoiceList.forEach(inv => {
         hsnRows.push({
           sno: i + 1, hsn: r.hsn, description: r.description, uom: r.uom,
           invoiceNumber: inv.invoiceNumber, invoiceDate: inv.invoiceDate, party: inv.party,
-          gstPct: inv.gstPct, qty: inv.qty, taxable: inv.taxable, cgst: inv.cgst,
-          sgst: inv.sgst, igst: inv.igst,
+          gstPct: inv.gstPct, qty: inv.qty, taxable: inv.taxable,
+          cgst: inv.cgst, sgst: inv.sgst, igst: inv.igst,
+          total: inv.taxable + inv.cgst + inv.sgst + inv.igst,
         });
       });
     });
+    hsnRows = withTotal(hsnRows, ['qty', 'taxable', 'cgst', 'sgst', 'igst', 'total']);
 
+    // ── 3. GST%-wise ──
     const gstColumns = [
-      { header: 'S.No.', key: 'sno', width: 8 },
-      { header: 'GST Rate', key: 'rate', width: 12 },
-      { header: 'Invoice No', key: 'invoiceNumber', width: 14 },
-      { header: 'Date', key: 'invoiceDate', width: 12 },
-      { header: 'Customer Name', key: 'party', width: 20 },
-      { header: 'Taxable', key: 'taxable', width: 14, format: 'currency' },
+      { header: 'SNO.', key: 'sno', width: 8 },
+      { header: 'GST.', key: 'rate', width: 8, format: 'text' },
+      { header: 'Invoice No', key: 'invoiceNumber', width: 14, format: 'text' },
+      { header: 'Date', key: 'invoiceDate', width: 12, format: 'text' },
+      { header: 'Customer Name', key: 'party', width: 22 },
+      { header: 'Taxable Value', key: 'taxable', width: 14, format: 'currency' },
       { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
       { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
       { header: 'IGST', key: 'igst', width: 12, format: 'currency' },
-      { header: 'Total', key: 'total', width: 14, format: 'currency' },
+      { header: 'Total Tax', key: 'totalTax', width: 12, format: 'currency' },
+      { header: 'Grand Total', key: 'total', width: 14, format: 'currency' },
     ];
-    const gstRows = [];
+    let gstRows = [];
     gstWise.forEach((r, i) => {
       r.invoiceList.forEach(inv => {
         gstRows.push({
           sno: i + 1, rate: r.rate, invoiceNumber: inv.invoiceNumber, invoiceDate: inv.invoiceDate,
           party: inv.party, taxable: inv.taxable, cgst: inv.cgst, sgst: inv.sgst, igst: inv.igst,
-          total: inv.total,
+          totalTax: inv.cgst + inv.sgst + inv.igst, total: inv.total,
         });
       });
     });
+    gstRows = withTotal(gstRows, ['taxable', 'cgst', 'sgst', 'igst', 'totalTax', 'total']);
 
-        const itemColumns = [
-      { header: 'S.No.', key: 'sno', width: 8 },
-      { header: 'Store Name', key: 'storeName', width: 22 },
-      { header: 'Bill Date', key: 'billDate', width: 12 },
-      { header: 'Invoice number', key: 'invoiceNumber', width: 16 },
-      { header: 'Brand Name', key: 'brandName', width: 12 },
-      { header: 'Sub Category', key: 'subCategory', width: 18 },
-      { header: 'GST Tax Class', key: 'gstTaxClass', width: 12 },
-      { header: 'Category', key: 'category', width: 12 },
-      { header: 'Agent Name', key: 'agentName', width: 14 },
-      { header: 'Customer Name', key: 'customerName', width: 18 },
-      { header: 'Cust Mobile No.', key: 'custMobile', width: 14 },
-      { header: 'Barcode', key: 'barcode', width: 16 },
-      { header: 'Style Name', key: 'styleName', width: 16 },
-      { header: 'Shade Name', key: 'shadeName', width: 14 },
-      { header: 'Size', key: 'size', width: 10 },
-      { header: 'Item Description', key: 'itemDescription', width: 20 },
-      { header: 'HSN Code', key: 'hsnCode', width: 12 },
-      { header: 'Net Sale Qty', key: 'qty', width: 12, format: 'number' },
-      { header: 'Rate', key: 'rate', width: 12, format: 'currency' },
+    // ── 4. Item-wise (bill ka har item ek row) — sample jaise column names ──
+    const itemColumns = [
+      { header: 'SNO.', key: 'sno', width: 8 },
+      { header: 'Bill Date', key: 'billDate', width: 12, format: 'text' },
+      { header: 'Invoice No', key: 'invoiceNumber', width: 14, format: 'text' },
+      { header: 'Brand Name', key: 'brandName', width: 18 },
+      { header: 'Item', key: 'subCategory', width: 22 },
+      { header: 'HSN CODE', key: 'hsnCode', width: 12, format: 'text' },
+      { header: 'Barcode', key: 'barcode', width: 18, format: 'text' },
+      { header: 'Size', key: 'size', width: 8 },
+      { header: 'Color', key: 'shadeName', width: 14 },
+      { header: 'Salesman', key: 'agentName', width: 14 },
+      { header: 'Customer Name', key: 'customerName', width: 20 },
+      { header: 'Mobile No.', key: 'custMobile', width: 14, format: 'text' },
+      { header: 'Qty', key: 'qty', width: 8, format: 'number' },
+      { header: 'M.R.P', key: 'rate', width: 12, format: 'currency' },
       { header: 'Gross Value', key: 'grossValue', width: 14, format: 'currency' },
+      { header: 'Discount', key: 'totalDiscount', width: 12, format: 'currency' },
+      { header: 'Taxable Value', key: 'saleValueBeforeTax', width: 14, format: 'currency' },
+      { header: 'CGST %', key: 'cgstPct', width: 9, format: 'percent' },
       { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
-      { header: 'CGST%', key: 'cgstPct', width: 10, format: 'percent' },
+      { header: 'SGST/IGST %', key: 'sgstIgstPct', width: 12, format: 'percent' },
       { header: 'SGST/IGST', key: 'sgstIgst', width: 12, format: 'currency' },
-      { header: 'SGST/IGST%', key: 'sgstIgstPct', width: 12, format: 'percent' },
-      { header: 'Total Discount', key: 'totalDiscount', width: 14, format: 'currency' },
-      { header: 'Sale Value Before Tax', key: 'saleValueBeforeTax', width: 18, format: 'currency' },
       { header: 'Net Sale Value', key: 'netSaleValue', width: 16, format: 'currency' },
     ];
-    const itemRows = itemWiseRows;
+    const itemRows = withTotal(
+      itemWiseRows.map(r => ({ ...r })),
+      ['qty', 'grossValue', 'totalDiscount', 'saleValueBeforeTax', 'cgst', 'sgstIgst', 'netSaleValue']
+    );
 
+    // ── 5. Salesman-wise ──
     const salesmanColumns = [
-      { header: 'S.No.', key: 'sno', width: 8 },
+      { header: 'SNO.', key: 'sno', width: 8 },
       { header: 'Salesman', key: 'salesman', width: 20 },
-      { header: 'Invoice No', key: 'invoiceNumber', width: 14 },
-      { header: 'Date', key: 'invoiceDate', width: 12 },
-      { header: 'Customer Name', key: 'party', width: 20 },
-      { header: 'Taxable', key: 'taxable', width: 14, format: 'currency' },
+      { header: 'Invoice No', key: 'invoiceNumber', width: 14, format: 'text' },
+      { header: 'Date', key: 'invoiceDate', width: 12, format: 'text' },
+      { header: 'Customer Name', key: 'party', width: 22 },
+      { header: 'Taxable Value', key: 'taxable', width: 14, format: 'currency' },
       { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
       { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
       { header: 'IGST', key: 'igst', width: 12, format: 'currency' },
-      { header: 'Total', key: 'total', width: 14, format: 'currency' },
-      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Invoice Total', key: 'total', width: 14, format: 'currency' },
     ];
-    const salesmanRows = [];
+    let salesmanRows = [];
     salesmanWise.forEach((r, i) => {
       r.invoiceList.forEach(inv => {
         salesmanRows.push({
           sno: i + 1, salesman: r.salesman, invoiceNumber: inv.invoiceNumber,
           invoiceDate: inv.invoiceDate, party: inv.party, taxable: inv.taxable,
-          cgst: inv.cgst, sgst: inv.sgst, igst: inv.igst, total: inv.total, status: inv.status,
+          cgst: inv.cgst, sgst: inv.sgst, igst: inv.igst, total: inv.total,
         });
       });
     });
+    salesmanRows = withTotal(salesmanRows, ['taxable', 'cgst', 'sgst', 'igst', 'total']);
 
     const month = selectedMonth ? months.find(m => m.value === selectedMonth)?.label : 'All';
 
@@ -849,18 +863,19 @@ const gst = mrpTotal - base;
           <div className="overflow-x-auto">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {['S.No.', 'Bill Date', 'Invoice No.', 'Sub Category', 'Agent', 'Customer', 'Mobile', 'Barcode', 'Shade', 'Size', 'HSN', 'Qty', 'Rate', 'Gross', 'CGST', 'CGST%', 'SGST/IGST', 'SGST/IGST%', 'Discount', 'Before Tax', 'Net Sale Value'].map((h, i) => (
-                  <th key={i} style={thS(i >= 11)}>{h}</th>
+                {['S.No.', 'Bill Date', 'Invoice No.', 'Brand', 'Sub Category', 'Agent', 'Customer', 'Mobile', 'Barcode', 'Shade', 'Size', 'HSN', 'Qty', 'Rate', 'Gross', 'CGST', 'CGST%', 'SGST/IGST', 'SGST/IGST%', 'Discount', 'Before Tax', 'Net Sale Value'].map((h, i) => (
+                  <th key={i} style={thS(i >= 12)}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {itemWiseRows.length === 0
-                  ? <tr><td colSpan={21} style={{ textAlign: 'center', padding: 40, color: '#888' }}>No data</td></tr>
+                  ? <tr><td colSpan={22} style={{ textAlign: 'center', padding: 40, color: '#888' }}>No data</td></tr>
                   : itemWiseRows.map((row) => (
                     <tr key={row.sno} style={{ background: row.sno % 2 === 0 ? 'white' : '#f4f4f0' }}>
                       <td style={tdS()}>{row.sno}</td>
                       <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.billDate}</td>
                       <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 600 }}>{row.invoiceNumber}</td>
+                      <td style={{ ...tdS(), fontWeight: '600', color: '#b45309' }}>{row.brandName}</td>
                       <td style={{ ...tdS(), fontWeight: '500' }}>{row.subCategory}</td>
                       <td style={tdS()}>{row.agentName}</td>
                       <td style={tdS()}>{row.customerName}</td>
@@ -883,7 +898,7 @@ const gst = mrpTotal - base;
                   ))}
               </tbody>
               {itemWiseRows.length > 0 && <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
-                <td colSpan={11} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
+                <td colSpan={12} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
                 <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{itemWiseRows.reduce((s, r) => s + r.qty, 0)}</td>
                 <td></td>
                 <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(itemWiseRows.reduce((s, r) => s + r.grossValue, 0))}</td>

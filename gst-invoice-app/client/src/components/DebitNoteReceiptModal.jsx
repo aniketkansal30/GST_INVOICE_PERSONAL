@@ -4,9 +4,19 @@ import { X, Printer } from 'lucide-react';
 import { formatCurrency, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 import { useAuth } from '../context/AuthContext';
 
-// Single Debit Note printed as a proper GST-style document — same portal +
-// no-print pattern used by ThermalReceiptModal, so it plugs into the same
-// global print CSS (@media print { .no-print { display:none } @page {...} }).
+const mono = "'DM Mono', 'Courier New', monospace";
+
+// Naye notes: items[]; purane single-item notes ko bhi same shape mein badal deta hai
+const getNoteItems = (d) => {
+  if (d.items && d.items.length > 0) return d.items;
+  return [{
+    itemName: d.itemName, barcode: d.barcode, size: d.size, color: d.color,
+    qty: d.qty, purchasePrice: d.purchasePrice, gstPct: d.gstPct,
+    base: d.base, gst: d.gst, total: d.total,
+  }];
+};
+
+// Ek debit note GST-style document ke roop mein print hota hai
 export default function DebitNoteReceiptModal({ note, onClose }) {
   const { user } = useAuth();
   if (!note) return null;
@@ -19,6 +29,9 @@ export default function DebitNoteReceiptModal({ note, onClose }) {
     contact: user?.contact || DEFAULT_STORE_DETAILS.contact,
     state: user?.state || DEFAULT_STORE_DETAILS.state,
   };
+
+  const items = getNoteItems(note);
+  const totalQty = items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
 
   const handlePrint = () => window.print();
 
@@ -46,12 +59,16 @@ export default function DebitNoteReceiptModal({ note, onClose }) {
             width: 100% !important;
             max-width: none !important;
           }
+          #debit-note-print-portal .print-scroll {
+            overflow: visible !important;
+            max-height: none !important;
+          }
           @page { size: A4; margin: 14mm; }
         }
       `}</style>
 
       <div className="print-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in no-print-bg">
-        <div className="print-card bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
+        <div className="print-card bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-800 shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100 dark:border-ink-800 no-print">
             <div>
@@ -64,7 +81,7 @@ export default function DebitNoteReceiptModal({ note, onClose }) {
           </div>
 
           {/* Printable document */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-white text-ink-900" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+          <div className="print-scroll flex-1 min-h-0 overflow-y-auto p-6 bg-white text-ink-900" style={{ fontFamily: 'DM Sans, sans-serif' }}>
             <div style={{ textAlign: 'center', borderBottom: '2px solid #1c1c18', paddingBottom: '12px', marginBottom: '16px' }}>
               <p style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '3px', color: '#6e6e60', margin: '0 0 4px' }}>DEBIT NOTE</p>
               <h1 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 4px' }}>{seller.companyName}</h1>
@@ -90,40 +107,47 @@ export default function DebitNoteReceiptModal({ note, onClose }) {
               </div>
             </div>
 
+            {/* Items table — har item ek row */}
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '16px' }}>
               <thead>
                 <tr style={{ background: '#1c1c18', color: 'white' }}>
-                  {['Item', 'Barcode', 'Size/Color', 'Qty', 'Rate (₹)', 'Taxable (₹)', 'GST %', 'GST (₹)', 'Total (₹)'].map(h => (
+                  {['S.No.', 'Item', 'Barcode', 'Size/Color', 'Qty', 'Rate', 'Taxable', 'GST %', 'GST', 'Total'].map(h => (
                     <th key={h} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, fontSize: '9.5px', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{ padding: '9px 6px', fontWeight: 600 }}>{note.itemName}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'center', fontFamily: "'DM Mono', 'Courier New', monospace" }}>{note.barcode || '-'}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'center' }}>{[note.size, note.color].filter(Boolean).join(' / ') || '-'}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'center' }}>{note.qty}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace" }}>{Number(note.purchasePrice).toFixed(2)}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace" }}>{Number(note.base).toFixed(2)}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'center' }}>{note.gstPct}%</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace" }}>{Number(note.gst).toFixed(2)}</td>
-                  <td style={{ padding: '9px 6px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 700 }}>{Number(note.total).toFixed(2)}</td>
-                </tr>
+                {items.map((it, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f7f7f4', borderBottom: '1px solid #e8e8e0' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', color: '#6e6e60' }}>{i + 1}</td>
+                    <td style={{ padding: '8px 6px', fontWeight: 600 }}>{it.itemName}</td>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontFamily: mono }}>{it.barcode || '-'}</td>
+                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>{[it.size, it.color].filter(Boolean).join(' / ') || '-'}</td>
+                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>{it.qty}</td>
+                    <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: mono }}>{Number(it.purchasePrice || 0).toFixed(2)}</td>
+                    <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: mono }}>{Number(it.base || 0).toFixed(2)}</td>
+                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>{it.gstPct}%</td>
+                    <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: mono }}>{Number(it.gst || 0).toFixed(2)}</td>
+                    <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: mono, fontWeight: 700 }}>{Number(it.total || 0).toFixed(2)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
-              <div style={{ width: '240px', border: '1px solid #e8e8e0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ width: '260px', border: '1px solid #e8e8e0', borderRadius: '8px', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid #e8e8e0', fontSize: '12px' }}>
-                  <span>Taxable Value</span><span style={{ fontFamily: "'DM Mono', 'Courier New', monospace" }}>{formatCurrency(note.base)}</span>
+                  <span>Total Qty</span><span style={{ fontFamily: mono }}>{totalQty} pcs</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid #e8e8e0', fontSize: '12px' }}>
-                  <span>GST Reversed</span><span style={{ fontFamily: "'DM Mono', 'Courier New', monospace" }}>{formatCurrency(note.gst)}</span>
+                  <span>Taxable Value</span><span style={{ fontFamily: mono }}>{formatCurrency(note.base)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid #e8e8e0', fontSize: '12px' }}>
+                  <span>GST Reversed</span><span style={{ fontFamily: mono }}>{formatCurrency(note.gst)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: '#1c1c18', color: 'white' }}>
                   <span style={{ fontWeight: 700, fontSize: '13px' }}>TOTAL</span>
-                  <span style={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: 700, fontSize: '13px' }}>{formatCurrency(note.total)}</span>
+                  <span style={{ fontFamily: mono, fontWeight: 700, fontSize: '13px' }}>{formatCurrency(note.total)}</span>
                 </div>
               </div>
             </div>

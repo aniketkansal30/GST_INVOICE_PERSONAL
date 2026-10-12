@@ -2,6 +2,19 @@ const DebitNote = require('../models/DebitNote');
 const Product = require('../models/Product');
 const StockTransaction = require('../models/StockTransaction');
 
+const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
+// Sabse bada DN number +1 (delete ke baad bhi duplicate nahi banega)
+const getNextDnNumber = async (userId) => {
+  const notes = await DebitNote.find({ user: userId }, { dnNumber: 1 }).lean();
+  let max = 0;
+  notes.forEach((n) => {
+    const m = String(n.dnNumber || '').match(/(\d+)\s*$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return `DN-${String(max + 1).padStart(3, '0')}`;
+};
+
 // Saari debit notes (naya sabse upar)
 exports.getDebitNotes = async (req, res) => {
   try {
@@ -12,79 +25,111 @@ exports.getDebitNotes = async (req, res) => {
   }
 };
 
-// Naya debit note — stock kam karta hai + StockTransaction log karta hai
+// Naya debit note — ek note mein multiple items.
+// Body: { supplierName, reason, items: [{ productId, qty }, ...] }
+// (purana format { productId, qty } bhi chalta hai)
 exports.createDebitNote = async (req, res) => {
   try {
-    const { productId, qty, supplierName, reason } = req.body;
+    const { supplierName, reason } = req.body;
 
-    if (!productId) return res.status(400).json({ message: 'Product is required' });
+    let rawItems = Array.isArray(req.body.items) ? req.body.items : [];
+    if (rawItems.length === 0 && req.body.productId) {
+      rawItems = [{ productId: req.body.productId, qty: req.body.qty }];
+    }
+
     if (!supplierName || !supplierName.trim()) {
       return res.status(400).json({ message: 'Supplier name is required' });
     }
-
-    const numQty = Number(qty);
-    if (isNaN(numQty) || numQty <= 0) {
-      return res.status(400).json({ message: 'Please provide a valid positive quantity' });
+    if (rawItems.length === 0) {
+      return res.status(400).json({ message: 'Add at least one item' });
     }
 
-    const product = await Product.findOne({ _id: productId, user: req.user._id });
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+    // Same product do baar aaya toh qty jod do
+    const merged = new Map();
+    for (const it of rawItems) {
+      const id = String(it.productId || '');
+      const q = Number(it.qty);
+      if (!id) return res.status(400).json({ message: 'Product is required for every item' });
+      if (isNaN(q) || q <= 0) {
+        return res.status(400).json({ message: 'Please provide a valid positive quantity for every item' });
+      }
+      merged.set(id, (merged.get(id) || 0) + q);
+    }
 
-    if (numQty > product.currentStock) {
-      return res.status(400).json({
-        message: `Only ${product.currentStock} ${product.unit || 'pcs'} in stock — cannot return ${numQty}`,
+    // PEHLE sab validate karo — koi bhi item galat ho toh stock bilkul na kate
+    const lines = [];
+    for (const [id, q] of merged) {
+      const product = await Product.findOne({ _id: id, user: req.user._id });
+      if (!product) return res.status(404).json({ message: 'Product not found' });
+      if (q > product.currentStock) {
+        return res.status(400).json({
+          message: `"${product.name}": only ${product.currentStock} ${product.unit || 'pcs'} in stock — cannot return ${q}`,
+        });
+      }
+      lines.push({ product, qty: q });
+    }
+
+    const dnNumber = await getNextDnNumber(req.user._id);
+    const cleanSupplier = supplierName.trim();
+    const cleanReason = reason || 'Unsold stock';
+
+    // Amount: rate (purchasePrice, nahi toh sellingPrice) GST-INCLUSIVE maana jata hai,
+    // GST usme se reverse nikalta hai — POS billing wali convention
+    const items = [];
+    let totalQty = 0, totalBase = 0, totalGst = 0, totalAmt = 0;
+
+    for (const { product, qty } of lines) {
+      const gstPct = Number(product.gstPct) || 0;
+      const priceIncGst = Number(product.purchasePrice) > 0
+        ? Number(product.purchasePrice)
+        : (Number(product.sellingPrice) || 0);
+
+      const lineTotal = round2(qty * priceIncGst);
+      const lineBase = round2(gstPct > 0 ? lineTotal / (1 + gstPct / 100) : lineTotal);
+      const lineGst = round2(lineTotal - lineBase);
+
+      // Stock kam karo + history log
+      product.currentStock -= qty;
+      await product.save();
+
+      await StockTransaction.create({
+        user: req.user._id,
+        product: product._id,
+        type: 'DEBIT_NOTE',
+        qty: -qty,
+        note: `${dnNumber} · Returned to ${cleanSupplier} (${cleanReason})`,
       });
+
+      items.push({
+        product: product._id,
+        itemName: product.name,
+        barcode: product.barcode || '',
+        size: product.size || '',
+        color: product.color || '',
+        qty,
+        purchasePrice: priceIncGst,
+        gstPct,
+        base: lineBase,
+        gst: lineGst,
+        total: lineTotal,
+      });
+
+      totalQty += qty;
+      totalBase += lineBase;
+      totalGst += lineGst;
+      totalAmt += lineTotal;
     }
-
-    // Amount calculation — SAME convention as POS billing / ThermalReceiptModal:
-    // the per-unit rate (purchasePrice if set, else sellingPrice) is treated
-    // as GST-INCLUSIVE, and GST is reverse-extracted out of it rather than
-    // added on top. This keeps debit notes consistent with how bills are
-    // calculated everywhere else in the app.
-    const gstPct = Number(product.gstPct) || 0;
-    const priceIncGst = Number(product.purchasePrice) > 0
-      ? Number(product.purchasePrice)
-      : (Number(product.sellingPrice) || 0);
-
-    const perUnitBase = gstPct > 0 ? priceIncGst / (1 + gstPct / 100) : priceIncGst;
-    const base = numQty * perUnitBase;
-    const total = numQty * priceIncGst;
-    const gst = total - base;
-    const purchasePrice = priceIncGst;
-
-    // DN number: DN-001, DN-002... per user
-    const existingCount = await DebitNote.countDocuments({ user: req.user._id });
-    const dnNumber = `DN-${String(existingCount + 1).padStart(3, '0')}`;
-
-    // Reduce stock
-    product.currentStock -= numQty;
-    await product.save();
-
-    // Log it the same way "Add Stock" does, so Stock History shows it too
-    await StockTransaction.create({
-      user: req.user._id,
-      product: product._id,
-      type: 'DEBIT_NOTE',
-      qty: -numQty, // negative, since stock is going OUT
-      note: `${dnNumber} · Returned to ${supplierName.trim()} (${reason || 'Unsold stock'})`,
-    });
 
     const debitNote = await DebitNote.create({
       user: req.user._id,
       dnNumber,
-      product: product._id,
-      itemName: product.name,
-      barcode: product.barcode,
-      size: product.size,
-      color: product.color,
-      supplierName: supplierName.trim(),
-      reason: reason || 'Unsold stock',
-      qty: numQty,
-      purchasePrice,
-      gstPct,
-      base,
-      gst,
-      total,
+      supplierName: cleanSupplier,
+      reason: cleanReason,
+      items,
+      qty: totalQty,
+      base: round2(totalBase),
+      gst: round2(totalGst),
+      total: round2(totalAmt),
     });
 
     res.status(201).json(debitNote);
@@ -94,9 +139,8 @@ exports.createDebitNote = async (req, res) => {
   }
 };
 
-// Delete — NOTE: stock is intentionally NOT restored automatically here,
-// since deleting is meant for fixing a wrongly-entered note, not undoing a
-// real physical return. Match this to whatever behaviour you want.
+// Delete — stock automatically wapas NAHI hota (galat entry theek karne ke liye hai,
+// asli physical return undo karne ke liye nahi)
 exports.deleteDebitNote = async (req, res) => {
   try {
     const note = await DebitNote.findOneAndDelete({ _id: req.params.id, user: req.user._id });

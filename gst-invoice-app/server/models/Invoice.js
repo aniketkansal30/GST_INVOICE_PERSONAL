@@ -4,6 +4,7 @@ const itemSchema = new mongoose.Schema({
   name: { type: String, required: true },
   barcode: { type: String, default: '' },
   size: { type: String, default: '' },
+  brand: { type: String, default: '' },
   color: { type: String, default: '' },
   hsn: { type: String, default: '' },
   unit: { type: String, default: 'Nos' },

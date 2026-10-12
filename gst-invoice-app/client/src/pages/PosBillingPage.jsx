@@ -126,7 +126,7 @@ export default function PosBillingPage() {
     sellingPrice: '',
     gstPct: 5,
     hsn: '6205',
-    openingStock: 20,
+    openingStock: 1,
   });
   const [savingQuickProduct, setSavingQuickProduct] = useState(false);
 
@@ -216,6 +216,7 @@ export default function PosBillingPage() {
           productId: item.productId,
           name: item.name,
           barcode: item.barcode || '',
+          brand: item.brand || '',
           size: item.size || '',
           color: item.color || '',
           hsn: item.hsn || '6205',
@@ -422,6 +423,7 @@ export default function PosBillingPage() {
             productId: product._id,
             name: product.name,
             barcode: product.barcode || '',
+            brand: product.brand || '',
             size: product.size || '',
             color: product.color || '',
             hsn: product.hsn || '6205',
@@ -565,7 +567,7 @@ export default function PosBillingPage() {
       const res = await api.post('/products', {
         ...newQuickProduct,
         sellingPrice: Number(newQuickProduct.sellingPrice),
-        openingStock: Number(newQuickProduct.openingStock) || 10,
+        openingStock: Number(newQuickProduct.openingStock) || 1,
       });
 
       const created = res.data;
@@ -613,6 +615,7 @@ export default function PosBillingPage() {
       productId: item.productId,
       name: item.name,
       barcode: item.barcode,
+      brand: item.brand || '',
       size: item.size,
       color: item.color,
       hsn: item.hsn,
