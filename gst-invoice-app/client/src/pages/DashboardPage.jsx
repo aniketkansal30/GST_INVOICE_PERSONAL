@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { filterByDateRange } from '../utils/dateRangeUtils';
+import { filterByDateRange, getPeriodLabel } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
 
 
@@ -177,6 +177,7 @@ const allStats = useMemo(() => ({
   // ── Full Stock + Sales report: ek sheet, party ke sample jaisa ──
   const exportFullReport = async () => {
     if (products.length === 0) return toast.error('Products load nahi hue, thodi der baad try karo');
+    if (dateFilteredInvoices.length === 0) return toast.error('Is date range mein koi bill nahi hai');
 
     const up = (v) => String(v || '').trim().toUpperCase();
     const storeName = DEFAULT_STORE_DETAILS.companyName || user?.companyName || '';
@@ -242,7 +243,11 @@ const allStats = useMemo(() => ({
     });
 
     // Brand → category → naam ke order mein, sample jaisa
-    const sorted = [...products].sort((a, b) =>
+    // All Time = poora stock report. Koi date filter ho toh sirf wahi items jo us period mein bike
+    const sorted = (dateFilter.preset === 'all_time'
+      ? [...products]
+      : products.filter(p => sold[`p_${p._id}`])
+    ).sort((a, b) =>
       up(a.brand).localeCompare(up(b.brand)) ||
       up(a.category).localeCompare(up(b.category)) ||
       String(a.name || '').localeCompare(String(b.name || ''))
@@ -308,7 +313,7 @@ const allStats = useMemo(() => ({
     const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
     await exportStyledExcel(
       [{ name: 'Report', columns, rows }],
-      `Stock_Sales_Report_${today}.xlsx`
+      `Stock_Sales_Report_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
     toast.success('Report exported to Excel!');
   };

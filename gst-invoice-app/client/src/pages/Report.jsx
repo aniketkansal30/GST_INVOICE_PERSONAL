@@ -4,7 +4,7 @@ import { formatCurrency, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 import { FileText, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { filterByDateRange } from '../utils/dateRangeUtils';
+import { filterByDateRange, getPeriodLabel } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
 import api from '../utils/api';
 
@@ -25,7 +25,7 @@ export default function Report() {
     api.get('/products').then(r => setProducts(r.data || [])).catch(() => {});
   }, []);
 
-  useEffect(() => { fetchInvoices({ limit: 1000, page: 1 }); }, []);
+  useEffect(() => { fetchInvoices({ limit: 10000, page: 1 }); }, []);
   useEffect(() => { setAllInvoices(invoices); }, [invoices]);
 
   const filtered = filterByDateRange(allInvoices, 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo);
@@ -257,6 +257,7 @@ const gst = mrpTotal - base;
 
 
     const exportToExcel = async () => {
+    if (filtered.length === 0) return alert('Is date range mein koi bill nahi hai');
     const sum = (arr, k) => arr.reduce((s, r) => s + (Number(r[k]) || 0), 0);
     const withTotal = (rows, keys) => {
       if (rows.length === 0) return rows;
@@ -417,7 +418,7 @@ const gst = mrpTotal - base;
         { name: 'Item-wise', columns: itemColumns, rows: itemRows },
         { name: 'Salesman-wise', columns: salesmanColumns, rows: salesmanRows },
       ],
-      `GSTR1_${month}_${selectedYear || 'All'}.xlsx`
+      `GSTR1_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
   };
   const exportToGSTR1JSON = () => {

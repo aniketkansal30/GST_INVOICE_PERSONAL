@@ -38,3 +38,14 @@ export function filterByDateRange(items, dateField, preset, customFrom, customTo
     return d >= from && d <= to;
   });
 }
+// Filename ke liye: filter jaisa lagaya waisa naam (today_16-11-2026, 2026-11-01_to_2026-11-15, all-time ...)
+export function getPeriodLabel(preset, customFrom, customTo) {
+  const fmt = (d) => d.toLocaleDateString('en-GB').replace(/\//g, '-');
+  const now = new Date();
+  switch (preset) {
+    case 'today': return `today_${fmt(now)}`;
+    case 'yesterday': { const y = new Date(now); y.setDate(y.getDate() - 1); return `yesterday_${fmt(y)}`; }
+    case 'custom': return customFrom && customTo ? `${customFrom}_to_${customTo}` : 'custom';
+    default: return String(preset || 'all_time').replace(/_/g, '-');
+  }
+}

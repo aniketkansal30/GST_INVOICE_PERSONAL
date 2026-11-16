@@ -7,7 +7,7 @@ import {
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { filterByDateRange } from '../utils/dateRangeUtils';
+import { filterByDateRange, getPeriodLabel } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
 import { useAuth } from '../context/AuthContext';
 import DebitNoteReceiptModal from '../components/DebitNoteReceiptModal';
@@ -274,7 +274,8 @@ export default function DebitNotesPage() {
     ];
 
     const rows = [];
-    dateFiltered.forEach(d => {
+    if (filtered.length === 0) return toast.error('Is filter mein koi debit note nahi hai');
+    filtered.forEach(d => {
       getNoteItems(d).forEach(it => {
         rows.push({
           dnNo: d.dnNumber,
@@ -305,7 +306,7 @@ export default function DebitNotesPage() {
 
     await exportStyledExcel(
       [{ name: 'Debit Notes', columns, rows }],
-      `Debit_Notes_${new Date().getFullYear()}.xlsx`
+      `Debit_Notes_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
     toast.success('Debit notes exported to Excel!');
   };

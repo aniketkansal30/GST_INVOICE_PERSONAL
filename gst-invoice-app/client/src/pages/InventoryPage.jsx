@@ -12,7 +12,7 @@ import { useRef } from 'react'; // agar useRef already import nahi hai
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { filterByDateRange } from '../utils/dateRangeUtils';
+import { filterByDateRange, getPeriodLabel } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
 
 
@@ -664,7 +664,7 @@ export default function InventoryPage() {
         { name: 'Item-wise Sales', columns: itemColumns, rows: itemRows },
         { name: 'Salesman-wise Sales', columns: salesmanColumns, rows: salesmanRows },
       ],
-      `Clothing_Inventory_${selectedYear || 'All'}.xlsx`
+      `Clothing_Inventory_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
     toast.success('Inventory exported to Excel!');
   };
