@@ -2783,7 +2783,8 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency, CLOTHING_SIZES, CLOTHING_CATEGORIES, COMMON_COLORS, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 import {
   Package, Download, Plus, X, History, AlertTriangle,
-  Scan, Tag, Search, Edit2, Printer, Sparkles, Filter, Check, Upload
+  Scan, Tag, Search, Edit2, Printer, Sparkles, Filter, Check, Upload,
+  ChevronDown, ChevronRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useRef } from 'react'; // agar useRef already import nahi hai
@@ -2801,7 +2802,9 @@ export default function InventoryPage() {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [dateFilter, setDateFilter] = useState({ preset: 'this_year', customFrom: '', customTo: '' });
-  const [activeTab, setActiveTab] = useState('stock'); // 'stock', 'item', 'hsn'
+  const [activeTab, setActiveTab] = useState('stock'); // 'stock', 'item', 'hsn', 'salesman', 'brand'
+  const [brandSearch, setBrandSearch] = useState('');
+  const [expandedBrand, setExpandedBrand] = useState({});
 
   // Product master state
   const [products, setProducts] = useState([]);
@@ -2856,7 +2859,7 @@ export default function InventoryPage() {
   const [excelRows, setExcelRows] = useState([]);
   const [columnMapping, setColumnMapping] = useState({});
   useEffect(() => {
-    fetchInvoices({ limit: 1000, page: 1 });
+    fetchInvoices({ limit: 10000, page: 1 });
     loadProducts();
   }, []);
 
@@ -3162,6 +3165,168 @@ export default function InventoryPage() {
       return acc;
     }, {})
   ).sort((a, b) => b.grandTotal - a.grandTotal);
+
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€ BRAND-WISE REPORT â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Stock = abhi ka current stock (hamesha live).
+  // Sales = sirf upar selected date range ke invoices se.
+  const brandKey = (b) => String(b || '').trim().toUpperCase() || 'NO BRAND';
+
+  const brandWise = (() => {
+    const pById = new Map(products.map(p => [String(p._id), p]));
+    const pByBarcode = new Map(
+      products.filter(p => p.barcode && p.barcode.trim()).map(p => [p.barcode.trim(), p])
+    );
+
+    const map = {};
+    const getBrand = (key) => {
+      if (!map[key]) {
+        map[key] = {
+          brand: key, skus: 0, openingQty: 0, currentStock: 0, stockValue: 0,
+          qtySold: 0, saleValue: 0, taxable: 0, gst: 0, bills: new Set(), items: {},
+        };
+      }
+      return map[key];
+    };
+
+    // 1) Stock side â€” har product apne brand mein
+    products.forEach(p => {
+      const b = getBrand(brandKey(p.brand));
+      const stock = Number(p.currentStock) || 0;
+      const mrp = Number(p.sellingPrice) || 0;
+      b.skus += 1;
+      b.openingQty += Number(p.openingStock) || 0;
+      b.currentStock += stock;
+      b.stockValue += stock * mrp;
+      b.items[`p_${p._id}`] = {
+        name: p.name || '-', barcode: p.barcode || '-', size: p.size || '-', color: p.color || '-',
+        mrp, stock, qtySold: 0, saleValue: 0,
+      };
+    });
+
+    // 2) Sales side â€” date filter ke andar ke invoices
+    filteredInvoices.forEach(inv => {
+      (inv.items || []).forEach(item => {
+        const p =
+          (item.productId && pById.get(String(item.productId))) ||
+          (item.barcode && pByBarcode.get(String(item.barcode).trim())) ||
+          null;
+        const b = getBrand(brandKey((p && p.brand) || item.brand));
+
+        const qty = Number(item.qty) || 0;
+        const gstPct = Number(item.gstPct) || 0;
+        const net = qty * (Number(item.rate) || 0) - (Number(item.discountAmount) || 0);
+        const base = item.baseAmount !== undefined
+          ? Number(item.baseAmount)
+          : (gstPct > 0 ? net / (1 + gstPct / 100) : net);
+        const gst = item.gstAmount !== undefined ? Number(item.gstAmount) : net - base;
+
+        b.qtySold += qty;
+        b.saleValue += net;
+        b.taxable += base;
+        b.gst += gst;
+        if (inv.invoiceNumber) b.bills.add(inv.invoiceNumber);
+
+        const iKey = p ? `p_${p._id}` : `o_${item.barcode || item.name || ''}`;
+        if (!b.items[iKey]) {
+          // product delete ho chuka hai par invoice mein bik chuka hai
+          b.items[iKey] = {
+            name: item.name || '-', barcode: item.barcode || '-', size: item.size || '-', color: item.color || '-',
+            mrp: Number(item.rate) || 0, stock: 0, qtySold: 0, saleValue: 0,
+          };
+        }
+        b.items[iKey].qtySold += qty;
+        b.items[iKey].saleValue += net;
+      });
+    });
+
+    return Object.values(map)
+      .map(b => ({
+        ...b,
+        billsCount: b.bills.size,
+        itemList: Object.values(b.items).sort((x, y) => y.qtySold - x.qtySold || y.stock - x.stock),
+      }))
+      .sort((a, b) => b.saleValue - a.saleValue || b.currentStock - a.currentStock);
+  })();
+
+  const filteredBrands = brandWise.filter(b =>
+    !brandSearch.trim() || b.brand.toLowerCase().includes(brandSearch.trim().toLowerCase())
+  );
+
+  const periodLabel = dateFilter.preset === 'custom' && dateFilter.customFrom && dateFilter.customTo
+    ? `${dateFilter.customFrom} to ${dateFilter.customTo}`
+    : dateFilter.preset.replace(/_/g, ' ');
+
+  const exportBrandReport = async () => {
+    if (filteredBrands.length === 0) return toast.error('Koi brand data nahi mila');
+
+    const sum = (arr, k) => arr.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+    const withTotal = (rows, keys) => {
+      if (rows.length === 0) return rows;
+      const t = { sno: 'TOTAL' };
+      keys.forEach(k => { t[k] = sum(rows, k); });
+      return [...rows, t];
+    };
+
+    // Sheet 1: Brand summary
+    const summaryColumns = [
+      { header: 'SNO.', key: 'sno', width: 8 },
+      { header: 'Brand', key: 'brand', width: 24 },
+      { header: 'SKUs', key: 'skus', width: 8, format: 'number' },
+      { header: 'Opening Stock', key: 'openingQty', width: 14, format: 'number' },
+      { header: 'Qty Sold', key: 'qtySold', width: 10, format: 'number' },
+      { header: 'Bills', key: 'bills', width: 8, format: 'number' },
+      { header: 'Taxable Value', key: 'taxable', width: 15, format: 'currency' },
+      { header: 'GST', key: 'gst', width: 13, format: 'currency' },
+      { header: 'Sale Value', key: 'saleValue', width: 15, format: 'currency' },
+      { header: 'Current Stock Qty', key: 'currentStock', width: 17, format: 'number' },
+      { header: 'Stock Value (MRP)', key: 'stockValue', width: 18, format: 'currency' },
+    ];
+    const summaryRows = withTotal(
+      filteredBrands.map((b, i) => ({
+        sno: i + 1, brand: b.brand, skus: b.skus, openingQty: b.openingQty,
+        qtySold: b.qtySold, bills: b.billsCount, taxable: b.taxable, gst: b.gst,
+        saleValue: b.saleValue, currentStock: b.currentStock, stockValue: b.stockValue,
+      })),
+      ['skus', 'openingQty', 'qtySold', 'bills', 'taxable', 'gst', 'saleValue', 'currentStock', 'stockValue']
+    );
+
+    // Sheet 2: Brand ke andar item-wise detail
+    const detailColumns = [
+      { header: 'SNO.', key: 'sno', width: 8 },
+      { header: 'Brand', key: 'brand', width: 22 },
+      { header: 'Item', key: 'item', width: 26 },
+      { header: 'Barcode', key: 'barcode', width: 18, format: 'text' },
+      { header: 'Size', key: 'size', width: 8 },
+      { header: 'Color', key: 'color', width: 14 },
+      { header: 'M.R.P', key: 'mrp', width: 12, format: 'currency' },
+      { header: 'Qty Sold', key: 'qtySold', width: 10, format: 'number' },
+      { header: 'Sale Value', key: 'saleValue', width: 14, format: 'currency' },
+      { header: 'Current Stock', key: 'stock', width: 14, format: 'number' },
+      { header: 'Stock Value (MRP)', key: 'stockValue', width: 18, format: 'currency' },
+    ];
+    let n = 0;
+    const detailRows = [];
+    filteredBrands.forEach(b => {
+      b.itemList.forEach(it => {
+        detailRows.push({
+          sno: ++n, brand: b.brand, item: it.name, barcode: String(it.barcode),
+          size: it.size, color: it.color, mrp: it.mrp, qtySold: it.qtySold,
+          saleValue: it.saleValue, stock: it.stock, stockValue: it.stock * it.mrp,
+        });
+      });
+    });
+
+    const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+    const brandTag = brandSearch.trim() ? `${brandSearch.trim().replace(/\s+/g, '_')}_` : '';
+    await exportStyledExcel(
+      [
+        { name: 'Brand Summary', columns: summaryColumns, rows: summaryRows },
+        { name: 'Brand Item Detail', columns: detailColumns, rows: withTotal(detailRows, ['qtySold', 'saleValue', 'stock', 'stockValue']) },
+      ],
+      `Brand_Report_${brandTag}${periodLabel.replace(/\s+/g, '_')}_${today}.xlsx`
+    );
+    toast.success('Brand report exported to Excel!');
+  };
 
   const totalSalesValue = filteredInvoices.reduce((s, inv) => s + (inv.grandTotal || 0), 0);
   const totalQtySold = itemWise.reduce((s, r) => s + r.qtySold, 0);
@@ -3500,6 +3665,7 @@ export default function InventoryPage() {
           { key: 'item', label: 'ðŸ“Š Item-wise Sales' },
           { key: 'hsn', label: 'ðŸ“‘ HSN Summary' },
           { key: 'salesman', label: 'ðŸ§‘â€ðŸ’¼ Salesman-wise Sales' },
+          { key: 'brand', label: 'ðŸ·ï¸ Brand-wise Report' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -3785,6 +3951,139 @@ export default function InventoryPage() {
                   ))
                 )}
               </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: Brand-wise Sales + Stock Report */}
+      {activeTab === 'brand' && (
+        <div className="card p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search size={16} className="absolute left-3 top-2.5 text-ink-400" />
+              <input
+                type="text"
+                value={brandSearch}
+                onChange={e => setBrandSearch(e.target.value)}
+                placeholder="Brand search karo (e.g. House of United)..."
+                className="input pl-9 text-xs"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-ink-400 font-mono capitalize">
+                Sales period: <strong className="text-ink-700 dark:text-ink-200">{periodLabel}</strong>
+              </p>
+              <button
+                onClick={exportBrandReport}
+                className="btn-secondary text-xs px-3.5 py-2 text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5"
+              >
+                <Download size={14} /> Export Brand Report
+              </button>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-ink-400">
+            Sales upar ke date filter ke hisaab se hain. "Aaj tak ki" total sales ke liye date filter ko <strong>All Time</strong> karo. Stock hamesha abhi ka live stock hai.
+          </p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse font-mono">
+              <thead className="bg-ink-50 dark:bg-ink-800 text-ink-500 uppercase text-[10px]">
+                <tr>
+                  <th className="py-2.5 px-3 w-8"></th>
+                  <th className="py-2.5 px-3">#</th>
+                  <th className="py-2.5 px-3 font-sans">Brand</th>
+                  <th className="py-2.5 px-3 text-right">SKUs</th>
+                  <th className="py-2.5 px-3 text-right">Opening</th>
+                  <th className="py-2.5 px-3 text-right">Qty Sold</th>
+                  <th className="py-2.5 px-3 text-right">Bills</th>
+                  <th className="py-2.5 px-3 text-right">Sale Value</th>
+                  <th className="py-2.5 px-3 text-right">Stock Left</th>
+                  <th className="py-2.5 px-3 text-right">Stock Value (MRP)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
+                {filteredBrands.length === 0 ? (
+                  <tr><td colSpan={10} className="py-8 text-center text-ink-400">No brand data</td></tr>
+                ) : (
+                  filteredBrands.map((b, i) => (
+                    <React.Fragment key={b.brand}>
+                      <tr
+                        className="hover:bg-ink-50/60 dark:hover:bg-ink-800/40 cursor-pointer"
+                        onClick={() => setExpandedBrand(p => ({ ...p, [b.brand]: !p[b.brand] }))}
+                      >
+                        <td className="py-2.5 px-3 text-ink-400">
+                          {expandedBrand[b.brand] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </td>
+                        <td className="py-2.5 px-3 text-ink-400">{i + 1}</td>
+                        <td className="py-2.5 px-3 font-sans font-bold text-amber-600">{b.brand}</td>
+                        <td className="py-2.5 px-3 text-right">{b.skus}</td>
+                        <td className="py-2.5 px-3 text-right text-ink-500">{b.openingQty}</td>
+                        <td className="py-2.5 px-3 text-right font-bold text-emerald-600">{b.qtySold}</td>
+                        <td className="py-2.5 px-3 text-right text-sky-600">{b.billsCount}</td>
+                        <td className="py-2.5 px-3 text-right font-bold text-ink-900 dark:text-ink-100">â‚¹{b.saleValue.toFixed(2)}</td>
+                        <td className="py-2.5 px-3 text-right">
+                          <span className={`font-bold px-2 py-0.5 rounded ${b.currentStock <= 0 ? 'bg-rose-500/10 text-rose-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                            {b.currentStock} pcs
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right">â‚¹{b.stockValue.toFixed(2)}</td>
+                      </tr>
+
+                      {expandedBrand[b.brand] && (
+                        <tr className="bg-ink-50/50 dark:bg-ink-800/30">
+                          <td colSpan={10} className="px-6 py-3">
+                            <table className="w-full text-left text-[11px] border-collapse">
+                              <thead className="text-ink-500 uppercase text-[9.5px] border-b border-ink-200 dark:border-ink-700">
+                                <tr>
+                                  <th className="py-1.5 px-2 font-sans">Item</th>
+                                  <th className="py-1.5 px-2">Barcode</th>
+                                  <th className="py-1.5 px-2">Size</th>
+                                  <th className="py-1.5 px-2">Color</th>
+                                  <th className="py-1.5 px-2 text-right">MRP</th>
+                                  <th className="py-1.5 px-2 text-right">Sold</th>
+                                  <th className="py-1.5 px-2 text-right">Sale Value</th>
+                                  <th className="py-1.5 px-2 text-right">Stock</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
+                                {b.itemList.map((it, j) => (
+                                  <tr key={j}>
+                                    <td className="py-1.5 px-2 font-sans font-semibold text-ink-800 dark:text-ink-100">{it.name}</td>
+                                    <td className="py-1.5 px-2 text-amber-700 dark:text-amber-400">{it.barcode}</td>
+                                    <td className="py-1.5 px-2">{it.size}</td>
+                                    <td className="py-1.5 px-2 font-sans">{it.color}</td>
+                                    <td className="py-1.5 px-2 text-right">â‚¹{it.mrp}</td>
+                                    <td className="py-1.5 px-2 text-right font-bold text-emerald-600">{it.qtySold}</td>
+                                    <td className="py-1.5 px-2 text-right">â‚¹{it.saleValue.toFixed(2)}</td>
+                                    <td className={`py-1.5 px-2 text-right font-bold ${it.stock <= 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{it.stock}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
+              </tbody>
+
+              {filteredBrands.length > 0 && (
+                <tfoot className="bg-ink-900 text-white font-bold">
+                  <tr>
+                    <td colSpan={3} className="py-2.5 px-3 font-sans">TOTAL</td>
+                    <td className="py-2.5 px-3 text-right">{filteredBrands.reduce((s, b) => s + b.skus, 0)}</td>
+                    <td className="py-2.5 px-3 text-right">{filteredBrands.reduce((s, b) => s + b.openingQty, 0)}</td>
+                    <td className="py-2.5 px-3 text-right">{filteredBrands.reduce((s, b) => s + b.qtySold, 0)}</td>
+                    <td className="py-2.5 px-3 text-right">{filteredBrands.reduce((s, b) => s + b.billsCount, 0)}</td>
+                    <td className="py-2.5 px-3 text-right">â‚¹{filteredBrands.reduce((s, b) => s + b.saleValue, 0).toFixed(2)}</td>
+                    <td className="py-2.5 px-3 text-right">{filteredBrands.reduce((s, b) => s + b.currentStock, 0)}</td>
+                    <td className="py-2.5 px-3 text-right">â‚¹{filteredBrands.reduce((s, b) => s + b.stockValue, 0).toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>

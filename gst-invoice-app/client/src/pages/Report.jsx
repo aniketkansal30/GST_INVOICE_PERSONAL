@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import DateRangeFilter from '../components/DateRangeFilter';
 import { filterByDateRange } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
+import api from '../utils/api';
 
 export default function Report() {
   const { invoices, fetchInvoices } = useInvoices();
@@ -19,11 +20,32 @@ export default function Report() {
   const [expandedGST, setExpandedGST] = useState({});
   const [expandedItem, setExpandedItem] = useState({});
   const [expandedSalesman, setExpandedSalesman] = useState({});
+  const [products, setProducts] = useState([]);
+  useEffect(() => {
+    api.get('/products').then(r => setProducts(r.data || [])).catch(() => {});
+  }, []);
 
   useEffect(() => { fetchInvoices({ limit: 1000, page: 1 }); }, []);
   useEffect(() => { setAllInvoices(invoices); }, [invoices]);
 
   const filtered = filterByDateRange(allInvoices, 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo);
+
+  // Brand: pehle bill mein saved brand, nahi toh products master se (productId -> barcode)
+  const pById = new Map(products.map(p => [String(p._id), p]));
+  const pByBarcode = new Map(
+    products.filter(p => p.barcode && p.barcode.trim()).map(p => [p.barcode.trim(), p])
+  );
+  const brandOf = (item) => {
+    const saved = String(item.brand || '').trim();
+    if (saved) return saved;
+    const p =
+      (item.productId && pById.get(String(item.productId))) ||
+      (item.barcode && pByBarcode.get(String(item.barcode).trim())) ||
+      null;
+    return p && p.brand ? String(p.brand).trim() : '';
+  };
+  const invBrands = (inv) =>
+    [...new Set((inv.items || []).map(brandOf).filter(Boolean))].join(', ');
 
   // Party-wise with invoice-level detail
   const partyWise = Object.values(
@@ -38,6 +60,7 @@ export default function Report() {
         invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
         dueDate: inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN') : '-',
         placeOfSupply: inv.buyer?.state || '-',
+        brand: invBrands(inv),
         hsn: (inv.items || []).map(i => i.hsn || '-').filter((v, i, a) => a.indexOf(v) === i).join(', '),
         taxable: inv.subtotal || 0, cgst: inv.cgst || 0, sgst: inv.sgst || 0,
         igst: inv.igst || 0, total: inv.grandTotal || 0, status: inv.status || 'draft',
@@ -198,7 +221,7 @@ const gst = mrpTotal - base;
           storeName: inv.seller?.companyName || '-',
           billDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-GB') : '-',
           invoiceNumber: inv.invoiceNumber,
-          brandName: item.brand && item.brand.trim() ? item.brand.trim() : '-',
+          brandName: brandOf(item) || '-',
           subCategory: item.name || '-',
           gstTaxClass: 'APPAREL',
           category: 'APPARELS',
@@ -250,6 +273,7 @@ const gst = mrpTotal - base;
       { header: 'State', key: 'state', width: 16 },
       { header: 'Invoice No', key: 'invoiceNumber', width: 14, format: 'text' },
       { header: 'Date', key: 'invoiceDate', width: 12, format: 'text' },
+      { header: 'Brand Name', key: 'brand', width: 22 },
       { header: 'Taxable Value', key: 'taxable', width: 14, format: 'currency' },
       { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
       { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
@@ -262,7 +286,7 @@ const gst = mrpTotal - base;
     partyWise.forEach(p => {
       p.invoiceList.forEach(inv => {
         partyRows.push({
-          sno: sr++, party: p.party, gstin: p.gstin, state: p.state,
+          sno: sr++, party: p.party, gstin: p.gstin, state: p.state, brand: inv.brand || '',
           invoiceNumber: inv.invoiceNumber, invoiceDate: inv.invoiceDate,
           taxable: inv.taxable, cgst: inv.cgst, sgst: inv.sgst, igst: inv.igst,
           total: inv.total, status: inv.status,
@@ -683,13 +707,13 @@ const gst = mrpTotal - base;
           <div className="overflow-x-auto">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {['', 'S.No.', 'Customer Name', 'GSTIN', 'State', 'HSN/SAC', 'Invoices', 'Taxable Amt', 'CGST', 'SGST', 'IGST', 'Total'].map((h, i) => (
-                  <th key={i} style={thS(i >= 6)}>{h}</th>
+                {['', 'S.No.', 'Customer Name', 'GSTIN', 'State', 'HSN/SAC', 'Brand', 'Invoices', 'Taxable Amt', 'CGST', 'SGST', 'IGST', 'Total'].map((h, i) => (
+                  <th key={i} style={thS(i >= 7)}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {partyWise.length === 0
-                  ? <tr><td colSpan={12} style={{ textAlign: 'center', padding: 40, color: '#888' }}>No data</td></tr>
+                  ? <tr><td colSpan={13} style={{ textAlign: 'center', padding: 40, color: '#888' }}>No data</td></tr>
                   : partyWise.map((row, i) => (
                     <React.Fragment key={i}>
                       <tr style={{ background: i % 2 === 0 ? 'white' : '#f4f4f0', cursor: 'pointer' }} onClick={() => toggleParty(row.party)}>
@@ -699,6 +723,7 @@ const gst = mrpTotal - base;
                         <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", color: '#6e6e60' }}>{row.gstin}</td>
                         <td style={tdS()}>{row.state}</td>
                         <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: 12, color: '#6b21a8' }}>{[...new Set((row.invoiceList || []).flatMap(inv => (inv.hsn || '-').split(', ')))].join(', ')}</td>
+                        <td style={{ ...tdS(), fontWeight: 600, color: '#b45309' }}>{[...new Set((row.invoiceList || []).flatMap(inv => (inv.brand || '').split(', ').filter(Boolean)))].join(', ') || '-'}</td>
                         <td style={tdS(true)}>{row.invoiceList.length}</td>
                         <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
                         <td style={tdS(true)}>{formatCurrency(row.cgst)}</td>
@@ -717,6 +742,7 @@ const gst = mrpTotal - base;
                           <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.gstin}</td>
                           <td style={{ ...tdS(), fontSize: 12 }}>{inv.placeOfSupply}</td>
                           <td style={{ ...tdS(), fontSize: 12, fontFamily: "'DM Mono', 'Courier New', monospace", color: '#6b21a8' }}>{inv.hsn}</td>
+                          <td style={{ ...tdS(), fontSize: 12, fontWeight: 600, color: '#b45309' }}>{inv.brand || '-'}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>Due: {inv.dueDate}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>{formatCurrency(inv.taxable)}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>{formatCurrency(inv.cgst)}</td>
@@ -730,7 +756,7 @@ const gst = mrpTotal - base;
               </tbody>
               {partyWise.length > 0 && (
                 <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
-                  <td colSpan={7} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
+                  <td colSpan={8} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
                   {['taxable', 'cgst', 'sgst', 'igst', 'total'].map(k => (
                     <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(partyWise.reduce((s, r) => s + r[k], 0))}</td>
                   ))}
