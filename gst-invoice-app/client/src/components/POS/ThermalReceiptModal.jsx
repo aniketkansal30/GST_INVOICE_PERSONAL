@@ -138,16 +138,19 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   // Items ke hisab se font zoom: kam items = bada font, zyada = thoda chhota
   const usableMm = paperMm * 0.92;
   const lineCount = items.length;
-  const baseZoom = lineCount <= 3 ? 1.5 : lineCount <= 6 ? 1.35 : lineCount <= 10 ? 1.2 : lineCount <= 15 ? 1.1 : 1;
+  const baseZoom = lineCount <= 3 ? 1.7 : lineCount <= 6 ? 1.55 : lineCount <= 10 ? 1.4 : lineCount <= 15 ? 1.25 : 1.15;
   const zoom = paperMm < 70 ? baseZoom * 0.85 : baseZoom;
 
   const handlePrint = () => {
     const el = receiptRef.current;
     if (el) {
+      // print jaisi bold styling lagakar measure karo, taaki height kam na pade
+      el.classList.add('print-measure');
       const hPx = el.getBoundingClientRect().height;
-      setPageHeightMm(Math.ceil(hPx / 3.7795) + 8); // px -> mm + thoda margin
+      el.classList.remove('print-measure');
+      setPageHeightMm(Math.ceil((hPx / 3.7795) * 1.12) + 15); // px -> mm + 12% + 15mm buffer
     }
-    setTimeout(() => window.print(), 200);
+    setTimeout(() => window.print(), 300);
   };
 
   // ── Edit-mode field handlers ──
@@ -221,6 +224,8 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const modalContent = (
     <div id="thermal-print-portal">
       <style>{`
+        .print-measure * { font-weight: 600 !important; }
+        .print-measure strong, .print-measure .font-bold { font-weight: 900 !important; }
         @media print {
           html, body {
             margin: 0 !important;

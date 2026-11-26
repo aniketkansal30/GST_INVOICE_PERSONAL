@@ -470,6 +470,8 @@ function computeTotals(items, isSameState) {
 export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint = false, editable = false, onSave, onSendWhatsapp }) {
   const [saving, setSaving] = useState(false);
   const receiptRef = useRef(null);
+  const [paperMm, setPaperMm] = useState(() => Number(localStorage.getItem('pos_paper_mm')) || 80);
+  const [pageHeightMm, setPageHeightMm] = useState(300);
 
   const isSameState = invoice ? (invoice.isSameState !== undefined ? invoice.isSameState : true) : true;
 
@@ -542,8 +544,19 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const totalDiscountAmount = items.reduce((s, i) => s + (Number(i.discountAmount) || 0), 0);
   const hasDiscount = totalDiscountAmount > 0;
 
+  // Items ke hisab se font zoom: kam items = bada font, zyada = thoda chhota
+  const usableMm = paperMm * 0.92;
+  const lineCount = items.length;
+  const baseZoom = lineCount <= 3 ? 1.5 : lineCount <= 6 ? 1.35 : lineCount <= 10 ? 1.2 : lineCount <= 15 ? 1.1 : 1;
+  const zoom = paperMm < 70 ? baseZoom * 0.85 : baseZoom;
+
   const handlePrint = () => {
-    window.print();
+    const el = receiptRef.current;
+    if (el) {
+      const hPx = el.getBoundingClientRect().height;
+      setPageHeightMm(Math.ceil(hPx / 3.7795) + 8); // px -> mm + thoda margin
+    }
+    setTimeout(() => window.print(), 200);
   };
 
   // â”€â”€ Edit-mode field handlers â”€â”€
@@ -673,10 +686,11 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                (58mm/80mm) ya printer ka offset kisi bhi side ho, dono
                taraf ~4% guaranteed blank buffer milega, akshar kabhi
                nahi katega. */
-            width: 92% !important;
-            max-width: 92% !important;
+            width: ${usableMm / zoom}mm !important;
+            max-width: none !important;
             margin: 0 auto !important;
-            padding: 2mm !important;
+            padding: 1mm !important;
+            zoom: ${zoom} !important;
             box-shadow: none !important;
             border: none !important;
             color: #000 !important;
@@ -701,7 +715,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
              configured" â€” this is the actual fix for cutting on non-80mm
              rolls. Do NOT hardcode a mm value here. */
           @page {
-            size: auto;
+            size: ${paperMm}mm ${pageHeightMm}mm;
             margin: 0;
           }
         }
@@ -736,7 +750,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             <div
               ref={receiptRef}
               id="thermal-receipt-printable"
-              style={{ width: RECEIPT_WIDTH, maxWidth: '80mm' }}
+              style={{ width: `${usableMm / zoom}mm`, zoom }}
               className="bg-white text-black font-mono text-[11px] leading-tight p-3 shadow-md rounded-sm border border-dashed border-ink-300 print:shadow-none print:border-none print:m-0 print:p-1"
             >
               {/* Store Header */}
@@ -967,6 +981,15 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                       jaata tha. Ab yeh button sirf tabhi dikhta hai jab
                       customer ka mobile number diya gaya ho, aur click
                       karne par hi WhatsApp tab khulega â€” koi auto-send nahi. */}
+                  <select
+                    value={paperMm}
+                    onChange={(e) => { const v = Number(e.target.value); setPaperMm(v); localStorage.setItem('pos_paper_mm', String(v)); }}
+                    className="input text-xs py-2 w-24"
+                    title="Paper width"
+                  >
+                    <option value={80}>80mm</option>
+                    <option value={58}>58mm</option>
+                  </select>
                   {invoice?.buyer?.contact && onSendWhatsapp && (
                     <button
                       onClick={onSendWhatsapp}
@@ -6114,9 +6137,9 @@ export default function PosBillingPage() {
   };
 
   // 1. Barcode Submission Handler (USB Scanner / Typing + Enter)
-  const handleBarcodeSubmit = async (e) => {
-    if (e) e.preventDefault();
-    const cleanCode = barcodeInput.trim();
+  const handleBarcodeSubmit = async (e, overrideCode) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const cleanCode = String(overrideCode || barcodeInput).trim();
     if (!cleanCode) return;
 
     setIsScanning(true);
@@ -6686,10 +6709,7 @@ export default function PosBillingPage() {
                     key={demo.code}
                     type="button"
                     onClick={() => {
-                      setBarcodeInput(demo.code);
-                      setTimeout(() => {
-                        handleBarcodeSubmit();
-                      }, 50);
+                      handleBarcodeSubmit(null, demo.code);
                     }}
                     className="text-[11px] bg-ink-800 hover:bg-ink-700 text-ink-200 hover:text-white px-2.5 py-1 rounded-lg border border-ink-600 font-mono transition-colors"
                   >
@@ -7796,6 +7816,17 @@ const gst = mrpTotal - base;
       `GSTR1_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
   };
+  // Item ka asli taxable value (GST nikaal kar, discount ke baad)
+  const getTaxable = (item) => {
+    if (item.baseAmount !== undefined && item.baseAmount !== null) return Number(item.baseAmount) || 0;
+    const qty = Number(item.qty) || 0;
+    const rate = Number(item.rate) || 0;
+    const gstPct = Number(item.gstPct) || 0;
+    const disc = Number(item.discountPct) || 0;
+    const net = qty * rate * (1 - disc / 100);
+    return gstPct > 0 ? net / (1 + gstPct / 100) : net;
+  };
+
   const exportToGSTR1JSON = () => {
     // ── B2B (Business-to-Business with GSTIN) ──────────────────────────────
     const getStateCode = (stateName) => {
@@ -7819,7 +7850,7 @@ const gst = mrpTotal - base;
       if (!gstin || gstin === '-' || gstin.trim() === '') return; // skip non-GSTIN
       if (!b2bMap[gstin]) b2bMap[gstin] = { ctin: gstin, inv: [] };
       const items = (inv.items || []).map((item, idx) => {
-        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const txval = getTaxable(item);
         const gstPct = Number(item.gstPct) || 0;
         const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
         return {
@@ -7855,7 +7886,7 @@ const gst = mrpTotal - base;
       const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
       if (!isIGST || total <= 250000) return; // B2CL only interstate > 2.5L
       (inv.items || []).forEach(item => {
-        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const txval = getTaxable(item);
         const gstPct = Number(item.gstPct) || 0;
         const pos = getStateCode(inv.buyer?.state) || '09';
         const key = `${pos}_${gstPct}`;
@@ -7881,7 +7912,7 @@ const gst = mrpTotal - base;
       const total = inv.grandTotal || 0;
       if (isIGST && total > 250000) return; // those go to B2CL
       (inv.items || []).forEach(item => {
-        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const txval = getTaxable(item);
         const gstPct = Number(item.gstPct) || 0;
         const pos = getStateCode(inv.buyer?.state) || '09';
         const type = isIGST ? 'INTER' : 'INTRA';
@@ -7923,7 +7954,7 @@ const gst = mrpTotal - base;
         const qty = Number(item.qty) || 0;
         const rate = Number(item.rate) || 0;
         const gstPct = Number(item.gstPct) || 0;
-        const txval = qty * rate;
+        const txval = getTaxable(item);
         const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
         const seenKey = `${key}|${inv.invoiceNumber}`;
         if (!hsnInvoiceSeen[seenKey]) {
@@ -10041,6 +10072,40 @@ const computeNextInvoiceNumber = async (userId) => {
   return `${INVOICE_PREFIX}${max + 1}`;
 };
 
+// ── Stock helpers (edit/delete par stock sahi rakhne ke liye) ──
+const findProductForItem = async (userId, item) => {
+  let product = null;
+  if (item.productId) product = await Product.findOne({ _id: item.productId, user: userId });
+  if (!product && item.barcode && String(item.barcode).trim()) {
+    product = await Product.findOne({ user: userId, barcode: String(item.barcode).trim() });
+  }
+  if (!product && item.name) {
+    const esc = String(item.name).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    product = await Product.findOne({ user: userId, name: { $regex: new RegExp(`^${esc}$`, 'i') } });
+  }
+  return product;
+};
+
+// direction: +1 = stock wapas jodo, -1 = stock kaato
+const applyStock = async (userId, items, direction, note, invoiceId) => {
+  for (const item of items || []) {
+    const qty = Number(item.qty) || 0;
+    if (!qty) continue;
+    const product = await findProductForItem(userId, item);
+    if (!product) continue;
+    product.currentStock += direction * qty;
+    await product.save();
+    await StockTransaction.create({
+      user: userId,
+      product: product._id,
+      type: direction > 0 ? 'ADJUSTMENT' : 'SALE',
+      qty: direction * qty,
+      note,
+      invoiceId,
+    });
+  }
+};
+
 exports.getInvoices = async (req, res) => {
   try {
     const { search, page = 1, limit = 10, status } = req.query;
@@ -10148,6 +10213,7 @@ exports.deleteInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findOneAndDelete({ _id: req.params.id, user: req.user._id });
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    await applyStock(req.user._id, invoice.items, +1, `Bill ${invoice.invoiceNumber} deleted (stock restored)`, invoice._id);
     res.json({ message: 'Invoice deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -10264,6 +10330,29 @@ exports.getNextInvoiceNumber = async (req, res) => {
 };
 
 exports.updateInvoice = async (req, res) => {
+  try {
+    const old = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
+    if (!old) return res.status(404).json({ message: 'Invoice not found' });
+
+    const invoice = await Invoice.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    // Items badle hain toh: purane items ka stock wapas, naye items ka stock minus
+    if (Array.isArray(req.body.items)) {
+      await applyStock(req.user._id, old.items, +1, `Bill ${old.invoiceNumber} edited (old items reversed)`, old._id);
+      await applyStock(req.user._id, invoice.items, -1, `Bill ${invoice.invoiceNumber} edited (new items)`, old._id);
+    }
+    res.json(invoice);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// (purana version, ab use nahi hota)
+exports._updateInvoiceOld = async (req, res) => {
   try {
     const invoice = await Invoice.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
@@ -10667,7 +10756,7 @@ const itemSchema = new mongoose.Schema({
 const paymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   date: { type: Date, default: Date.now },
-  mode: { type: String, enum: ['cash', 'upi', 'bank', 'cheque', 'other'], default: 'bank' },
+  mode: { type: String, enum: ['cash', 'upi', 'card', 'bank', 'cheque', 'other'], default: 'bank' },
   note: { type: String, default: '' },
 }, { _id: true, timestamps: true });
 const invoiceSchema = new mongoose.Schema({
