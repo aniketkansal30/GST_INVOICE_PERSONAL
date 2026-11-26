@@ -1477,7 +1477,7 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import ThermalReceiptModal from '../components/POS/ThermalReceiptModal';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { filterByDateRange } from '../utils/dateRangeUtils';
+import { filterByDateRange, getPeriodLabel } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
 
 
@@ -1642,6 +1642,7 @@ const allStats = useMemo(() => ({
   // â”€â”€ Full Stock + Sales report: ek sheet, party ke sample jaisa â”€â”€
   const exportFullReport = async () => {
     if (products.length === 0) return toast.error('Products load nahi hue, thodi der baad try karo');
+    if (dateFilteredInvoices.length === 0) return toast.error('Is date range mein koi bill nahi hai');
 
     const up = (v) => String(v || '').trim().toUpperCase();
     const storeName = DEFAULT_STORE_DETAILS.companyName || user?.companyName || '';
@@ -1707,7 +1708,11 @@ const allStats = useMemo(() => ({
     });
 
     // Brand â†’ category â†’ naam ke order mein, sample jaisa
-    const sorted = [...products].sort((a, b) =>
+    // All Time = poora stock report. Koi date filter ho toh sirf wahi items jo us period mein bike
+    const sorted = (dateFilter.preset === 'all_time'
+      ? [...products]
+      : products.filter(p => sold[`p_${p._id}`])
+    ).sort((a, b) =>
       up(a.brand).localeCompare(up(b.brand)) ||
       up(a.category).localeCompare(up(b.category)) ||
       String(a.name || '').localeCompare(String(b.name || ''))
@@ -1773,7 +1778,7 @@ const allStats = useMemo(() => ({
     const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
     await exportStyledExcel(
       [{ name: 'Report', columns, rows }],
-      `Stock_Sales_Report_${today}.xlsx`
+      `Stock_Sales_Report_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
     toast.success('Report exported to Excel!');
   };
@@ -2063,7 +2068,7 @@ import {
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { filterByDateRange } from '../utils/dateRangeUtils';
+import { filterByDateRange, getPeriodLabel } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
 import { useAuth } from '../context/AuthContext';
 import DebitNoteReceiptModal from '../components/DebitNoteReceiptModal';
@@ -2330,7 +2335,8 @@ export default function DebitNotesPage() {
     ];
 
     const rows = [];
-    dateFiltered.forEach(d => {
+    if (filtered.length === 0) return toast.error('Is filter mein koi debit note nahi hai');
+    filtered.forEach(d => {
       getNoteItems(d).forEach(it => {
         rows.push({
           dnNo: d.dnNumber,
@@ -2361,7 +2367,7 @@ export default function DebitNotesPage() {
 
     await exportStyledExcel(
       [{ name: 'Debit Notes', columns, rows }],
-      `Debit_Notes_${new Date().getFullYear()}.xlsx`
+      `Debit_Notes_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
     toast.success('Debit notes exported to Excel!');
   };
@@ -2791,7 +2797,7 @@ import { useRef } from 'react'; // agar useRef already import nahi hai
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { filterByDateRange } from '../utils/dateRangeUtils';
+import { filterByDateRange, getPeriodLabel } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
 
 
@@ -3443,7 +3449,7 @@ export default function InventoryPage() {
         { name: 'Item-wise Sales', columns: itemColumns, rows: itemRows },
         { name: 'Salesman-wise Sales', columns: salesmanColumns, rows: salesmanRows },
       ],
-      `Clothing_Inventory_${selectedYear || 'All'}.xlsx`
+      `Clothing_Inventory_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
     toast.success('Inventory exported to Excel!');
   };
@@ -7373,8 +7379,9 @@ import { formatCurrency, DEFAULT_STORE_DETAILS } from '../utils/invoiceUtils';
 import { FileText, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { filterByDateRange } from '../utils/dateRangeUtils';
+import { filterByDateRange, getPeriodLabel } from '../utils/dateRangeUtils';
 import { exportStyledExcel } from '../utils/excelExport';
+import api from '../utils/api';
 
 export default function Report() {
   const { invoices, fetchInvoices } = useInvoices();
@@ -7388,11 +7395,32 @@ export default function Report() {
   const [expandedGST, setExpandedGST] = useState({});
   const [expandedItem, setExpandedItem] = useState({});
   const [expandedSalesman, setExpandedSalesman] = useState({});
+  const [products, setProducts] = useState([]);
+  useEffect(() => {
+    api.get('/products').then(r => setProducts(r.data || [])).catch(() => {});
+  }, []);
 
-  useEffect(() => { fetchInvoices({ limit: 1000, page: 1 }); }, []);
+  useEffect(() => { fetchInvoices({ limit: 10000, page: 1 }); }, []);
   useEffect(() => { setAllInvoices(invoices); }, [invoices]);
 
   const filtered = filterByDateRange(allInvoices, 'invoiceDate', dateFilter.preset, dateFilter.customFrom, dateFilter.customTo);
+
+  // Brand: pehle bill mein saved brand, nahi toh products master se (productId -> barcode)
+  const pById = new Map(products.map(p => [String(p._id), p]));
+  const pByBarcode = new Map(
+    products.filter(p => p.barcode && p.barcode.trim()).map(p => [p.barcode.trim(), p])
+  );
+  const brandOf = (item) => {
+    const saved = String(item.brand || '').trim();
+    if (saved) return saved;
+    const p =
+      (item.productId && pById.get(String(item.productId))) ||
+      (item.barcode && pByBarcode.get(String(item.barcode).trim())) ||
+      null;
+    return p && p.brand ? String(p.brand).trim() : '';
+  };
+  const invBrands = (inv) =>
+    [...new Set((inv.items || []).map(brandOf).filter(Boolean))].join(', ');
 
   // Party-wise with invoice-level detail
   const partyWise = Object.values(
@@ -7407,6 +7435,7 @@ export default function Report() {
         invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-',
         dueDate: inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN') : '-',
         placeOfSupply: inv.buyer?.state || '-',
+        brand: invBrands(inv),
         hsn: (inv.items || []).map(i => i.hsn || '-').filter((v, i, a) => a.indexOf(v) === i).join(', '),
         taxable: inv.subtotal || 0, cgst: inv.cgst || 0, sgst: inv.sgst || 0,
         igst: inv.igst || 0, total: inv.grandTotal || 0, status: inv.status || 'draft',
@@ -7567,7 +7596,7 @@ const gst = mrpTotal - base;
           storeName: inv.seller?.companyName || '-',
           billDate: inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-GB') : '-',
           invoiceNumber: inv.invoiceNumber,
-          brandName: item.brand && item.brand.trim() ? item.brand.trim() : '-',
+          brandName: brandOf(item) || '-',
           subCategory: item.name || '-',
           gstTaxClass: 'APPAREL',
           category: 'APPARELS',
@@ -7603,6 +7632,7 @@ const gst = mrpTotal - base;
 
 
     const exportToExcel = async () => {
+    if (filtered.length === 0) return alert('Is date range mein koi bill nahi hai');
     const sum = (arr, k) => arr.reduce((s, r) => s + (Number(r[k]) || 0), 0);
     const withTotal = (rows, keys) => {
       if (rows.length === 0) return rows;
@@ -7619,6 +7649,7 @@ const gst = mrpTotal - base;
       { header: 'State', key: 'state', width: 16 },
       { header: 'Invoice No', key: 'invoiceNumber', width: 14, format: 'text' },
       { header: 'Date', key: 'invoiceDate', width: 12, format: 'text' },
+      { header: 'Brand Name', key: 'brand', width: 22 },
       { header: 'Taxable Value', key: 'taxable', width: 14, format: 'currency' },
       { header: 'CGST', key: 'cgst', width: 12, format: 'currency' },
       { header: 'SGST', key: 'sgst', width: 12, format: 'currency' },
@@ -7631,7 +7662,7 @@ const gst = mrpTotal - base;
     partyWise.forEach(p => {
       p.invoiceList.forEach(inv => {
         partyRows.push({
-          sno: sr++, party: p.party, gstin: p.gstin, state: p.state,
+          sno: sr++, party: p.party, gstin: p.gstin, state: p.state, brand: inv.brand || '',
           invoiceNumber: inv.invoiceNumber, invoiceDate: inv.invoiceDate,
           taxable: inv.taxable, cgst: inv.cgst, sgst: inv.sgst, igst: inv.igst,
           total: inv.total, status: inv.status,
@@ -7762,7 +7793,7 @@ const gst = mrpTotal - base;
         { name: 'Item-wise', columns: itemColumns, rows: itemRows },
         { name: 'Salesman-wise', columns: salesmanColumns, rows: salesmanRows },
       ],
-      `GSTR1_${month}_${selectedYear || 'All'}.xlsx`
+      `GSTR1_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
   };
   const exportToGSTR1JSON = () => {
@@ -8052,13 +8083,13 @@ const gst = mrpTotal - base;
           <div className="overflow-x-auto">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {['', 'S.No.', 'Customer Name', 'GSTIN', 'State', 'HSN/SAC', 'Invoices', 'Taxable Amt', 'CGST', 'SGST', 'IGST', 'Total'].map((h, i) => (
-                  <th key={i} style={thS(i >= 6)}>{h}</th>
+                {['', 'S.No.', 'Customer Name', 'GSTIN', 'State', 'HSN/SAC', 'Brand', 'Invoices', 'Taxable Amt', 'CGST', 'SGST', 'IGST', 'Total'].map((h, i) => (
+                  <th key={i} style={thS(i >= 7)}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {partyWise.length === 0
-                  ? <tr><td colSpan={12} style={{ textAlign: 'center', padding: 40, color: '#888' }}>No data</td></tr>
+                  ? <tr><td colSpan={13} style={{ textAlign: 'center', padding: 40, color: '#888' }}>No data</td></tr>
                   : partyWise.map((row, i) => (
                     <React.Fragment key={i}>
                       <tr style={{ background: i % 2 === 0 ? 'white' : '#f4f4f0', cursor: 'pointer' }} onClick={() => toggleParty(row.party)}>
@@ -8068,6 +8099,7 @@ const gst = mrpTotal - base;
                         <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", color: '#6e6e60' }}>{row.gstin}</td>
                         <td style={tdS()}>{row.state}</td>
                         <td style={{ ...tdS(), fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: 12, color: '#6b21a8' }}>{[...new Set((row.invoiceList || []).flatMap(inv => (inv.hsn || '-').split(', ')))].join(', ')}</td>
+                        <td style={{ ...tdS(), fontWeight: 600, color: '#b45309' }}>{[...new Set((row.invoiceList || []).flatMap(inv => (inv.brand || '').split(', ').filter(Boolean)))].join(', ') || '-'}</td>
                         <td style={tdS(true)}>{row.invoiceList.length}</td>
                         <td style={tdS(true)}>{formatCurrency(row.taxable)}</td>
                         <td style={tdS(true)}>{formatCurrency(row.cgst)}</td>
@@ -8086,6 +8118,7 @@ const gst = mrpTotal - base;
                           <td style={{ ...tdS(), fontSize: 12, color: '#6e6e60' }}>{row.gstin}</td>
                           <td style={{ ...tdS(), fontSize: 12 }}>{inv.placeOfSupply}</td>
                           <td style={{ ...tdS(), fontSize: 12, fontFamily: "'DM Mono', 'Courier New', monospace", color: '#6b21a8' }}>{inv.hsn}</td>
+                          <td style={{ ...tdS(), fontSize: 12, fontWeight: 600, color: '#b45309' }}>{inv.brand || '-'}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>Due: {inv.dueDate}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>{formatCurrency(inv.taxable)}</td>
                           <td style={{ ...tdS(true), fontSize: 12 }}>{formatCurrency(inv.cgst)}</td>
@@ -8099,7 +8132,7 @@ const gst = mrpTotal - base;
               </tbody>
               {partyWise.length > 0 && (
                 <tfoot><tr style={{ background: '#1c1c18', color: 'white' }}>
-                  <td colSpan={7} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
+                  <td colSpan={8} style={{ padding: '10px 12px', fontWeight: '700', fontSize: '12px' }}>TOTAL</td>
                   {['taxable', 'cgst', 'sgst', 'igst', 'total'].map(k => (
                     <td key={k} style={{ padding: '10px 12px', textAlign: 'right', fontFamily: "'DM Mono', 'Courier New', monospace", fontWeight: '700' }}>{formatCurrency(partyWise.reduce((s, r) => s + r[k], 0))}</td>
                   ))}
@@ -8805,6 +8838,17 @@ export function filterByDateRange(items, dateField, preset, customFrom, customTo
     const d = new Date(item[dateField]);
     return d >= from && d <= to;
   });
+}
+// Filename ke liye: filter jaisa lagaya waisa naam (today_16-11-2026, 2026-11-01_to_2026-11-15, all-time ...)
+export function getPeriodLabel(preset, customFrom, customTo) {
+  const fmt = (d) => d.toLocaleDateString('en-GB').replace(/\//g, '-');
+  const now = new Date();
+  switch (preset) {
+    case 'today': return `today_${fmt(now)}`;
+    case 'yesterday': { const y = new Date(now); y.setDate(y.getDate() - 1); return `yesterday_${fmt(y)}`; }
+    case 'custom': return customFrom && customTo ? `${customFrom}_to_${customTo}` : 'custom';
+    default: return String(preset || 'all_time').replace(/_/g, '-');
+  }
 }
 
 
@@ -9700,9 +9744,9 @@ module.exports = {
         },
       },
       animation: {
-        'fade-in': 'fadeIn 0.4s ease-out forwards',
-        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        'slide-in-right': 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'fade-in': 'fadeIn 0.4s ease-out',
+        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-in-right': 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },

@@ -19,7 +19,7 @@ const itemSchema = new mongoose.Schema({
 const paymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   date: { type: Date, default: Date.now },
-  mode: { type: String, enum: ['cash', 'upi', 'bank', 'cheque', 'other'], default: 'bank' },
+  mode: { type: String, enum: ['cash', 'upi', 'card', 'bank', 'cheque', 'other'], default: 'bank' },
   note: { type: String, default: '' },
 }, { _id: true, timestamps: true });
 const invoiceSchema = new mongoose.Schema({

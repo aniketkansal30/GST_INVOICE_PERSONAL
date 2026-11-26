@@ -421,6 +421,17 @@ const gst = mrpTotal - base;
       `GSTR1_${getPeriodLabel(dateFilter.preset, dateFilter.customFrom, dateFilter.customTo)}.xlsx`
     );
   };
+  // Item ka asli taxable value (GST nikaal kar, discount ke baad)
+  const getTaxable = (item) => {
+    if (item.baseAmount !== undefined && item.baseAmount !== null) return Number(item.baseAmount) || 0;
+    const qty = Number(item.qty) || 0;
+    const rate = Number(item.rate) || 0;
+    const gstPct = Number(item.gstPct) || 0;
+    const disc = Number(item.discountPct) || 0;
+    const net = qty * rate * (1 - disc / 100);
+    return gstPct > 0 ? net / (1 + gstPct / 100) : net;
+  };
+
   const exportToGSTR1JSON = () => {
     // ── B2B (Business-to-Business with GSTIN) ──────────────────────────────
     const getStateCode = (stateName) => {
@@ -444,7 +455,7 @@ const gst = mrpTotal - base;
       if (!gstin || gstin === '-' || gstin.trim() === '') return; // skip non-GSTIN
       if (!b2bMap[gstin]) b2bMap[gstin] = { ctin: gstin, inv: [] };
       const items = (inv.items || []).map((item, idx) => {
-        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const txval = getTaxable(item);
         const gstPct = Number(item.gstPct) || 0;
         const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
         return {
@@ -480,7 +491,7 @@ const gst = mrpTotal - base;
       const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
       if (!isIGST || total <= 250000) return; // B2CL only interstate > 2.5L
       (inv.items || []).forEach(item => {
-        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const txval = getTaxable(item);
         const gstPct = Number(item.gstPct) || 0;
         const pos = getStateCode(inv.buyer?.state) || '09';
         const key = `${pos}_${gstPct}`;
@@ -506,7 +517,7 @@ const gst = mrpTotal - base;
       const total = inv.grandTotal || 0;
       if (isIGST && total > 250000) return; // those go to B2CL
       (inv.items || []).forEach(item => {
-        const txval = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const txval = getTaxable(item);
         const gstPct = Number(item.gstPct) || 0;
         const pos = getStateCode(inv.buyer?.state) || '09';
         const type = isIGST ? 'INTER' : 'INTRA';
@@ -548,7 +559,7 @@ const gst = mrpTotal - base;
         const qty = Number(item.qty) || 0;
         const rate = Number(item.rate) || 0;
         const gstPct = Number(item.gstPct) || 0;
-        const txval = qty * rate;
+        const txval = getTaxable(item);
         const isIGST = (inv.buyer?.state || '').toLowerCase() !== (inv.seller?.state || '').toLowerCase();
         const seenKey = `${key}|${inv.invoiceNumber}`;
         if (!hsnInvoiceSeen[seenKey]) {

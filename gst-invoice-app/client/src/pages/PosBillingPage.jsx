@@ -335,9 +335,9 @@ export default function PosBillingPage() {
   };
 
   // 1. Barcode Submission Handler (USB Scanner / Typing + Enter)
-  const handleBarcodeSubmit = async (e) => {
-    if (e) e.preventDefault();
-    const cleanCode = barcodeInput.trim();
+  const handleBarcodeSubmit = async (e, overrideCode) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const cleanCode = String(overrideCode || barcodeInput).trim();
     if (!cleanCode) return;
 
     setIsScanning(true);
@@ -907,10 +907,7 @@ export default function PosBillingPage() {
                     key={demo.code}
                     type="button"
                     onClick={() => {
-                      setBarcodeInput(demo.code);
-                      setTimeout(() => {
-                        handleBarcodeSubmit();
-                      }, 50);
+                      handleBarcodeSubmit(null, demo.code);
                     }}
                     className="text-[11px] bg-ink-800 hover:bg-ink-700 text-ink-200 hover:text-white px-2.5 py-1 rounded-lg border border-ink-600 font-mono transition-colors"
                   >

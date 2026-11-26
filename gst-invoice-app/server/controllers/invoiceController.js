@@ -23,6 +23,40 @@ const computeNextInvoiceNumber = async (userId) => {
   return `${INVOICE_PREFIX}${max + 1}`;
 };
 
+// ── Stock helpers (edit/delete par stock sahi rakhne ke liye) ──
+const findProductForItem = async (userId, item) => {
+  let product = null;
+  if (item.productId) product = await Product.findOne({ _id: item.productId, user: userId });
+  if (!product && item.barcode && String(item.barcode).trim()) {
+    product = await Product.findOne({ user: userId, barcode: String(item.barcode).trim() });
+  }
+  if (!product && item.name) {
+    const esc = String(item.name).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    product = await Product.findOne({ user: userId, name: { $regex: new RegExp(`^${esc}$`, 'i') } });
+  }
+  return product;
+};
+
+// direction: +1 = stock wapas jodo, -1 = stock kaato
+const applyStock = async (userId, items, direction, note, invoiceId) => {
+  for (const item of items || []) {
+    const qty = Number(item.qty) || 0;
+    if (!qty) continue;
+    const product = await findProductForItem(userId, item);
+    if (!product) continue;
+    product.currentStock += direction * qty;
+    await product.save();
+    await StockTransaction.create({
+      user: userId,
+      product: product._id,
+      type: direction > 0 ? 'ADJUSTMENT' : 'SALE',
+      qty: direction * qty,
+      note,
+      invoiceId,
+    });
+  }
+};
+
 exports.getInvoices = async (req, res) => {
   try {
     const { search, page = 1, limit = 10, status } = req.query;
@@ -130,6 +164,7 @@ exports.deleteInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findOneAndDelete({ _id: req.params.id, user: req.user._id });
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    await applyStock(req.user._id, invoice.items, +1, `Bill ${invoice.invoiceNumber} deleted (stock restored)`, invoice._id);
     res.json({ message: 'Invoice deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -246,6 +281,29 @@ exports.getNextInvoiceNumber = async (req, res) => {
 };
 
 exports.updateInvoice = async (req, res) => {
+  try {
+    const old = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
+    if (!old) return res.status(404).json({ message: 'Invoice not found' });
+
+    const invoice = await Invoice.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    // Items badle hain toh: purane items ka stock wapas, naye items ka stock minus
+    if (Array.isArray(req.body.items)) {
+      await applyStock(req.user._id, old.items, +1, `Bill ${old.invoiceNumber} edited (old items reversed)`, old._id);
+      await applyStock(req.user._id, invoice.items, -1, `Bill ${invoice.invoiceNumber} edited (new items)`, old._id);
+    }
+    res.json(invoice);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// (purana version, ab use nahi hota)
+exports._updateInvoiceOld = async (req, res) => {
   try {
     const invoice = await Invoice.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },

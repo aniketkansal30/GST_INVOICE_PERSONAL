@@ -61,6 +61,8 @@ function computeTotals(items, isSameState) {
 export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint = false, editable = false, onSave, onSendWhatsapp }) {
   const [saving, setSaving] = useState(false);
   const receiptRef = useRef(null);
+  const [paperMm, setPaperMm] = useState(() => Number(localStorage.getItem('pos_paper_mm')) || 80);
+  const [pageHeightMm, setPageHeightMm] = useState(300);
 
   const isSameState = invoice ? (invoice.isSameState !== undefined ? invoice.isSameState : true) : true;
 
@@ -133,8 +135,19 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const totalDiscountAmount = items.reduce((s, i) => s + (Number(i.discountAmount) || 0), 0);
   const hasDiscount = totalDiscountAmount > 0;
 
+  // Items ke hisab se font zoom: kam items = bada font, zyada = thoda chhota
+  const usableMm = paperMm * 0.92;
+  const lineCount = items.length;
+  const baseZoom = lineCount <= 3 ? 1.5 : lineCount <= 6 ? 1.35 : lineCount <= 10 ? 1.2 : lineCount <= 15 ? 1.1 : 1;
+  const zoom = paperMm < 70 ? baseZoom * 0.85 : baseZoom;
+
   const handlePrint = () => {
-    window.print();
+    const el = receiptRef.current;
+    if (el) {
+      const hPx = el.getBoundingClientRect().height;
+      setPageHeightMm(Math.ceil(hPx / 3.7795) + 8); // px -> mm + thoda margin
+    }
+    setTimeout(() => window.print(), 200);
   };
 
   // ── Edit-mode field handlers ──
@@ -264,10 +277,11 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                (58mm/80mm) ya printer ka offset kisi bhi side ho, dono
                taraf ~4% guaranteed blank buffer milega, akshar kabhi
                nahi katega. */
-            width: 92% !important;
-            max-width: 92% !important;
+            width: ${usableMm / zoom}mm !important;
+            max-width: none !important;
             margin: 0 auto !important;
-            padding: 2mm !important;
+            padding: 1mm !important;
+            zoom: ${zoom} !important;
             box-shadow: none !important;
             border: none !important;
             color: #000 !important;
@@ -292,7 +306,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
              configured" — this is the actual fix for cutting on non-80mm
              rolls. Do NOT hardcode a mm value here. */
           @page {
-            size: auto;
+            size: ${paperMm}mm ${pageHeightMm}mm;
             margin: 0;
           }
         }
@@ -327,7 +341,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             <div
               ref={receiptRef}
               id="thermal-receipt-printable"
-              style={{ width: RECEIPT_WIDTH, maxWidth: '80mm' }}
+              style={{ width: `${usableMm / zoom}mm`, zoom }}
               className="bg-white text-black font-mono text-[11px] leading-tight p-3 shadow-md rounded-sm border border-dashed border-ink-300 print:shadow-none print:border-none print:m-0 print:p-1"
             >
               {/* Store Header */}
@@ -558,6 +572,15 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
                       jaata tha. Ab yeh button sirf tabhi dikhta hai jab
                       customer ka mobile number diya gaya ho, aur click
                       karne par hi WhatsApp tab khulega — koi auto-send nahi. */}
+                  <select
+                    value={paperMm}
+                    onChange={(e) => { const v = Number(e.target.value); setPaperMm(v); localStorage.setItem('pos_paper_mm', String(v)); }}
+                    className="input text-xs py-2 w-24"
+                    title="Paper width"
+                  >
+                    <option value={80}>80mm</option>
+                    <option value={58}>58mm</option>
+                  </select>
                   {invoice?.buyer?.contact && onSendWhatsapp && (
                     <button
                       onClick={onSendWhatsapp}
