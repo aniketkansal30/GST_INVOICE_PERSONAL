@@ -444,7 +444,9 @@ const gst = mrpTotal - base;
         'jharkhand': '20', 'odisha': '21', 'chhattisgarh': '22', 'madhya pradesh': '23',
         'gujarat': '24', 'dadra and nagar haveli': '26', 'maharashtra': '27',
         'andhra pradesh': '28', 'karnataka': '29', 'goa': '30', 'kerala': '32',
-        'tamil nadu': '33', 'telangana': '36',
+        'tamil nadu': '33', 'puducherry': '34', 'andaman and nicobar islands': '35',
+        'telangana': '36', 'ladakh': '38',
+        'lakshadweep': '31', 'daman and diu': '26',
       };
       return map[(stateName || '').toLowerCase()];
     };
@@ -547,7 +549,7 @@ const gst = mrpTotal - base;
     const hsnInvoiceSeen = {}; // `${hsn}|${invoiceNumber}` — cnt ab unique invoices ginta hai, item-lines nahi
     filtered.forEach(inv => {
       (inv.items || []).forEach(item => {
-        const key = item.hsn || 'NOHSN';
+        const key = `${item.hsn || 'NOHSN'}|${Number(item.gstPct) || 0}`;
         if (!hsnMap[key]) hsnMap[key] = {
           hsn_sc: item.hsn || '',
           desc: item.name || '',
@@ -590,10 +592,14 @@ const gst = mrpTotal - base;
     };
 
     // ── GSTR-1 JSON Envelope ───────────────────────────────────────────────
-    const month = selectedMonth || new Date().getMonth() + 1;
-    const year = selectedYear || new Date().getFullYear();
-    // GST return period format: MMyyyy e.g. "042025" for April 2025
-    const fp = `${String(month).padStart(2, '0')}${year}`;
+    // GST return period (MMyyyy) ab bills ki asli date se nikalta hai, dropdown se nahi
+    const periods = new Set(filtered.map(inv => {
+      const d = new Date(inv.invoiceDate);
+      return `${String(d.getMonth() + 1).padStart(2, '0')}${d.getFullYear()}`;
+    }));
+    if (periods.size === 0) return alert('Is date range mein koi bill nahi hai');
+    if (periods.size > 1) return alert('GSTR-1 ek mahine ka hota hai. Date range ek hi mahine ki rakho (This Month ya Custom).');
+    const fp = [...periods][0];
 
     const gstr1 = {
       gstin: DEFAULT_STORE_DETAILS.gstNumber,
@@ -631,8 +637,7 @@ const gst = mrpTotal - base;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const monthLabel = selectedMonth ? months.find(m => m.value === selectedMonth)?.label : 'All';
-    a.download = `GSTR1_${monthLabel}_${year}.json`;
+    a.download = `GSTR1_${fp}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

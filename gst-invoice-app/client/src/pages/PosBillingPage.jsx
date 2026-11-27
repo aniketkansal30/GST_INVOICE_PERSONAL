@@ -61,6 +61,7 @@ export default function PosBillingPage() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const barcodeInputRef = useRef(null);
+  const keyHandlerRef = useRef(null);
 
   // Cart / Bill Items
   const [cart, setCart] = useState([]);
@@ -144,33 +145,9 @@ export default function PosBillingPage() {
     focusBarcodeInput();
     loadAllProducts();
 
-    const handleKeyDown = (e) => {
-      // F2 -> Print / Complete Bill (or Update Bill in edit mode)
-      if (e.key === 'F2') {
-        e.preventDefault();
-        handleSubmitBill();
-      }
-      // F3 -> Search Catalogue
-      if (e.key === 'F3') {
-        e.preventDefault();
-        setShowCatalogue(true);
-      }
-      // F4 -> Quick Customer Toggle
-      if (e.key === 'F4') {
-        e.preventDefault();
-        setShowCustomerFields(prev => !prev);
-      }
-      // Esc -> Clear / Close
-      if (e.key === 'Escape') {
-        if (showCatalogue) setShowCatalogue(false);
-        else if (quickAddModal) setQuickAddModal(false);
-        else if (showReceiptModal) setShowReceiptModal(false);
-        else focusBarcodeInput();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    const h = (e) => keyHandlerRef.current && keyHandlerRef.current(e);
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
   }, []);
 
   // Held carts persistence (moved here from inside the JSX return, where a
@@ -656,6 +633,7 @@ export default function PosBillingPage() {
   // 7. SAVE BILL — creates a new POS sale, or (in edit mode) updates the
   // existing invoice loaded above, instead of always creating a new one.
   const handleSubmitBill = async () => {
+    if (completing) return;
     if (cart.length === 0) {
       toast.error('Scan or add at least one clothing item to print bill', { id: 'empty-cart' });
       focusBarcodeInput();
@@ -743,6 +721,19 @@ export default function PosBillingPage() {
       toast.error(err.response?.data?.message || (isEditMode ? 'Error updating bill' : 'Error creating POS bill'));
     } finally {
       setCompleting(false);
+    }
+  };
+
+  // Har render pe fresh handler, taaki F2/F3/Esc ko latest cart aur modal state mile
+  keyHandlerRef.current = (e) => {
+    if (e.key === 'F2') { e.preventDefault(); handleSubmitBill(); }
+    if (e.key === 'F3') { e.preventDefault(); setShowCatalogue(true); }
+    if (e.key === 'F4') { e.preventDefault(); setShowCustomerFields(prev => !prev); }
+    if (e.key === 'Escape') {
+      if (showCatalogue) setShowCatalogue(false);
+      else if (quickAddModal) setQuickAddModal(false);
+      else if (showReceiptModal) setShowReceiptModal(false);
+      else focusBarcodeInput();
     }
   };
 

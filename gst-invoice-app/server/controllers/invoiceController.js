@@ -102,7 +102,8 @@ exports.createInvoice = async (req, res) => {
     const nextNumber = await computeNextInvoiceNumber(req.user._id);
     const invoiceNumber = req.body.invoiceNumber || nextNumber;
 
-    const invoiceData = { ...req.body, invoiceNumber, user: req.user._id };
+    const { _id, user, ...body } = req.body;
+    const invoiceData = { ...body, invoiceNumber, user: req.user._id };
 
     const payments = Array.isArray(invoiceData.payments) ? invoiceData.payments : [];
     invoiceData.amountPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
@@ -118,38 +119,8 @@ exports.createInvoice = async (req, res) => {
 
     const invoice = await Invoice.create(invoiceData);
 
-    // Stock auto deduct
-    for (const item of req.body.items || []) {
-      if (item.name || item.barcode || item.productId) {
-        let product = null;
-        if (item.productId) {
-          product = await Product.findOne({ _id: item.productId, user: req.user._id });
-        }
-        if (!product && item.barcode && item.barcode.trim()) {
-          product = await Product.findOne({ user: req.user._id, barcode: item.barcode.trim() });
-        }
-        if (!product && item.name) {
-          product = await Product.findOne({
-            user: req.user._id,
-            name: { $regex: new RegExp(`^${item.name.trim()}$`, 'i') },
-          });
-        }
-
-        if (product) {
-          const qtyDeducted = Number(item.qty) || 0;
-          product.currentStock -= qtyDeducted;
-          await product.save();
-          await StockTransaction.create({
-            user: req.user._id,
-            product: product._id,
-            type: 'SALE',
-            qty: -qtyDeducted,
-            note: `POS Bill ${invoiceNumber}`,
-            invoiceId: invoice._id,
-          });
-        }
-      }
-    }
+    // Stock auto deduct (regex-safe helper se)
+    await applyStock(req.user._id, invoice.items, -1, `POS Bill ${invoiceNumber}`, invoice._id);
 
     res.status(201).json(invoice);
   } catch (err) {
@@ -287,7 +258,7 @@ exports.updateInvoice = async (req, res) => {
 
     const invoice = await Invoice.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
-      req.body,
+      (({ _id, user, invoiceNumber, ...rest }) => rest)(req.body),
       { new: true, runValidators: true }
     );
 
