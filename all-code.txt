@@ -553,6 +553,8 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const zoom = paperMm < 70 ? baseZoom * 0.9 : baseZoom;
 
     const handlePrint = () => {
+    setTimeout(() => window.print(), 300);
+  };
     const el = receiptRef.current;
     if (el) {
       // Print jaisi styling lagake (zoom 1, same padding/bold) asli height naapo
@@ -696,8 +698,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             width: 100% !important;
           }
           #thermal-receipt-printable {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
+
             position: static !important;
             /* â”€â”€ SAFE-MARGIN FIX â”€â”€
                Pehle width:100% + sirf left padding se try kiya tha, lekin
@@ -737,7 +738,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
              configured" â€” this is the actual fix for cutting on non-80mm
              rolls. Do NOT hardcode a mm value here. */
           @page {
-            size: ${paperMm}mm ${pageHeightMm}mm;
+            size: auto;
             /* ek hi page, koi extra page nahi */
             margin: 0;
           }
