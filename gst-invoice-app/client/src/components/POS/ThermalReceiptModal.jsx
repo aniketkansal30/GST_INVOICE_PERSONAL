@@ -143,28 +143,53 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const baseZoom = 1.0;
   const zoom = paperMm < 70 ? baseZoom * 0.9 : baseZoom;
 
-      const handlePrint = () => {
+      const handlePrint = async () => {
     const el = receiptRef.current;
-    if (el) {
-      // Receipt ka clone banao, print jaisi styling ke saath, screen ke bahar
-      const clone = el.cloneNode(true);
-      clone.id = 'thermal-measure-clone';
-      clone.classList.add('print-measure');
-      clone.style.cssText = `
-        position: fixed; left: -9999px; top: 0;
-        width: ${usableMm / zoom}mm; zoom: ${zoom};
-        padding: 2mm; box-sizing: border-box; border: none;
-        font-weight: 600;
-      `;
-      document.body.appendChild(clone);
-      const hPx = clone.getBoundingClientRect().height;
-      document.body.removeChild(clone);
+    if (!el) return;
 
-      // px -> mm. Chrome ke print me thoda sa extra (rounding) ke liye sirf +4mm
-      const mm = (hPx * zoom) / 3.7795;
-      flushSync(() => setPageHeightMm(Math.ceil(mm) + 4));
-    }
-    setTimeout(() => window.print(), 200);
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${paperMm}mm;height:10px;border:0;`;
+    document.body.appendChild(iframe);
+
+    // app ki saari CSS (Tailwind + fonts) iframe me copy, portal ki apni print CSS chhod ke
+    const headStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .filter((n) => !n.closest('#thermal-print-portal'))
+      .map((n) => n.outerHTML)
+      .join('');
+
+    const doc = iframe.contentDocument;
+    const loaded = new Promise((r) => { iframe.onload = r; setTimeout(r, 1500); });
+    doc.open();
+    doc.write(`<!doctype html><html><head>${headStyles}<style>
+      html,body{margin:0;padding:0;background:#fff;}
+      body{width:${paperMm}mm;}
+      #rc{width:${usableMm}mm;margin:0 auto;padding:2mm;box-sizing:border-box;
+          background:#fff;color:#000;zoom:${zoom};filter:contrast(1.4);}
+      #rc *{color:#000 !important;box-sizing:border-box;font-weight:600 !important;}
+      #rc strong,#rc .font-bold{font-weight:900 !important;}
+      .no-print{display:none !important;}
+    </style></head><body>
+      <div id="rc" class="font-mono text-[11px] leading-tight">${el.innerHTML}</div>
+    </body></html>`);
+    doc.close();
+
+    await loaded;
+    try { await doc.fonts.ready; } catch (e) {}
+
+    // asli height (isi layout me print hoga)
+    const hPx = doc.documentElement.scrollHeight;
+    const hMm = Math.ceil(hPx / 3.7795) + 2;
+
+    const pageStyle = doc.createElement('style');
+    pageStyle.textContent = `@page{size:${paperMm}mm ${hMm}mm;margin:0;}`;
+    doc.head.appendChild(pageStyle);
+
+    const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+    iframe.contentWindow.onafterprint = cleanup;
+    setTimeout(cleanup, 120000);
+
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
   };
 
   // ── Edit-mode field handlers ──
