@@ -5874,6 +5874,7 @@ export default function PosBillingPage() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const barcodeInputRef = useRef(null);
+  const keyHandlerRef = useRef(null);
 
   // Cart / Bill Items
   const [cart, setCart] = useState([]);
@@ -5957,33 +5958,9 @@ export default function PosBillingPage() {
     focusBarcodeInput();
     loadAllProducts();
 
-    const handleKeyDown = (e) => {
-      // F2 -> Print / Complete Bill (or Update Bill in edit mode)
-      if (e.key === 'F2') {
-        e.preventDefault();
-        handleSubmitBill();
-      }
-      // F3 -> Search Catalogue
-      if (e.key === 'F3') {
-        e.preventDefault();
-        setShowCatalogue(true);
-      }
-      // F4 -> Quick Customer Toggle
-      if (e.key === 'F4') {
-        e.preventDefault();
-        setShowCustomerFields(prev => !prev);
-      }
-      // Esc -> Clear / Close
-      if (e.key === 'Escape') {
-        if (showCatalogue) setShowCatalogue(false);
-        else if (quickAddModal) setQuickAddModal(false);
-        else if (showReceiptModal) setShowReceiptModal(false);
-        else focusBarcodeInput();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    const h = (e) => keyHandlerRef.current && keyHandlerRef.current(e);
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
   }, []);
 
   // Held carts persistence (moved here from inside the JSX return, where a
@@ -6469,6 +6446,7 @@ export default function PosBillingPage() {
   // 7. SAVE BILL â€” creates a new POS sale, or (in edit mode) updates the
   // existing invoice loaded above, instead of always creating a new one.
   const handleSubmitBill = async () => {
+    if (completing) return;
     if (cart.length === 0) {
       toast.error('Scan or add at least one clothing item to print bill', { id: 'empty-cart' });
       focusBarcodeInput();
@@ -6556,6 +6534,19 @@ export default function PosBillingPage() {
       toast.error(err.response?.data?.message || (isEditMode ? 'Error updating bill' : 'Error creating POS bill'));
     } finally {
       setCompleting(false);
+    }
+  };
+
+  // Har render pe fresh handler, taaki F2/F3/Esc ko latest cart aur modal state mile
+  keyHandlerRef.current = (e) => {
+    if (e.key === 'F2') { e.preventDefault(); handleSubmitBill(); }
+    if (e.key === 'F3') { e.preventDefault(); setShowCatalogue(true); }
+    if (e.key === 'F4') { e.preventDefault(); setShowCustomerFields(prev => !prev); }
+    if (e.key === 'Escape') {
+      if (showCatalogue) setShowCatalogue(false);
+      else if (quickAddModal) setQuickAddModal(false);
+      else if (showReceiptModal) setShowReceiptModal(false);
+      else focusBarcodeInput();
     }
   };
 
@@ -7850,7 +7841,9 @@ const gst = mrpTotal - base;
         'jharkhand': '20', 'odisha': '21', 'chhattisgarh': '22', 'madhya pradesh': '23',
         'gujarat': '24', 'dadra and nagar haveli': '26', 'maharashtra': '27',
         'andhra pradesh': '28', 'karnataka': '29', 'goa': '30', 'kerala': '32',
-        'tamil nadu': '33', 'telangana': '36',
+        'tamil nadu': '33', 'puducherry': '34', 'andaman and nicobar islands': '35',
+        'telangana': '36', 'ladakh': '38',
+        'lakshadweep': '31', 'daman and diu': '26',
       };
       return map[(stateName || '').toLowerCase()];
     };
@@ -7953,7 +7946,7 @@ const gst = mrpTotal - base;
     const hsnInvoiceSeen = {}; // `${hsn}|${invoiceNumber}` — cnt ab unique invoices ginta hai, item-lines nahi
     filtered.forEach(inv => {
       (inv.items || []).forEach(item => {
-        const key = item.hsn || 'NOHSN';
+        const key = `${item.hsn || 'NOHSN'}|${Number(item.gstPct) || 0}`;
         if (!hsnMap[key]) hsnMap[key] = {
           hsn_sc: item.hsn || '',
           desc: item.name || '',
@@ -7996,10 +7989,14 @@ const gst = mrpTotal - base;
     };
 
     // ── GSTR-1 JSON Envelope ───────────────────────────────────────────────
-    const month = selectedMonth || new Date().getMonth() + 1;
-    const year = selectedYear || new Date().getFullYear();
-    // GST return period format: MMyyyy e.g. "042025" for April 2025
-    const fp = `${String(month).padStart(2, '0')}${year}`;
+    // GST return period (MMyyyy) ab bills ki asli date se nikalta hai, dropdown se nahi
+    const periods = new Set(filtered.map(inv => {
+      const d = new Date(inv.invoiceDate);
+      return `${String(d.getMonth() + 1).padStart(2, '0')}${d.getFullYear()}`;
+    }));
+    if (periods.size === 0) return alert('Is date range mein koi bill nahi hai');
+    if (periods.size > 1) return alert('GSTR-1 ek mahine ka hota hai. Date range ek hi mahine ki rakho (This Month ya Custom).');
+    const fp = [...periods][0];
 
     const gstr1 = {
       gstin: DEFAULT_STORE_DETAILS.gstNumber,
@@ -8037,8 +8034,7 @@ const gst = mrpTotal - base;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const monthLabel = selectedMonth ? months.find(m => m.value === selectedMonth)?.label : 'All';
-    a.download = `GSTR1_${monthLabel}_${year}.json`;
+    a.download = `GSTR1_${fp}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -10162,7 +10158,8 @@ exports.createInvoice = async (req, res) => {
     const nextNumber = await computeNextInvoiceNumber(req.user._id);
     const invoiceNumber = req.body.invoiceNumber || nextNumber;
 
-    const invoiceData = { ...req.body, invoiceNumber, user: req.user._id };
+    const { _id, user, ...body } = req.body;
+    const invoiceData = { ...body, invoiceNumber, user: req.user._id };
 
     const payments = Array.isArray(invoiceData.payments) ? invoiceData.payments : [];
     invoiceData.amountPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
@@ -10178,38 +10175,8 @@ exports.createInvoice = async (req, res) => {
 
     const invoice = await Invoice.create(invoiceData);
 
-    // Stock auto deduct
-    for (const item of req.body.items || []) {
-      if (item.name || item.barcode || item.productId) {
-        let product = null;
-        if (item.productId) {
-          product = await Product.findOne({ _id: item.productId, user: req.user._id });
-        }
-        if (!product && item.barcode && item.barcode.trim()) {
-          product = await Product.findOne({ user: req.user._id, barcode: item.barcode.trim() });
-        }
-        if (!product && item.name) {
-          product = await Product.findOne({
-            user: req.user._id,
-            name: { $regex: new RegExp(`^${item.name.trim()}$`, 'i') },
-          });
-        }
-
-        if (product) {
-          const qtyDeducted = Number(item.qty) || 0;
-          product.currentStock -= qtyDeducted;
-          await product.save();
-          await StockTransaction.create({
-            user: req.user._id,
-            product: product._id,
-            type: 'SALE',
-            qty: -qtyDeducted,
-            note: `POS Bill ${invoiceNumber}`,
-            invoiceId: invoice._id,
-          });
-        }
-      }
-    }
+    // Stock auto deduct (regex-safe helper se)
+    await applyStock(req.user._id, invoice.items, -1, `POS Bill ${invoiceNumber}`, invoice._id);
 
     res.status(201).json(invoice);
   } catch (err) {
@@ -10347,7 +10314,7 @@ exports.updateInvoice = async (req, res) => {
 
     const invoice = await Invoice.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
-      req.body,
+      (({ _id, user, invoiceNumber, ...rest }) => rest)(req.body),
       { new: true, runValidators: true }
     );
 

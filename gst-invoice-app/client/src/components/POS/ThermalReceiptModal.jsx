@@ -138,8 +138,10 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   // Items ke hisab se font zoom: kam items = bada font, zyada = thoda chhota
   const usableMm = paperMm * 0.92;
   const lineCount = items.length;
-  const baseZoom = lineCount <= 3 ? 1.7 : lineCount <= 6 ? 1.55 : lineCount <= 10 ? 1.4 : lineCount <= 15 ? 1.25 : 1.15;
-  const zoom = paperMm < 70 ? baseZoom * 0.85 : baseZoom;
+  // Zoom ab chhota hai: font readable rahe par bill lamba na ho.
+  // Kam items = thoda bada, zyada items = normal size.
+  const baseZoom = lineCount <= 3 ? 1.1 : lineCount <= 8 ? 1.05 : 1.0;
+  const zoom = paperMm < 70 ? baseZoom * 0.9 : baseZoom;
 
   const handlePrint = () => {
     const el = receiptRef.current;
@@ -154,7 +156,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
       el.style.zoom = prevZoom;
 
       const mm = (hPx * zoom) / 3.7795;
-      setPageHeightMm(Math.ceil(mm * 1.06) + 12); // 6% + 12mm safety
+      setPageHeightMm(Math.ceil(mm * 1.02) + 6); // 2% + 6mm safety
     }
     setTimeout(() => window.print(), 400);
   };
