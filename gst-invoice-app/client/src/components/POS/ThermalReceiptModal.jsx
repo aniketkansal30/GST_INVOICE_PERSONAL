@@ -156,7 +156,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
 
       // px -> mm, phir zoom se multiply. Bachat sirf 3mm: neeche lagbhag koi waste nahi
       const mm = (hPx * zoom) / 3.7795;
-      setPageHeightMm(Math.ceil(mm * 1.3) + 6);
+      setPageHeightMm(Math.ceil(mm * 1.22) + 3);
     }
     setTimeout(() => window.print(), 400);
   };
