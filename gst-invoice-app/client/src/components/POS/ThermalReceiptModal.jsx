@@ -136,18 +136,17 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const hasDiscount = totalDiscountAmount > 0;
 
   // Items ke hisab se font zoom: kam items = bada font, zyada = thoda chhota
-  const usableMm = paperMm * 0.92;
+  const usableMm = paperMm * 0.86;
   const lineCount = items.length;
   // Zoom ab chhota hai: font readable rahe par bill lamba na ho.
   // Kam items = thoda bada, zyada items = normal size.
   const baseZoom = lineCount <= 3 ? 1.1 : lineCount <= 8 ? 1.05 : 1.0;
   const zoom = paperMm < 70 ? baseZoom * 0.9 : baseZoom;
 
-  const handlePrint = () => {
+    const handlePrint = () => {
     const el = receiptRef.current;
     if (el) {
-      // zoom hata ke (print jaisi bold styling ke saath) asli layout height naapo,
-      // phir zoom se multiply karo -> item count kuch bhi ho, height sahi aayegi
+      // Print jaisi styling lagake (zoom 1, same padding/bold) asli height naapo
       const prevZoom = el.style.zoom;
       el.style.zoom = '1';
       el.classList.add('print-measure');
@@ -155,8 +154,9 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
       el.classList.remove('print-measure');
       el.style.zoom = prevZoom;
 
+      // px -> mm, phir zoom se multiply. Bachat sirf 3mm: neeche lagbhag koi waste nahi
       const mm = (hPx * zoom) / 3.7795;
-      setPageHeightMm(Math.ceil(mm * 1.02) + 6); // 2% + 6mm safety
+      setPageHeightMm(Math.ceil(mm) + 3);
     }
     setTimeout(() => window.print(), 400);
   };
@@ -232,6 +232,8 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const modalContent = (
     <div id="thermal-print-portal">
       <style>{`
+        .print-measure { padding: 1mm !important; }
+        .print-measure { padding: 2mm !important; border: none !important; }
         .print-measure * { font-weight: 600 !important; }
         .print-measure strong, .print-measure .font-bold { font-weight: 900 !important; }
         @media print {
@@ -293,7 +295,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
             width: ${usableMm / zoom}mm !important;
             max-width: none !important;
             margin: 0 auto !important;
-            padding: 1mm !important;
+            padding: 2mm !important;
             zoom: ${zoom} !important;
             box-shadow: none !important;
             border: none !important;
