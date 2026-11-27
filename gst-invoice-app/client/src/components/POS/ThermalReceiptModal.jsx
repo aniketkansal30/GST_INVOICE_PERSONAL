@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { Printer, X, Download, Check, Sparkles, Save, Trash2, Plus, Minus, MessageCircle } from 'lucide-react';
 import { formatCurrency, formatDate, DEFAULT_STORE_DETAILS } from '../../utils/invoiceUtils';
 
@@ -143,22 +143,28 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const baseZoom = 1.0;
   const zoom = paperMm < 70 ? baseZoom * 0.9 : baseZoom;
 
-    const handlePrint = () => {
+      const handlePrint = () => {
     const el = receiptRef.current;
     if (el) {
-      // Print jaisi styling lagake (zoom 1, same padding/bold) asli height naapo
-      const prevZoom = el.style.zoom;
-      el.style.zoom = '1';
-      el.classList.add('print-measure');
-      const hPx = el.getBoundingClientRect().height;
-      el.classList.remove('print-measure');
-      el.style.zoom = prevZoom;
+      // Receipt ka clone banao, print jaisi styling ke saath, screen ke bahar
+      const clone = el.cloneNode(true);
+      clone.id = 'thermal-measure-clone';
+      clone.classList.add('print-measure');
+      clone.style.cssText = `
+        position: fixed; left: -9999px; top: 0;
+        width: ${usableMm / zoom}mm; zoom: ${zoom};
+        padding: 2mm; box-sizing: border-box; border: none;
+        font-weight: 600;
+      `;
+      document.body.appendChild(clone);
+      const hPx = clone.getBoundingClientRect().height;
+      document.body.removeChild(clone);
 
-      // px -> mm, phir zoom se multiply. Bachat sirf 3mm: neeche lagbhag koi waste nahi
+      // px -> mm. Chrome ke print me thoda sa extra (rounding) ke liye sirf +4mm
       const mm = (hPx * zoom) / 3.7795;
-      setPageHeightMm(Math.ceil(mm * 1.25) + 6);
+      flushSync(() => setPageHeightMm(Math.ceil(mm) + 4));
     }
-    setTimeout(() => window.print(), 400);
+    setTimeout(() => window.print(), 200);
   };
 
   // ── Edit-mode field handlers ──
