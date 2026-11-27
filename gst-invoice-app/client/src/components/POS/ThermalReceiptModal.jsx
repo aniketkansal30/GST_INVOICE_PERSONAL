@@ -140,7 +140,7 @@ export default function ThermalReceiptModal({ invoice, user, onClose, autoPrint 
   const lineCount = items.length;
   // Zoom ab chhota hai: font readable rahe par bill lamba na ho.
   // Kam items = thoda bada, zyada items = normal size.
-  const baseZoom = lineCount <= 3 ? 1.1 : lineCount <= 8 ? 1.05 : 1.0;
+  const baseZoom = 1.0;
   const zoom = paperMm < 70 ? baseZoom * 0.9 : baseZoom;
 
     const handlePrint = () => {
